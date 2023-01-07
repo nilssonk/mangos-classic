@@ -1123,11 +1123,15 @@ void GameEventMgr::ComputeEventStartAndEndTime(GameEventData& data, time_t today
     const tm* t = localtime(&curTime);
     switch (data.scheduleType)
     {
+        case GAME_EVENT_SCHEDULE_SERVERSIDE: [[fallthrough]];
+        case GAME_EVENT_SCHEDULE_DATE:
+        // Do nothing
+        break;
         case GAME_EVENT_SCHEDULE_DMF_1:
         case GAME_EVENT_SCHEDULE_DMF_2:
         case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_1:
         case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_2:
-        case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1:
+        case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1: [[fallthrough]];
         case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_2:
         {
             tm firstMonday = *t;
@@ -1138,10 +1142,10 @@ void GameEventMgr::ComputeEventStartAndEndTime(GameEventData& data, time_t today
             switch (data.scheduleType)
             {
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_1:
-                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1:
+                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1: [[fallthrough]];
                 case GAME_EVENT_SCHEDULE_DMF_1: firstMonday.tm_mon += (3 - monthRemainder) % 3; break; // 0 2 1 - x + 3 - 3
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_2:
-                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_2:
+                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_2:[[fallthrough]];
                 case GAME_EVENT_SCHEDULE_DMF_2: firstMonday.tm_mon += (3 - monthRemainder + 1) % 3; break; // 1 0 2 - x + 3 - 2
                 default: break;
             }
@@ -1149,20 +1153,20 @@ void GameEventMgr::ComputeEventStartAndEndTime(GameEventData& data, time_t today
             firstMonday.tm_mday = (firstMonday.tm_mday - 1 - (firstMonday.tm_wday - 1) + 7) % 7 + 1; // get this weeks monday
             switch (data.scheduleType)
             {
-                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_1:
+                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_1: [[fallthrough]];
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_2: firstMonday.tm_mday -= 2; break;
-                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1:
+                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1: [[fallthrough]];
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_2: firstMonday.tm_mday -= 1; break;
                 default: break;
             }
             data.start = mktime(&firstMonday);
             switch (data.scheduleType)
             {
-                case GAME_EVENT_SCHEDULE_DMF_1:
+                case GAME_EVENT_SCHEDULE_DMF_1: [[fallthrough]];
                 case GAME_EVENT_SCHEDULE_DMF_2: firstMonday.tm_mday += 7; break;
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_1:
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_1_2:
-                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1:
+                case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1: [[fallthrough]];
                 case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_2: firstMonday.tm_mday += 1; break;
                 default: break;
             }
@@ -1243,7 +1247,7 @@ void GameEventMgr::WeeklyEventTimerRecalculation()
             case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_1:
             case GAME_EVENT_SCHEDULE_DMF_BUILDING_STAGE_2_2:
             case GAME_EVENT_SCHEDULE_YEARLY:
-            case GAME_EVENT_SCHEDULE_LUNAR_NEW_YEAR:
+            case GAME_EVENT_SCHEDULE_LUNAR_NEW_YEAR: [[fallthrough]];
             case GAME_EVENT_SCHEDULE_EASTER:
                 ComputeEventStartAndEndTime(gameEvent, time(nullptr));
                 break;
