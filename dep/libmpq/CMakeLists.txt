@@ -29,6 +29,8 @@ target_include_directories(mpqlib
   PRIVATE ${BZIP2_INCLUDE_DIRS}
 )
 
+configure_lto(mpqlib)
+
 if(MSVC)
   target_compile_options(mpqlib PRIVATE /wd4103)
   target_include_directories(mpqlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/win)

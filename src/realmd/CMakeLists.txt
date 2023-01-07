@@ -40,6 +40,8 @@ target_link_libraries(${EXECUTABLE_NAME}
   shared
 )
 
+configure_lto(${EXECUTABLE_NAME})
+
 if(WIN32)
   if(MSVC)
     target_link_libraries(${EXECUTABLE_NAME}

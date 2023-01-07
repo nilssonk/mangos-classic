@@ -51,6 +51,7 @@ else()
   add_library(zlib INTERFACE)
   target_include_directories(zlib INTERFACE ${ZLIB_INCLUDE_DIRS})
   target_link_libraries(zlib INTERFACE ${ZLIB_LIBRARIES})
+  configure_lto(zlib)
 endif()
 
 if (BUILD_GAME_SERVER OR BUILD_LOGIN_SERVER)

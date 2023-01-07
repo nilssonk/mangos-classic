@@ -34,6 +34,8 @@ target_include_directories(${BZIP2_LIBRARIES}
   INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+configure_lto(${BZIP2_LIBRARIES})
+
 if(MSVC)
   set_target_properties(${BZIP2_LIBRARIES} PROPERTIES FOLDER "Dependencies")
 endif()

@@ -31,6 +31,8 @@ target_include_directories(recast
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Include"
 )
 
+configure_lto(recast)
+
 if(MSVC)
   # Put this lib in dependencies category
   set_target_properties(recast PROPERTIES FOLDER "Dependencies")

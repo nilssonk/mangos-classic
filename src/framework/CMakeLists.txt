@@ -112,3 +112,5 @@ target_include_directories(${LIBRARY_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC ${Boost_INCLUDE_DIRS}
 )
+
+configure_lto(${LIBRARY_NAME})

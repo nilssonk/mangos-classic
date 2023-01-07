@@ -30,3 +30,4 @@ target_include_directories(${LIBRARY_NAME}
   INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+configure_lto(${LIBRARY_NAME})
