@@ -269,7 +269,7 @@ void WorldSession::HandleBattleGroundPlayerPositionsOpcode(WorldPacket& /*recv_d
             SendPacket(data);
             break;
         }
-        case BATTLEGROUND_AB:
+        case BATTLEGROUND_AB: [[fallthrough]];
         case BATTLEGROUND_AV:
         {
             // for other BG types - send default
@@ -279,6 +279,9 @@ void WorldSession::HandleBattleGroundPlayerPositionsOpcode(WorldPacket& /*recv_d
             SendPacket(data);
             break;
         }
+        case BATTLEGROUND_TYPE_NONE:
+        // Do nothing
+        break;
     }
 }
 
