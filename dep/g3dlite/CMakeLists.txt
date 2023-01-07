@@ -133,6 +133,8 @@ target_include_directories(${LIBRARY_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+configure_lto(${LIBRARY_NAME})
+
 if(MSVC)
   set_target_properties(${LIBRARY_NAME} PROPERTIES FOLDER "Dependencies")
 endif()

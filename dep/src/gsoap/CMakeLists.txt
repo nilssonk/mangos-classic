@@ -34,6 +34,8 @@ target_include_directories(${LIBRARY_NAME}
   INTERFACE ${CMAKE_SOURCE_DIR}/dep/include/gsoap
 )
 
+configure_lto(${LIBRARY_NAME})
+
 if(MSVC)
   set_target_properties(${LIBRARY_NAME} PROPERTIES FOLDER "Dependencies")
 endif()
