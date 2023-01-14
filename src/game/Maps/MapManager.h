@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MANGOS_MAPMANAGER_H
-#define MANGOS_MAPMANAGER_H
+#ifndef MAPMANAGER_H
+#define MAPMANAGER_H
 
 #include "Common.h"
 #include "Platform/Define.h"
@@ -96,24 +96,24 @@ class MapManager : public MaNGOS::Singleton<MapManager, MaNGOS::ClassLevelLockab
         static bool ExistMapAndVMap(uint32 mapid, float x, float y);
         static bool IsValidMAP(uint32 mapid);
 
-        static bool IsValidMapCoord(uint32 mapid, float x, float y)
+        static bool IsValidMapCoord(uint32 mapid, Vec2 const& pos)
         {
-            return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(x, y);
+            return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(pos);
         }
 
-        static bool IsValidMapCoord(uint32 mapid, float x, float y, float z)
+        static bool IsValidMapCoord(uint32 mapid, Vec3 const& pos)
         {
-            return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(x, y, z);
+            return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(pos);
         }
 
-        static bool IsValidMapCoord(uint32 mapid, float x, float y, float z, float o)
+        static bool IsValidMapCoord(uint32 mapid, Vec4 const& pos)
         {
-            return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(x, y, z, o);
+            return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(pos);
         }
 
         static bool IsValidMapCoord(WorldLocation const& loc)
         {
-            return IsValidMapCoord(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z, loc.orientation);
+            return IsValidMapCoord(loc.mapid, loc.pos);
         }
 
         // modulos a radian orientation to the range of 0..2PI

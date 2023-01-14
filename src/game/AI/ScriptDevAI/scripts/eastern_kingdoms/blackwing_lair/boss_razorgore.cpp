@@ -27,6 +27,8 @@ EndScriptData
 #include "blackwing_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace bwl {
+
 enum
 {
     SAY_EGGS_BROKEN_1           = -1469022,
@@ -68,9 +70,9 @@ struct boss_razorgoreAI : public CombatAI
         m_creature->SetWalk(false);
         if (m_instance)
         {
-            m_creature->GetCombatManager().SetLeashingCheck([](Unit* unit, float x, float y, float z)
+            m_creature->GetCombatManager().SetLeashingCheck([](Unit const& u)
             {
-                return static_cast<ScriptedInstance*>(unit->GetInstanceData())->GetPlayerInMap(true, false) == nullptr;
+                return static_cast<ScriptedInstance*>(u.GetInstanceData())->GetPlayerInMap(true, false) == nullptr;
             });
         }
     }
@@ -165,7 +167,7 @@ struct npc_blackwing_orbAI : public ScriptedAI
         // If hit by Razorgore's fireball: explodes everything in the room
         if (spellInfo->Id == SPELL_FIREBALL)
         {
-            if (Creature* pTemp = m_creature->SummonCreature(NPC_ORB_DOMINATION, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), 0, TEMPSPAWN_TIMED_DESPAWN, 5 * IN_MILLISECONDS))
+            if (Creature* pTemp = m_creature->SummonCreature(NPC_ORB_DOMINATION, {m_creature->GetPosition().xyz(), 0.0f}, TempSpawnType::TIMED_DESPAWN, 5 * IN_MILLISECONDS))
                 DoScriptText(EMOTE_ORB_SHUT_OFF, pTemp);
             m_creature->CastSpell(m_creature, SPELL_EXPLODE_ORB, TRIGGERED_IGNORE_UNATTACKABLE_FLAG);
         }
@@ -319,3 +321,5 @@ void AddSC_boss_razorgore()
     RegisterSpellScript<PossessRazorgore>("spell_possess_razorgore");
     RegisterSpellScript<CalmDragonkin>("spell_calm_dragonkin");
 }
+
+} // namespace bwl

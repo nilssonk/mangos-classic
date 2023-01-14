@@ -490,9 +490,9 @@ void ElevatorTransport::Update(const uint32 /*diff*/)
     }
 }
 
-void GenericTransport::UpdatePosition(float x, float y, float z, float o)
+void GenericTransport::UpdatePosition(Position const& pos)
 {
-    Relocate(x, y, z, o);
+    Relocate(pos);
     UpdateModelPosition();
 
     UpdatePassengerPositions(m_passengers);
@@ -517,13 +517,9 @@ void GenericTransport::UpdatePassengerPosition(WorldObject* passenger)
 
     // Do not use Unit::UpdatePosition here, we don't want to remove auras
     // as if regular movement occurred
-    float x, y, z, o;
-    x = passengerUnit->GetTransOffsetX();
-    y = passengerUnit->GetTransOffsetY();
-    z = passengerUnit->GetTransOffsetZ();
-    o = passengerUnit->GetTransOffsetO();
-    CalculatePassengerPosition(x, y, z, &o);
-    if (!MaNGOS::IsValidMapCoord(x, y, z))
+    auto const transport_offset = passengerUnit->GetTransportOffset();
+    auto const passenger_pos = CalculatePassengerPosition(transport_offset);
+    if (!MaNGOS::IsValidMapCoord(passenger_pos))
     {
         sLog.outError("[TRANSPORTS] Object %s [guid %u] has invalid position on transport.", passenger->GetName(), passenger->GetGUIDLow());
         return;
@@ -534,19 +530,19 @@ void GenericTransport::UpdatePassengerPosition(WorldObject* passenger)
         {
             Creature* creature = dynamic_cast<Creature*>(passenger);
             if (passenger->IsInWorld())
-                GetMap()->CreatureRelocation(creature, x, y, z, o);
+                GetMap()->CreatureRelocation(creature, passenger_pos);
             else
-                passenger->Relocate(x, y, z, o);
+                passenger->Relocate(passenger_pos.xyz());
             creature->m_movementInfo.t_time = GetPathProgress();
             break;
         }
         case TYPEID_PLAYER:
             //relocate only passengers in world and skip any player that might be still logging in/teleporting
             if (passenger->IsInWorld())
-                GetMap()->PlayerRelocation(dynamic_cast<Player*>(passenger), x, y, z, o);
+                GetMap()->PlayerRelocation(dynamic_cast<Player*>(passenger), passenger_pos);
             else
             {
-                passenger->Relocate(x, y, z, o);
+                passenger->Relocate(passenger_pos);
                 dynamic_cast<Player*>(passenger)->m_movementInfo.t_guid = GetObjectGuid();
             }
             dynamic_cast<Player*>(passenger)->m_movementInfo.t_time = GetPathProgress();
@@ -562,33 +558,55 @@ void GenericTransport::UpdatePassengerPosition(WorldObject* passenger)
     }
 }
 
-void GenericTransport::CalculatePassengerOrientation(float& o) const
+float GenericTransport::CalculatePassengerOrientation(float o) const
 {
-    o = MapManager::NormalizeOrientation(GetOrientation() + o);
+    return MapManager::NormalizeOrientation(GetOrientation() + o);
 }
 
-void GenericTransport::CalculatePassengerPosition(float& x, float& y, float& z, float* o, float transX, float transY, float transZ, float transO)
+Position GenericTransport::CalculatePassengerPosition(Position const& pos, Position const& transport)
 {
-    float inx = x, iny = y, inz = z;
-    if (o)
-        *o = MapManager::NormalizeOrientation(transO + *o);
+    float const sin_w = std::sin(transport.w);
+    float const cos_w = std::cos(transport.w);
 
-    x = transX + inx * std::cos(transO) - iny * std::sin(transO);
-    y = transY + iny * std::cos(transO) + inx * std::sin(transO);
-    z = transZ + inz;
+    return {
+        transport.x + pos.x * cos_w - pos.y * sin_w,
+        transport.y + pos.y * cos_w + pos.x * sin_w,
+        transport.z,
+        MapManager::NormalizeOrientation(transport.w + pos.w)
+    };
 }
 
-void GenericTransport::CalculatePassengerOffset(float& x, float& y, float& z, float* o, float transX, float transY, float transZ, float transO)
+Position GenericTransport::CalculatePassengerOffset(Position const& pos, Position const& transport)
 {
-    if (o)
-        *o = MapManager::NormalizeOrientation(*o - transO);
+    // y = searchedY * std::cos(o) + searchedX * std::sin(o)
+    // x = searchedX * std::cos(o) + searchedY * std::sin(o + pi)
+    auto result = pos - transport;
+    result.w  = MapManager::NormalizeOrientation(result.w);
 
-    z -= transZ;
-    y -= transY;    // y = searchedY * std::cos(o) + searchedX * std::sin(o)
-    x -= transX;    // x = searchedX * std::cos(o) + searchedY * std::sin(o + pi)
-    float inx = x, iny = y;
-    y = (iny - inx * std::tan(transO)) / (std::cos(transO) + std::sin(transO) * std::tan(transO));
-    x = (inx + iny * std::tan(transO)) / (std::cos(transO) + std::sin(transO) * std::tan(transO));
+    float inx = result.x;
+    float iny = result.y;
+    float const tan_w = std::tan(transport.w);
+    float const denominator = (std::cos(transport.w) + std::sin(transport.w) * tan_w);
+    result.y = (iny - inx * tan_w) / denominator;
+    result.x = (inx + iny * tan_w) / denominator;
+
+    return result;
+}
+
+Vec3 GenericTransport::CalculatePassengerOffset(Vec3 const& pos, Position const& transport)
+{
+    // y = searchedY * std::cos(o) + searchedX * std::sin(o)
+    // x = searchedX * std::cos(o) + searchedY * std::sin(o + pi)
+    auto result = pos - transport.xyz();
+
+    float inx = result.x;
+    float iny = result.y;
+    float const tan_w = std::tan(transport.w);
+    float const denominator = (std::cos(transport.w) + std::sin(transport.w) * tan_w);
+    result.y = (iny - inx * tan_w) / denominator;
+    result.x = (inx + iny * tan_w) / denominator;
+
+    return result;
 }
 
 void Transport::UpdateForMap(Map const* targetMap, bool newMap)

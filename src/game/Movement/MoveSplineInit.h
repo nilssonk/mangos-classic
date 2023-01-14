@@ -120,7 +120,7 @@ namespace Movement
         if (generatePath)
         {
             PathFinder path(&unit);
-            path.calculate(dest.x, dest.y, dest.z, forceDestination);
+            path.calculate(dest, forceDestination);
             MovebyPath(path.getPath());
         }
         else

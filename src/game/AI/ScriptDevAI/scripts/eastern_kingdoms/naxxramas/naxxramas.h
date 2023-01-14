@@ -2,8 +2,8 @@
  * This program is free software licensed under GPL version 2
  * Please see the included DOCS/LICENSE.TXT for more information */
 
-#ifndef DEF_NAXXRAMAS_H
-#define DEF_NAXXRAMAS_H
+#ifndef NAXXRAMAS_H
+#define NAXXRAMAS_H
 
 enum
 {
@@ -236,23 +236,6 @@ struct GothTrigger
     int summonTypeFlag;
 };
 
-static const float sapphironPositions[4] = {3521.48f, -5234.87f, 137.626f, 4.53329f};
-
-struct SpawnLocation
-{
-    float m_fX, m_fY, m_fZ, m_fO;
-};
-
-// Used in Construct Quarter for the deadly blobs continuously spawning in Patchwerk corridor
-static const SpawnLocation livingPoisonPositions[6] =
-{
-    {3128.692f, -3119.211f, 293.346f, 4.725505f},
-    {3154.432f, -3125.669f, 293.408f, 4.456693f},
-    {3175.614f, -3134.716f, 293.282f, 4.244928f},
-    {3128.709f, -3157.404f, 293.3238f, 4.725505f},
-    {3145.881f, -3158.563f, 293.3216f, 4.456693f},
-    {3157.736f, -3164.859f, 293.2874f, 4.244928f},
-};
 
 class instance_naxxramas : public ScriptedInstance, private DialogueHelper
 {

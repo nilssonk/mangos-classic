@@ -184,7 +184,7 @@ struct ScriptedAI : public CreatureAI
         void DoPlaySoundToSet(WorldObject* source, uint32 soundId);
 
         // Teleports a player without dropping threat (only teleports to same map)
-        void DoTeleportPlayer(Unit* unit, float x, float y, float z, float ori);
+        void DoTeleportPlayer(Unit* unit, Position const& pos);
 
         // Returns a list of all friendly units missing a specific buff within range
         CreatureList DoFindFriendlyMissingBuff(float range, uint32 spellId, bool inCombat);

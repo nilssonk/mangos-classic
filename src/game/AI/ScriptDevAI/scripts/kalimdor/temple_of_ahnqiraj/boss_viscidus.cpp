@@ -28,6 +28,8 @@ EndScriptData
 #include "AI/ScriptDevAI/base/CombatAI.h"
 #include "Spells/Scripts/SpellScript.h"
 
+namespace {
+
 enum
 {
     // emotes
@@ -101,14 +103,9 @@ enum
     PHASE_SUICIDE               = 7,
 };
 
-static const uint32 auiGlobSummonSpells[MAX_VISCIDUS_GLOBS] = { 25865, 25866, 25867, 25868, 25869, 25870, 25871, 25872, 25873, 25874, 25875, 25876, 25877, 25878, 25879, 25880, 25881, 25882, 25883, 25884 };
+const uint32 auiGlobSummonSpells[MAX_VISCIDUS_GLOBS] = { 25865, 25866, 25867, 25868, 25869, 25870, 25871, 25872, 25873, 25874, 25875, 25876, 25877, 25878, 25879, 25880, 25881, 25882, 25883, 25884 };
 
-struct Location
-{
-    float m_fX, m_fY, m_fZ;
-};
-
-static const Location resetPoint = { -7992.0f, 1041.0f, -23.84f };
+const Vec3 resetPoint{ -7992.0f, 1041.0f, -23.84f };
 
 enum ViscidusActions
 {
@@ -120,6 +117,8 @@ enum ViscidusActions
     VISCIDUS_REJOIN,
 };
 
+} // namespace
+
 struct boss_viscidusAI : public CombatAI
 {
     boss_viscidusAI(Creature* creature) : CombatAI(creature, VISCIDUS_ACTION_MAX), m_instance(static_cast<ScriptedInstance*>(creature->GetInstanceData()))
@@ -129,9 +128,9 @@ struct boss_viscidusAI : public CombatAI
         AddCombatAction(VISCIDUS_POISON_BOLT_VOLLEY, 10000, 15000);
         AddCustomAction(VISCIDUS_EXPLODE, true, [&]() { HandleExplode(); });
         AddCustomAction(VISCIDUS_REJOIN, true, [&]() { HandleRejoin(); });
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit* unit, float x, float y, float z) -> bool
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const&)
         {
-            return m_creature->GetDistance(resetPoint.m_fX, resetPoint.m_fY, resetPoint.m_fZ, DIST_CALC_COMBAT_REACH) < 10.0f;
+            return m_creature->GetDistance(resetPoint, DIST_CALC_COMBAT_REACH) < 10.0f;
         });
     }
 
@@ -185,11 +184,11 @@ struct boss_viscidusAI : public CombatAI
         if (summoned->GetEntry() == NPC_GLOB_OF_VISCIDUS)
         {
             summoned->AI()->SetReactState(REACT_PASSIVE);
-            float x, y, z;
-            m_creature->GetRespawnCoord(x, y, z);
-            summoned->GetMotionMaster()->MovePoint(1, x, y, z);
+            auto const respawn_pos = m_creature->GetRespawnPosition();
+            summoned->GetMotionMaster()->MovePoint(1, respawn_pos.xyz());
             // Check if Glob already counted/added to list to prevent dual count due to hook being sometimes called twice
-            if (std::find(std::begin(m_lGlobesGuidList), std::end(m_lGlobesGuidList), summoned->GetObjectGuid()) == std::end(m_lGlobesGuidList))
+            auto const end = std::end(m_lGlobesGuidList);
+            if (std::find(std::begin(m_lGlobesGuidList), end, summoned->GetObjectGuid()) == end)
             {
                 ++m_aliveGlobs;
                 m_lGlobesGuidList.push_back(summoned->GetObjectGuid());

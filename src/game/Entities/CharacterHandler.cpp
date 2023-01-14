@@ -583,14 +583,12 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
         data << transportPosition.x;
         data << transportPosition.y;
         data << transportPosition.z;
-        data << transportPosition.o;
+        data << transportPosition.w;
     }
     else
     {
-        data << pCurrChar->GetPositionX();
-        data << pCurrChar->GetPositionY();
-        data << pCurrChar->GetPositionZ();
-        data << pCurrChar->GetOrientation();
+        auto const& pos = pCurrChar->GetPosition();
+        data << pos.x << pos.y << pos.z << pos.w;
     }
     SendPacket(data);
 
@@ -673,7 +671,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
         AreaTrigger const* at = sObjectMgr.GetGoBackTrigger(pCurrChar->GetMapId());
         if (at)
             lockStatus = pCurrChar->GetAreaTriggerLockStatus(at, miscRequirement);
-        if (!at || lockStatus != AREA_LOCKSTATUS_OK || !pCurrChar->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, pCurrChar->GetOrientation()))
+        if (!at || lockStatus != AREA_LOCKSTATUS_OK || !pCurrChar->TeleportTo(at->target_loc.mapid, at->target_loc.pos, pCurrChar->GetOrientation()))
             pCurrChar->TeleportToHomebind();
     }
 

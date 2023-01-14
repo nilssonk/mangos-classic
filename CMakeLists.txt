@@ -35,10 +35,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(CMANGOS_LTO "Build with Link-Time Optimization" OFF)
 
-if(CMANGOS_LTO)
-  include(cmake/macros/ClangTidy.cmake)
-  include(cmake/configure_lto.cmake)
-endif()
+include(cmake/configure_lto.cmake)
 
 # Define here name of the binaries
 set(CMANGOS_BINARY_SERVER_NAME "mangosd")

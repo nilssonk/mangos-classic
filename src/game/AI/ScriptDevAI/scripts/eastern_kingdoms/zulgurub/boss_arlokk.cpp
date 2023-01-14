@@ -250,7 +250,7 @@ struct npc_zulian_prowlerAI : public ScriptedAI
             }
 
             m_creature->GetMotionMaster()->Clear();
-            m_creature->GetMotionMaster()->MovePoint(1, aArlokkWallShieldPos[0], aArlokkWallShieldPos[1], aArlokkWallShieldPos[2]);
+            m_creature->GetMotionMaster()->MovePoint(1, aArlokkWallShieldPos);
 
             m_bMoveToAid = false;
         }

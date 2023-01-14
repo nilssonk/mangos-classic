@@ -56,29 +56,6 @@ enum
     GO_ARUGAL_FOCUS         = 18973,                        // this generates the lightning visual in the Fenrus event
 };
 
-struct Waypoint
-{
-    float fX, fY, fZ;
-};
-
-enum {
-    VINCENT_DEATH = 1,
-    ARUGAL_VISIBLE,
-    ARUGAL_TELEPORT_IN,
-    ARUGAL_TURN_TO_VINCENT,
-    ARUGAL_EMOTE_POINT,
-    ARUGAL_EMOTE_EXCLAMATION,
-    ARUGAL_EMOTE_LAUGH,
-    ARUGAL_TELEPORT_OUT,
-    ARUGAL_INTRO_DONE,
-    ARCHMAGE_FIRE,
-    ARCHMAGE_LIGHTNING,
-    ARCHMAGE_INVIS,
-    ARCHMAGE_VOIDWALKERS,
-};
-
-static const Waypoint nandosMovement = {-170.6f, 2182.45f, 151.91f};
-
 class instance_shadowfang_keep : public ScriptedInstance, public DialogueHelper
 {
     public:

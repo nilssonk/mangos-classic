@@ -56,12 +56,12 @@ class TemporarySpawnWaypoint : public TemporarySpawn
 
         uint32 GetWaypointId() const { return m_waypoint_id; }
         int32 GetPathId() const { return m_path_id; }
-        uint32 GetPathOrigin() const { return m_pathOrigin; }
+        WaypointPathOrigin GetPathOrigin() const { return m_pathOrigin; }
 
     private:
         uint32 m_waypoint_id;
         int32 m_path_id;
-        uint32 m_pathOrigin;
+        WaypointPathOrigin m_pathOrigin;
 };
 
 #endif

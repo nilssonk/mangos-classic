@@ -73,16 +73,14 @@ bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, Ci
         if (currPos + sizeof(M2SplineKey<G3D::Vector3>) > buffSize)
             return false;
         // Translate co-ordinates
-        G3D::Vector3 newPos = TranslateLocation(&DBCData, &cam->target_position_base, &targPositions->p0);
+        Vec3 newPos = TranslateLocation(&DBCData, &cam->target_position_base, &targPositions->p0);
 
         // Add to vector
-        FlyByCamera thisCam;
-        thisCam.timeStamp = targTimestamps[i];
-        thisCam.locations.x = newPos.x;
-        thisCam.locations.y = newPos.y;
-        thisCam.locations.z = newPos.z;
-        thisCam.locations.w = 0.0f;
-        targetcam.push_back(thisCam);
+        targetcam.push_back(
+            FlyByCamera{
+                Position{newPos, 0.0f},
+                targTimestamps[i]
+            });
         targPositions++;
         currPos += sizeof(M2SplineKey<G3D::Vector3>);
     }
@@ -103,11 +101,10 @@ bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, Ci
         G3D::Vector3 newPos = TranslateLocation(&DBCData, &cam->position_base, &positions->p0);
 
         // Add to vector
-        FlyByCamera thisCam;
-        thisCam.timeStamp = posTimestamps[i];
-        thisCam.locations.x = newPos.x;
-        thisCam.locations.y = newPos.y;
-        thisCam.locations.z = newPos.z;
+        FlyByCamera thisCam {
+            Position{newPos, 0.0f},
+            posTimestamps[i]
+        };
 
         if (targetcam.size() > 0)
         {
@@ -127,28 +124,22 @@ bool readCamera(M2Camera const* cam, uint32 buffSize, M2Header const* header, Ci
                 lastTarget = targetcam[j];
             }
 
-            float x = lastTarget.locations.x;
-            float y = lastTarget.locations.y;
-            float z = lastTarget.locations.z;
+
+            auto pos = lastTarget.pos.xyz();
 
             // Now, the timestamps for target cam and position can be different. So, if they differ we interpolate
             if (lastTarget.timeStamp != posTimestamps[i])
             {
                 uint32 timeDiffTarget = nextTarget.timeStamp - lastTarget.timeStamp;
                 uint32 timeDiffThis = posTimestamps[i] - lastTarget.timeStamp;
-                float xDiff = nextTarget.locations.x - lastTarget.locations.x;
-                float yDiff = nextTarget.locations.y - lastTarget.locations.y;
-                float zDiff = nextTarget.locations.z - lastTarget.locations.z;
-                x = lastTarget.locations.x + (xDiff * (float(timeDiffThis) / float(timeDiffTarget)));
-                y = lastTarget.locations.y + (yDiff * (float(timeDiffThis) / float(timeDiffTarget)));
-                z = lastTarget.locations.z + (zDiff * (float(timeDiffThis) / float(timeDiffTarget)));
+                auto const diff = nextTarget.pos.xyz() - lastTarget.pos.xyz();
+                pos += diff * (float(timeDiffThis) / float(timeDiffTarget));
             }
-            float xDiff = x - thisCam.locations.x;
-            float yDiff = y - thisCam.locations.y;
-            thisCam.locations.w = std::atan2(yDiff, xDiff);
+            auto const diff = pos.xy() - thisCam.pos.xy();
+            thisCam.pos.w = std::atan2(diff.y, diff.x);
 
-            if (thisCam.locations.w < 0)
-                thisCam.locations.w += 2 * float(M_PI);
+            if (thisCam.pos.w < 0.0f)
+                thisCam.pos.w += 2 * float(M_PI);
         }
 
         cameras.push_back(thisCam);

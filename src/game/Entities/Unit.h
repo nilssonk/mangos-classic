@@ -914,10 +914,7 @@ class CharmInfo
         void SetStayPosition();
         bool UpdateStayPosition();
 
-        float GetStayPosX() const { return m_stayPosX; }
-        float GetStayPosY() const { return m_stayPosY; }
-        float GetStayPosZ() const { return m_stayPosZ; }
-        float GetStayPosO() const { return m_stayPosO; }
+        Position const& GetStayPosition() const { return m_stayPos; }
 
         uint32 GetSpellOpener() const { return m_opener; }
         uint32 GetSpellOpenerMinRange() const { return m_openerMinRange; }
@@ -957,10 +954,7 @@ class CharmInfo
         uint8               m_unitFieldBytes2_1;
         bool                m_retreating;
         bool                m_stayPosSet;
-        float               m_stayPosX;
-        float               m_stayPosY;
-        float               m_stayPosZ;
-        float               m_stayPosO;
+        Position            m_stayPos;
 
         Position            m_charmStartPosition;
         bool                m_walk;
@@ -1663,8 +1657,8 @@ class Unit : public WorldObject
         SpellCastResult CastSpell(Unit* Victim, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
         SpellCastResult CastCustomSpell(Unit* Victim, uint32 spellId, int32 const* bp0, int32 const* bp1, int32 const* bp2, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
         SpellCastResult CastCustomSpell(Unit* Victim, SpellEntry const* spellInfo, int32 const* bp0, int32 const* bp1, int32 const* bp2, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
-        SpellCastResult CastSpell(float x, float y, float z, uint32 spellId, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
-        SpellCastResult CastSpell(float x, float y, float z, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
+        SpellCastResult CastSpell(Vec3 const& pos, uint32 spellId, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
+        SpellCastResult CastSpell(Vec3 const& pos, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
         SpellCastResult CastSpell(SpellCastTargets& targets, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
         SpellCastResult CastCustomSpell(SpellCastTargets& targets, SpellEntry const* spellInfo, int32 const* bp0, int32 const* bp1, int32 const* bp2, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
         SpellCastResult CastSpell(SpellCastArgs& args, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
@@ -1677,9 +1671,9 @@ class Unit : public WorldObject
         {
             return CastCustomSpell(Victim, spellId, bp0, bp1, bp2, uint32(triggeredFlags), castItem, triggeredByAura, originalCaster, triggeredBy);
         }
-        SpellCastResult CastSpell(float x, float y, float z, uint32 spellId, TriggerCastFlags triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr)
+        SpellCastResult CastSpell(Vec3 const& pos, uint32 spellId, TriggerCastFlags triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr)
         {
-            return CastSpell(x, y, z, spellId, uint32(triggeredFlags), castItem, triggeredByAura, originalCaster, triggeredBy);
+            return CastSpell(pos, spellId, uint32(triggeredFlags), castItem, triggeredByAura, originalCaster, triggeredBy);
         }
         SpellCastResult CastSpell(SpellCastArgs& args, uint32 spellId, TriggerCastFlags triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
 
@@ -1690,9 +1684,9 @@ class Unit : public WorldObject
         {
             return CastCustomSpell(Victim, spellInfo, bp0, bp1, bp2, uint32(triggeredFlags), castItem, triggeredByAura, originalCaster, triggeredBy);
         }
-        SpellCastResult CastSpell(float x, float y, float z, SpellEntry const* spellInfo, TriggerCastFlags triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr)
+        SpellCastResult CastSpell(Vec3 const& pos, SpellEntry const* spellInfo, TriggerCastFlags triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr)
         {
-            return CastSpell(x, y, z, spellInfo, uint32(triggeredFlags), castItem, triggeredByAura, originalCaster, triggeredBy);
+            return CastSpell(pos, spellInfo, uint32(triggeredFlags), castItem, triggeredByAura, originalCaster, triggeredBy);
         }
         SpellCastResult CastSpell(SpellCastArgs& args, SpellEntry const* spellInfo, TriggerCastFlags triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
 
@@ -1722,13 +1716,13 @@ class Unit : public WorldObject
         void SelectAttackingTargets(std::vector<Unit*>& selectedTargets, AttackingTarget target, uint32 position, uint32 spellId, uint32 selectFlags = 0, SelectAttackingTargetParams params = SelectAttackingTargetParams()) const;
         void SelectAttackingTargets(std::vector<Unit*>& selectedTargets, AttackingTarget target, uint32 position, SpellEntry const* spellInfo = nullptr, uint32 selectFlags = 0, SelectAttackingTargetParams params = SelectAttackingTargetParams()) const;
 
-        void NearTeleportTo(float x, float y, float z, float orientation, bool casting = false, bool transportLeave = false);
+        void NearTeleportTo(Position const& posentation, bool casting = false, bool transportLeave = false);
         // do not use - kept only for cinematics
-        void MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath = false, bool forceDestination = false);
+        void MonsterMoveWithSpeed(Vec3 const& pos, float speed, bool generatePath = false, bool forceDestination = false);
 
         // recommend use MonsterMove/MonsterMoveWithSpeed for most case that correctly work with movegens
         // if used additional args in ... part then floats must explicitly casted to double
-        void SendTeleportPacket(float x, float y, float z, float ori, GenericTransport* transport);
+        void SendTeleportPacket(Position const& pos, GenericTransport* transport);
         void SendHeartBeat();
 
         void SendMoveRoot(bool state, bool broadcastOnly = false);
@@ -2255,10 +2249,7 @@ class Unit : public WorldObject
         void AddPetAura(PetAura const* petSpell);
         void RemovePetAura(PetAura const* petSpell);
 
-        float GetTransOffsetX() const { return m_movementInfo.GetTransportPos().x; }
-        float GetTransOffsetY() const { return m_movementInfo.GetTransportPos().y; }
-        float GetTransOffsetZ() const { return m_movementInfo.GetTransportPos().z; }
-        float GetTransOffsetO() const { return m_movementInfo.GetTransportPos().o; }
+        Position const& GetTransportOffset() const { return m_movementInfo.GetTransportPos(); }
         uint32 GetTransTime() const { return m_movementInfo.GetTransportTime(); }
 
         // Movement info
@@ -2285,7 +2276,7 @@ class Unit : public WorldObject
         bool TakePossessOf(Unit* possessed);
 
         // Take possession of a new spawned unit
-        Unit* TakePossessOf(SpellEntry const* spellEntry, uint32 effIdx, float x, float y, float z, float ang);
+        Unit* TakePossessOf(SpellEntry const* spellEntry, uint32 effIdx, Vec3 const& pos, float ang);
 
         // Take charm of an unit
         bool TakeCharmOf(Unit* charmed, uint32 spellId = 0, bool advertised = true);
@@ -2331,7 +2322,7 @@ class Unit : public WorldObject
         void ResetAuraUpdateMask() { m_auraUpdateMask = 0; }
 
         // WorldObject overrides
-        void UpdateAllowedPositionZ(float x, float y, float& z, Map* atMap = nullptr) const override;
+        Vec3 UpdateAllowedPositionZ(Vec3 const& pos, Map* atMap = nullptr) const override;
 
         virtual uint32 GetSpellRank(SpellEntry const* spellInfo);
 
@@ -2561,9 +2552,9 @@ class Unit : public WorldObject
         template <typename SP, typename TR>
         void CastCustomSpell(Unit* Victim, SpellEntry const* spell, int32 const* bp0, int32 const* bp1, int32 const* bp2, TR triggeredFlags);
         template <typename TR>
-        void CastSpell(float x, float y, float z, uint32 spell, TR triggered);
+        void CastSpell(Vec3 const& pos, uint32 spell, TR triggered);
         template <typename TR>
-        void CastSpell(float x, float y, float z, SpellEntry const* spell, TR triggered);
+        void CastSpell(Vec3 const& pos, SpellEntry const* spell, TR triggered);
 };
 
 template<typename Func>

@@ -42,11 +42,7 @@ class SQLStorage;
 
 struct GameTele
 {
-    float  position_x;
-    float  position_y;
-    float  position_z;
-    float  orientation;
-    uint32 mapId;
+    WorldLocation loc;
     std::string name;
     std::wstring wnameLow;
 };
@@ -60,11 +56,7 @@ struct AreaTrigger
     uint32 requiredItem;
     uint32 requiredItem2;
     uint32 requiredQuest;
-    uint32 target_mapId;
-    float  target_X;
-    float  target_Y;
-    float  target_Z;
-    float  target_Orientation;
+    WorldLocation target_loc;
     uint32 conditionId;
     std::string status_failed_text;
 
@@ -76,7 +68,7 @@ struct AreaTrigger
 
     bool IsLessOrEqualThan(AreaTrigger const* l) const      // Expected to have same map
     {
-        MANGOS_ASSERT(target_mapId == l->target_mapId);
+        MANGOS_ASSERT(target_loc.mapid == l->target_loc.mapid);
         return requiredLevel <= l->requiredLevel && requiredItem <= l->requiredItem && requiredItem2 <= l->requiredItem2
                && requiredQuest <= l->requiredQuest;
     }
@@ -252,8 +244,7 @@ struct RepSpilloverTemplate
 struct PointOfInterest
 {
     uint32 entry;
-    float x;
-    float y;
+    Vec2 pos;
     uint32 icon;
     uint32 flags;
     uint32 data;
@@ -518,7 +509,7 @@ class ObjectMgr
         bool AddTaxiShortcut(const TaxiPathEntry* path, uint32 lengthTakeoff, uint32 lengthLanding);
         bool GetTaxiShortcut(uint32 pathid, TaxiShortcutData& data);
         void LoadTaxiShortcuts();
-        uint32 GetNearestTaxiNode(float x, float y, float z, uint32 mapid, Team team) const;
+        uint32 GetNearestTaxiNode(Vec3 const& pos, uint32 mapid, Team team) const;
         void GetTaxiPath(uint32 source, uint32 destination, uint32& path, uint32& cost) const;
         uint32 GetTaxiMountDisplayId(uint32 id, Team team) const;
 

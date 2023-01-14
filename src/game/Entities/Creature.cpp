@@ -109,20 +109,21 @@ void CreatureCreatePos::SelectFinalPoint(Creature* cr, bool staticSpawn)
     {
         if (m_dist == 0.0f)
         {
-            m_pos.x = m_closeObject->GetPositionX();
-            m_pos.y = m_closeObject->GetPositionY();
-            m_pos.z = m_closeObject->GetPositionZ();
+            m_pos = {m_closeObject->GetPosition().xyz(), m_pos.w};
         }
-        else
-            m_closeObject->GetClosePoint(m_pos.x, m_pos.y, m_pos.z, cr->GetObjectBoundingRadius(), m_dist, m_angle);
+        else {
+            auto const close_point = m_closeObject->GetClosePoint(cr->GetObjectBoundingRadius(), m_dist, m_angle);
+            m_pos = {close_point, m_pos.w};
+        }
     }
-    else if (!staticSpawn)
-        cr->UpdateAllowedPositionZ(m_pos.x, m_pos.y, m_pos.z);
+    else if (!staticSpawn) {
+        m_pos = {cr->UpdateAllowedPositionZ(m_pos.xyz()), m_pos.w};
+    }
 }
 
 bool CreatureCreatePos::Relocate(Creature* cr) const
 {
-    cr->Relocate(m_pos.x, m_pos.y, m_pos.z, m_pos.o);
+    cr->Relocate(m_pos);
 
     if (!cr->IsPositionValid())
     {
@@ -302,9 +303,7 @@ void Creature::RemoveCorpse(bool inPlace)
 
     InterruptMoving();
 
-    float x, y, z, o;
-    GetRespawnCoord(x, y, z, &o);
-    GetMap()->CreatureRelocation(this, x, y, z, o);
+    GetMap()->CreatureRelocation(this, GetRespawnPosition());
 
     // forced recreate creature object at clients
     UnitVisibility currentVis = GetVisibility();
@@ -423,7 +422,7 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data /*=nullptr*/, Ga
     // check if we need to add swimming movement. TODO: i thing movement flags should be computed automatically at each movement of creature so we need a sort of UpdateMovementFlags() method
     if (cinfo->InhabitType & INHABIT_WATER &&               // check inhabit type water
             !(cinfo->ExtraFlags & CREATURE_EXTRA_FLAG_WALK_IN_WATER) &&  // check if creature is forced to walk (crabs, giant,...)
-            GetMap()->GetTerrain()->IsSwimmable(m_respawnPos.x, m_respawnPos.y, m_respawnPos.z, GetCollisionHeight()))  // check if creature is in water and have enough space to swim
+            GetMap()->GetTerrain()->IsSwimmable(m_respawnPos.xyz(), GetCollisionHeight()))  // check if creature is in water and have enough space to swim
         m_movementInfo.AddMovementFlag(MOVEFLAG_SWIMMING);  // add swimming movement
 
     // checked at loading
@@ -1593,16 +1592,18 @@ bool Creature::LoadFromDB(uint32 dbGuid, Map* map, uint32 newGuid, uint32 forced
     // Creature can be loaded already in map if grid has been unloaded while creature walk to another grid
     if (map->GetCreature(cinfo->GetObjectGuid(dbGuid)))
         return false;
+        
+    Position const pos{data->posX, data->posY, data->posZ, data->orientation};
 
-    CreatureCreatePos pos(map, data->posX, data->posY, data->posZ, data->orientation);
+    CreatureCreatePos create_pos(map, pos);
 
-    if (!Create(dbGuid, newGuid, pos, cinfo, data, eventData))
+    if (!Create(dbGuid, newGuid, create_pos, cinfo, data, eventData))
         return false;
 
     if (groupEntry)
         SetCreatureGroup(group);
 
-    SetRespawnCoord(pos);
+    SetRespawnCoord(create_pos);
     m_respawnradius = data->spawndist;
 
     m_respawnDelay = data->GetRandomRespawnTime();
@@ -1619,9 +1620,9 @@ bool Creature::LoadFromDB(uint32 dbGuid, Map* map, uint32 newGuid, uint32 forced
         SetHealth(0);
         if (CanFly())
         {
-            float tz = GetTerrain()->GetHeightStatic(data->posX, data->posY, data->posZ, false);
-            if (data->posZ - tz > 0.1)
-                Relocate(data->posX, data->posY, tz);
+            float const tz = GetTerrain()->GetHeightStatic(pos.xyz(), false);
+            if (pos.z - tz > 0.1)
+                Relocate(Vec3{pos.xy(), tz});
         }
     }
     else if (m_respawnTime)                                 // respawn time set but expired
@@ -1642,9 +1643,9 @@ bool Creature::LoadFromDB(uint32 dbGuid, Map* map, uint32 newGuid, uint32 forced
             // Just set to dead, so need to relocate like above
             if (CanFly())
             {
-                float tz = GetTerrain()->GetHeightStatic(data->posX, data->posY, data->posZ, false);
-                if (data->posZ - tz > 0.1)
-                    Relocate(data->posX, data->posY, tz);
+                float const tz = GetTerrain()->GetHeightStatic(pos.xyz(), false);
+                if (pos.z - tz > 0.1)
+                    Relocate(Vec3{pos.xy(), tz});
             }
         }
     }
@@ -2355,21 +2356,6 @@ time_t Creature::GetRespawnTimeEx() const
     else
         return now;
 }
-void Creature::GetRespawnCoord(float& x, float& y, float& z, float* ori, float* dist) const
-{
-    x = m_respawnPos.x;
-    y = m_respawnPos.y;
-    z = m_respawnPos.z;
-
-    if (ori)
-        *ori = m_respawnPos.o;
-
-    if (dist)
-        *dist = GetRespawnRadius();
-
-    // lets check if our creatures have valid spawn coordinates
-    MANGOS_ASSERT(MaNGOS::IsValidMapCoord(x, y, z) || PrintCoordinatesError(x, y, z, "respawn"));
-}
 
 void Creature::ResetRespawnCoord()
 {
@@ -2378,10 +2364,7 @@ void Creature::ResetRespawnCoord()
 
     if (CreatureData const* data = sObjectMgr.GetCreatureData(GetDbGuid()))
     {
-        m_respawnPos.x = data->posX;
-        m_respawnPos.y = data->posY;
-        m_respawnPos.z = data->posZ;
-        m_respawnPos.o = data->orientation;
+        m_respawnPos = Position{data->posX, data->posY, data->posZ, data->orientation};
     }
 }
 
@@ -2629,7 +2612,7 @@ struct SpawnCreatureInMapsWorker
     void operator()(Map* map)
     {
         // We use spawn coords to spawn
-        if (map->IsLoaded(i_data->posX, i_data->posY))
+        if (map->IsLoaded(Vec2{i_data->posX, i_data->posY}))
         {
             Creature* pCreature = new Creature;
             // DEBUG_LOG("Spawning creature %u",*itr);

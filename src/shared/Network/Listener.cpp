@@ -20,7 +20,7 @@
 #include <thread>
 #include <chrono>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/asio.hpp>
 
 #include "Listener.hpp"
@@ -29,3 +29,4 @@
 
 using namespace MaNGOS;
 using namespace boost::asio::ip;
+using namespace boost::placeholders;

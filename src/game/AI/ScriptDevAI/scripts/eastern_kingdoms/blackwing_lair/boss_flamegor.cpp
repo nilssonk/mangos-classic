@@ -27,6 +27,8 @@ EndScriptData
 #include "blackwing_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace bwl {
+
 enum
 {
     EMOTE_GENERIC_FRENZY        = -1000002,
@@ -124,3 +126,5 @@ void AddSC_boss_flamegor()
     pNewScript->GetAI = &GetNewAIInstance<boss_flamegorAI>;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

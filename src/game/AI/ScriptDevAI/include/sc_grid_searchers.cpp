@@ -36,7 +36,7 @@ Creature* GetClosestCreatureWithEntry(WorldObject* source, uint32 entry, float m
 
 void GetGameObjectListWithEntryInGrid(GameObjectList& goList, WorldObject* source, uint32 entry, float maxSearchRange)
 {
-    MaNGOS::GameObjectEntryInPosRangeCheck check(*source, entry, source->GetPositionX(), source->GetPositionY(), source->GetPositionZ(), maxSearchRange);
+    MaNGOS::GameObjectEntryInPosRangeCheck check(*source, entry, source->GetPosition().xyz(), maxSearchRange);
     MaNGOS::GameObjectListSearcher<MaNGOS::GameObjectEntryInPosRangeCheck> searcher(goList, check);
 
     Cell::VisitGridObjects(source, searcher, maxSearchRange);

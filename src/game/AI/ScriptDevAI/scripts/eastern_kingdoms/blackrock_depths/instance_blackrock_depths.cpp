@@ -26,6 +26,53 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "blackrock_depths.h"
 
+namespace {
+
+// Random emotes for Grim Guzzler patrons
+const uint32 aPatronsEmotes[] =
+{
+    EMOTE_ONESHOT_EXCLAMATION, EMOTE_ONESHOT_CHEER, EMOTE_ONESHOT_CHEER, EMOTE_ONESHOT_LAUGH, EMOTE_ONESHOT_LAUGH, EMOTE_ONESHOT_LAUGH
+};
+
+struct ArenaCylinder
+{
+    Vec3 center;
+    uint32 radius;
+    uint32 height;
+};
+
+const ArenaCylinder aArenaCrowdVolume{{595.78f, -188.65f, -38.63f}, 69, 10};
+
+const uint32 aArenaNPCs[] =
+{
+    // Gladiators
+    NPC_LEFTY, NPC_ROTFANG, NPC_SNOKH, NPC_MALGEN, NPC_KORV, NPC_REZZNIK, NPC_VAJASHNI, NPC_VOLIDA, NPC_THELDREN,
+    // Ring mobs
+    NPC_WORM, NPC_STINGER, NPC_SCREECHER, NPC_THUNDERSNOUT, NPC_CREEPER, NPC_BEETLE,
+    // Ring bosses
+    NPC_GOROSH, NPC_GRIZZLE, NPC_EVISCERATOR, NPC_OKTHOR, NPC_ANUBSHIAH, NPC_HEDRUM
+};
+
+// Used to summon Watcher Doomgrip
+const Vec4 aVaultPositions{821.905f, -338.382f, -50.134f, 3.78736f};
+
+// Used to summon Hurley Blackbreath
+const Vec4 aHurleyPositions{856.0867f, -149.7469f, -49.6719f, 0.05949629f};
+
+// Used to summon the patrol in Grim Guzzler
+const Vec4 aBarPatrolPositions[2] =
+{
+    {872.7059f, -232.5491f, -43.7525f, 2.069044f},
+    {865.5645f, -219.7471f, -43.7033f, 2.033881f}
+};
+
+const uint32 aBarPatrolId[3] = {NPC_FIREGUARD_DESTROYER, NPC_ANVILRAGE_OFFICER, NPC_ANVILRAGE_OFFICER};
+
+// Tomb of the Seven dwarfs
+const uint32 aTombDwarfes[MAX_DWARFS] = {NPC_ANGERREL, NPC_SEETHREL, NPC_DOPEREL, NPC_GLOOMREL, NPC_VILEREL, NPC_HATEREL, NPC_DOOMREL};
+
+} // anonymous namespace
+
 instance_blackrock_depths::instance_blackrock_depths(Map* pMap) : ScriptedInstance(pMap),
     m_bIsBarDoorOpen(false),
     m_uiBarAleCount(0),
@@ -81,7 +128,7 @@ void instance_blackrock_depths::OnCreatureCreate(Creature* pCreature)
             break;
         case NPC_WARBRINGER_CONST:
             // Golems not in the Relict Vault?
-            if (std::abs(pCreature->GetPositionZ() - aVaultPositions[2]) > 1.0f || !pCreature->IsWithinDist2d(aVaultPositions[0], aVaultPositions[1], 20.0f))
+            if (std::abs(pCreature->GetPositionZ() - aVaultPositions[2]) > 1.0f || !pCreature->IsWithinDist(aVaultPositions.xy(), 20.0f))
                 break;
             // Golems in Relict Vault need to have a stoned aura, set manually to prevent reapply when reached home
             pCreature->CastSpell(pCreature, SPELL_STONED, TRIGGERED_OLD_TRIGGERED);
@@ -97,8 +144,8 @@ void instance_blackrock_depths::OnCreatureCreate(Creature* pCreature)
         case NPC_ANVILRAGE_SOLDIER:
         case NPC_ANVILRAGE_MEDIC:
         case NPC_ANVILRAGE_OFFICER:
-            if (pCreature->GetPositionZ() < aArenaCrowdVolume.m_fCenterZ || pCreature->GetPositionZ() > aArenaCrowdVolume.m_fCenterZ + aArenaCrowdVolume.m_uiHeight ||
-                    !pCreature->IsWithinDist2d(aArenaCrowdVolume.m_fCenterX, aArenaCrowdVolume.m_fCenterY, aArenaCrowdVolume.m_uiRadius))
+            if (pCreature->GetPositionZ() < aArenaCrowdVolume.center.z || pCreature->GetPositionZ() > aArenaCrowdVolume.center.z + aArenaCrowdVolume.height ||
+                    !pCreature->IsWithinDist(aArenaCrowdVolume.center.xy(), aArenaCrowdVolume.radius))
                 break;
             m_sArenaCrowdNpcGuids.insert(pCreature->GetObjectGuid());
             if (m_auiEncounter[0] == DONE)
@@ -224,7 +271,7 @@ void instance_blackrock_depths::SetData(uint32 uiType, uint32 uiData)
                         return;
 
                     // Summon doomgrip
-                    pConstruct->SummonCreature(NPC_WATCHER_DOOMGRIP, aVaultPositions[0], aVaultPositions[1], aVaultPositions[2], aVaultPositions[3], TEMPSPAWN_DEAD_DESPAWN, 0);
+                    pConstruct->SummonCreature(NPC_WATCHER_DOOMGRIP, aVaultPositions, TempSpawnType::DEAD_DESPAWN, 0);
                 }
                 // No need to store in this case
                 return;
@@ -326,7 +373,7 @@ void instance_blackrock_depths::SetData(uint32 uiType, uint32 uiData)
                     if (Creature* pPlugger = GetSingleCreatureFromStorage(NPC_PLUGGER_SPAZZRING))
                     {
                         // Summon Hurley Blackbreath
-                        Creature* pHurley = pPlugger->SummonCreature(NPC_HURLEY_BLACKBREATH, aHurleyPositions[0], aHurleyPositions[1], aHurleyPositions[2], aHurleyPositions[3], TEMPSPAWN_DEAD_DESPAWN, 0);
+                        Creature* pHurley = pPlugger->SummonCreature(NPC_HURLEY_BLACKBREATH, aHurleyPositions, TempSpawnType::DEAD_DESPAWN, 0);
 
                         if (!pHurley)
                             return;
@@ -334,9 +381,8 @@ void instance_blackrock_depths::SetData(uint32 uiType, uint32 uiData)
                         // Summon cronies around Hurley
                         for (uint8 i = 0; i < MAX_CRONIES; ++i)
                         {
-                            float fX, fY, fZ;
-                            pPlugger->GetRandomPoint(aHurleyPositions[0], aHurleyPositions[1], aHurleyPositions[2], 2.0f, fX, fY, fZ);
-                            if (Creature* pSummoned = pPlugger->SummonCreature(NPC_BLACKBREATH_CRONY, fX, fY, fZ, aHurleyPositions[3], TEMPSPAWN_DEAD_DESPAWN, 0))
+                            auto const rand_pos = pPlugger->GetRandomPoint(aHurleyPositions.xyz(), 2.0f);
+                            if (Creature* pSummoned = pPlugger->SummonCreature(NPC_BLACKBREATH_CRONY, {rand_pos, aHurleyPositions.w}, TempSpawnType::DEAD_DESPAWN, 0))
                             {
                                 pSummoned->SetWalk(false);
                                 // The cronies should not engage anyone until their boss does so
@@ -646,7 +692,7 @@ void instance_blackrock_depths::HandleBarPatrons(uint8 uiEventType)
                 {
                     if (Creature* pPatron = instance->GetCreature(m_sBarPatronNpcGuid))
                     {
-                        if (pPatron->GetPositionZ() > pGo->GetPositionZ() - 1 && pPatron->IsWithinDist2d(pGo->GetPositionX(), pGo->GetPositionY(), 18.0f))
+                        if (pPatron->GetPositionZ() > pGo->GetPositionZ() - 1 && pPatron->IsWithinDist(pGo->GetPosition().xy(), 18.0f))
                         {
                             switch (urand(0, 4))
                             {
@@ -670,7 +716,7 @@ void instance_blackrock_depths::HandleBarPatrons(uint8 uiEventType)
                     pPatron->SetFactionTemporary(FACTION_DARK_IRON, TEMPFACTION_RESTORE_RESPAWN);
                     pPatron->SetStandState(UNIT_STAND_STATE_STAND);
                     pPatron->HandleEmote(EMOTE_ONESHOT_NONE);
-                    pPatron->GetMotionMaster()->MoveRandomAroundPoint(pPatron->GetPositionX(), pPatron->GetPositionY(), pPatron->GetPositionZ(), 2.0f);
+                    pPatron->GetMotionMaster()->MoveRandomAroundPoint(pPatron->GetPosition().xyz(), 2.0f);
                 }
             }
             // Mistress Nagmara and Private Rocknot despawn if the bar turns hostile
@@ -707,16 +753,15 @@ void instance_blackrock_depths::HandleBarPatrol(uint8 uiStep)
                 // One Fireguard Destroyer and two Anvilrage Officers are spawned
                 for (unsigned int i : aBarPatrolId)
                 {
-                    float fX, fY, fZ;
                     // spawn them behind the bar door
-                    pPlugger->GetRandomPoint(aBarPatrolPositions[0][0], aBarPatrolPositions[0][1], aBarPatrolPositions[0][2], 2.0f, fX, fY, fZ);
-                    if (Creature* pSummoned = pPlugger->SummonCreature(i, fX, fY, fZ, aBarPatrolPositions[0][3], TEMPSPAWN_DEAD_DESPAWN, 0))
+                    auto const rand_pos = pPlugger->GetRandomPoint(aBarPatrolPositions[0].xyz(), 2.0f);
+                    if (Creature* pSummoned = pPlugger->SummonCreature(i, {rand_pos, aBarPatrolPositions[0].w}, TempSpawnType::DEAD_DESPAWN, 0))
                     {
                         m_sBarPatrolGuids.insert(pSummoned->GetObjectGuid());
                         // move them to the Grim Guzzler
-                        pPlugger->GetRandomPoint(aBarPatrolPositions[1][0], aBarPatrolPositions[1][1], aBarPatrolPositions[1][2], 2.0f, fX, fY, fZ);
+                        auto const rand_dst = pPlugger->GetRandomPoint(aBarPatrolPositions[1].xyz(), 2.0f);
                         pSummoned->GetMotionMaster()->MoveIdle();
-                        pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                        pSummoned->GetMotionMaster()->MovePoint(0, rand_dst);
                     }
                 }
                 // start timer to handle the yells

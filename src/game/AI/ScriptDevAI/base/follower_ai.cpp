@@ -115,7 +115,7 @@ void FollowerAI::EnterEvadeMode()
         {
             Position pos;
             m_creature->GetCombatStartPosition(pos);
-            m_creature->GetMotionMaster()->MovePoint(POINT_COMBAT_START, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ());
+            m_creature->GetMotionMaster()->MovePoint(POINT_COMBAT_START, pos.xyz());
         }
     }
     else

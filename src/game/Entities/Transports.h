@@ -35,28 +35,34 @@ class GenericTransport : public GameObject
         bool RemovePassenger(Unit* passenger);
         bool AddPetToTransport(Unit* passenger, Pet* pet);
 
-        void UpdatePosition(float x, float y, float z, float o);
+        void UpdatePosition(Position const& pos);
         void UpdatePassengerPosition(WorldObject* object);
 
         typedef std::set<Player*> PlayerSet;
         PassengerSet& GetPassengers() { return m_passengers; }
 
         /// This method transforms supplied transport offsets into global coordinates
-        void CalculatePassengerPosition(float& x, float& y, float& z, float* o = nullptr) const
+        Position CalculatePassengerPosition(Position const& pos) const
         {
-            CalculatePassengerPosition(x, y, z, o, GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation());
+            return CalculatePassengerPosition(pos, GetPosition());
         }
 
         /// This method transforms supplied global coordinates into local offsets
-        void CalculatePassengerOffset(float& x, float& y, float& z, float* o = nullptr) const
+        Position CalculatePassengerOffset(Position const& pos) const
         {
-            CalculatePassengerOffset(x, y, z, o, GetPositionX(), GetPositionY(), GetPositionZ(), GetOrientation());
+            return CalculatePassengerOffset(pos, GetPosition());
         }
 
-        void CalculatePassengerOrientation(float& o) const;
+        Vec3 CalculatePassengerOffset(Vec3 const& pos) const
+        {
+            return CalculatePassengerOffset(pos, GetPosition());
+        }
 
-        static void CalculatePassengerPosition(float& x, float& y, float& z, float* o, float transX, float transY, float transZ, float transO);
-        static void CalculatePassengerOffset(float& x, float& y, float& z, float* o, float transX, float transY, float transZ, float transO);
+        float CalculatePassengerOrientation(float o) const;
+
+        static Position CalculatePassengerPosition(Position const& pos, Position const& transport);
+        static Position CalculatePassengerOffset(Position const& pos, Position const& transport);
+        static Vec3 CalculatePassengerOffset(Vec3 const& pos, Position const& transport);
 
         uint32 GetPathProgress() const { return m_pathProgress; }
     protected:

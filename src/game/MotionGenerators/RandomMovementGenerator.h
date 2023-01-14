@@ -61,7 +61,7 @@ class ConfusedMovementGenerator : public AbstractRandomMovementGenerator
 {
     public:
         explicit ConfusedMovementGenerator(Unit const& owner);
-        ConfusedMovementGenerator(float x, float y, float z);
+        ConfusedMovementGenerator(Vec3 const& pos);
 
         MovementGeneratorType GetMovementGeneratorType() const override { return CONFUSED_MOTION_TYPE; }
 };
@@ -70,7 +70,7 @@ class WanderMovementGenerator : public AbstractRandomMovementGenerator
 {
     public:
         explicit WanderMovementGenerator(Creature const& npc);
-        WanderMovementGenerator(float x, float y, float z, float radius, float verticalZ = 0.0f);
+        WanderMovementGenerator(Vec3 const& pos, float radius, float verticalZ = 0.0f);
 
         void Finalize(Unit& owner) override;
         void Interrupt(Unit& owner) override;
@@ -82,8 +82,8 @@ class TimedWanderMovementGenerator : public WanderMovementGenerator
 {
     public:
         explicit TimedWanderMovementGenerator(Creature const& npc, uint32 timer, float radius, float verticalZ = 0.0f);
-        TimedWanderMovementGenerator(uint32 timer, float x, float y, float z, float radius, float verticalZ = 0.0f)
-            : WanderMovementGenerator(x, y, z, radius, verticalZ), m_durationTimer(timer)
+        TimedWanderMovementGenerator(uint32 timer, Vec3 const& pos, float radius, float verticalZ = 0.0f)
+            : WanderMovementGenerator(pos, radius, verticalZ), m_durationTimer(timer)
         {
 
         }

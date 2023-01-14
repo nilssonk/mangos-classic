@@ -14,6 +14,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <G3D/Vector4.h>
+
 /* ScriptData
 SDName: Blackrock_Depths
 SD%Complete: 95
@@ -100,7 +102,9 @@ bool GOUse_go_relic_coffer_door(Player* /*pPlayer*/, GameObject* pGo)
 ## at_shadowforge_bridge
 ######*/
 
-static const float aGuardSpawnPositions[2][4] =
+namespace {
+
+const G3D::Vector4 aGuardSpawnPositions[2] =
 {
     {642.3660f, -274.5155f, -43.10918f, 0.4712389f},                // First guard spawn position
     {740.1137f, -283.3448f, -42.75082f, 2.8623400f}                 // Second guard spawn position
@@ -110,6 +114,8 @@ enum
 {
     SAY_GUARD_AGGRO                    = -1230043
 };
+
+} // anonymous namespace
 
 // Two NPCs spawn when AT-1786 is triggered
 bool AreaTrigger_at_shadowforge_bridge(Player* pPlayer, AreaTriggerEntry const* /*pAt*/)
@@ -124,16 +130,15 @@ bool AreaTrigger_at_shadowforge_bridge(Player* pPlayer, AreaTriggerEntry const* 
         if (!pPyromancer)
             return false;
 
-        if (Creature* pMasterGuard = pPyromancer->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[0][0], aGuardSpawnPositions[0][1], aGuardSpawnPositions[0][2], aGuardSpawnPositions[0][3], TEMPSPAWN_DEAD_DESPAWN, 0))
+        if (Creature* pMasterGuard = pPyromancer->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[0], TempSpawnType::DEAD_DESPAWN, 0))
         {
             pMasterGuard->SetWalk(false);
             pMasterGuard->GetMotionMaster()->MoveWaypoint();
             DoDisplayText(pMasterGuard, SAY_GUARD_AGGRO, pPlayer);
-            float fX, fY, fZ;
-            pPlayer->GetContactPoint(pMasterGuard, fX, fY, fZ);
-            pMasterGuard->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+            auto const contact_point = pPlayer->GetContactPoint(pMasterGuard);
+            pMasterGuard->GetMotionMaster()->MovePoint(1, contact_point);
 
-            if (Creature* pSlaveGuard = pPyromancer->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[1][0], aGuardSpawnPositions[1][1], aGuardSpawnPositions[1][2], aGuardSpawnPositions[1][3], TEMPSPAWN_DEAD_DESPAWN, 0))
+            if (Creature* pSlaveGuard = pPyromancer->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[1], TempSpawnType::DEAD_DESPAWN, 0))
             {
                 pSlaveGuard->GetMotionMaster()->MoveFollow(pMasterGuard, 2.0f, 0);
             }
@@ -150,6 +155,8 @@ bool AreaTrigger_at_shadowforge_bridge(Player* pPlayer, AreaTriggerEntry const* 
 /* Note about this event:
  * Quest-Event: This needs to be clearified - there is some suggestion, that Theldren&Adds also might come as first wave.
  */
+
+namespace {
 
 enum
 {
@@ -186,12 +193,14 @@ enum SpawnPosition
     POS_GRIMSTONE                   = 2,
 };
 
-static const float aSpawnPositions[3][4] =
+const G3D::Vector4 aSpawnPositions[3] =
 {
     {608.960f, -235.322f, -53.907f, 1.857f},                // Ring mob spawn position
     {644.300f, -175.989f, -53.739f, 3.418f},                // Ring boss spawn position
     {625.559f, -205.618f, -52.735f, 2.609f}                 // Grimstone spawn position
 };
+
+} // anonymous namespace
 
 static const uint32 aGladiator[MAX_POSSIBLE_THELDREN_ADDS] = {NPC_LEFTY, NPC_ROTFANG, NPC_SNOKH, NPC_MALGEN, NPC_KORV, NPC_REZZNIK, NPC_VAJASHNI, NPC_VOLIDA};
 static const uint32 aRingMob[2][6] =
@@ -220,7 +229,7 @@ bool AreaTrigger_at_ring_of_law(Player* pPlayer, AreaTriggerEntry const* pAt)
 
         pInstance->SetData(TYPE_RING_OF_LAW, pInstance->GetData(TYPE_RING_OF_LAW) == DATA_BANNER_BEFORE_EVENT ? SPECIAL : IN_PROGRESS);
 
-        pPlayer->SummonCreature(NPC_GRIMSTONE, aSpawnPositions[POS_GRIMSTONE][0], aSpawnPositions[POS_GRIMSTONE][1], aSpawnPositions[POS_GRIMSTONE][2], aSpawnPositions[POS_GRIMSTONE][3], TEMPSPAWN_DEAD_DESPAWN, 0);
+        pPlayer->SummonCreature(NPC_GRIMSTONE, aSpawnPositions[POS_GRIMSTONE], TempSpawnType::DEAD_DESPAWN, 0);
         pInstance->SetArenaCenterCoords(pAt->x, pAt->y, pAt->z);
 
         return false;
@@ -285,11 +294,9 @@ struct npc_grimstoneAI : public npc_escortAI
             return;
 
         // Ring mob or boss summoned
-        float fX, fY, fZ;
-        float fcX, fcY, fcZ;
-        m_pInstance->GetArenaCenterCoords(fX, fY, fZ);
-        m_creature->GetRandomPoint(fX, fY, fZ, 10.0f, fcX, fcY, fcZ);
-        pSummoned->GetMotionMaster()->MovePoint(1, fcX, fcY, fcZ);
+        auto const arena_center = m_pInstance->GetArenaCenterCoords();
+        auto const pos = m_creature->GetRandomPoint(arena_center, 10.0f);
+        pSummoned->GetMotionMaster()->MovePoint(1, pos);
 
         ++m_uiAliveSummonedMob;
         m_lSummonedGUIDList.push_back(pSummoned->GetObjectGuid());
@@ -331,11 +338,10 @@ struct npc_grimstoneAI : public npc_escortAI
 
     void SummonRingMob(uint32 uiEntry, uint8 uiNpcPerWave, SpawnPosition uiPosition)
     {
-        float fX, fY, fZ;
         for (uint8 i = 0; i < uiNpcPerWave; ++i)
         {
-            m_creature->GetRandomPoint(aSpawnPositions[uiPosition][0], aSpawnPositions[uiPosition][1], aSpawnPositions[uiPosition][2], 2.0f, fX, fY, fZ);
-            m_creature->SummonCreature(uiEntry, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+            auto const rand_pos = m_creature->GetRandomPoint(aSpawnPositions[uiPosition].xyz(), 2.0f);
+            m_creature->SummonCreature(uiEntry, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
         }
     }
 
@@ -761,7 +767,7 @@ struct npc_mistress_nagmaraAI : public ScriptedAI
             case 0:     // Phase 0 : Nagmara patrols in the bar to serve patrons or is following Rocknot passively
                 break;
             case 1:     // Phase 1 : Nagmara is moving towards Rocknot
-                if (m_creature->IsWithinDist2d(pRocknot->GetPositionX(), pRocknot->GetPositionY(), 5.0f))
+                if (m_creature->IsWithinDist(pRocknot->GetPosition().xyz(), 5.0f))
                 {
                     m_creature->GetMotionMaster()->MoveIdle();
                     m_creature->SetFacingToObject(pRocknot);
@@ -857,6 +863,8 @@ UnitAI* GetAI_npc_mistress_nagmara(Creature* pCreature)
 ## npc_rocknot
 ######*/
 
+namespace {
+
 enum
 {
     SAY_GOT_BEER       = -1230000,
@@ -870,7 +878,9 @@ enum
     QUEST_ALE          = 4295
 };
 
-static const float aPosNagmaraRocknot[3] = {878.1779f, -222.0662f, -49.96714f};
+const Vec3 aPosNagmaraRocknot{878.1779f, -222.0662f, -49.96714f};
+
+} // anonymous namespace
 
 struct npc_rocknotAI : public npc_escortAI
 {
@@ -972,7 +982,7 @@ struct npc_rocknotAI : public npc_escortAI
                     break;
 
                 pNagmara->GetMotionMaster()->MoveIdle();
-                pNagmara->GetMotionMaster()->MovePoint(0, aPosNagmaraRocknot[0], aPosNagmaraRocknot[1], aPosNagmaraRocknot[2]);
+                pNagmara->GetMotionMaster()->MovePoint(0, aPosNagmaraRocknot);
                 if (npc_mistress_nagmaraAI* pNagmaraAI = dynamic_cast<npc_mistress_nagmaraAI*>(pNagmara->AI()))
                 {
                     pNagmaraAI->m_uiPhase = 4;

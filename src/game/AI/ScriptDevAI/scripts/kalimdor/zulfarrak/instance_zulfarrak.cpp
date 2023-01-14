@@ -221,7 +221,6 @@ void instance_zulfarrak::Update(uint32 uiDiff)
                     return;
                 }
 
-                float fX, fY, fZ;
                 if (Creature* pBly = GetSingleCreatureFromStorage(NPC_SERGEANT_BLY))
                 {
                     // ToDo: research if there is anything special if these guys die
@@ -231,9 +230,9 @@ void instance_zulfarrak::Update(uint32 uiDiff)
                         return;
                     }
 
-                    pBly->GetRandomPoint(pBly->GetPositionX(), pBly->GetPositionY(), pBly->GetPositionZ(), 4.0f, fX, fY, fZ);
+                    auto const rand_pos = pBly->GetRandomPoint(pBly->GetPosition().xyz(), 4.0f);
                     pTroll->SetWalk(false);
-                    pTroll->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pTroll->GetMotionMaster()->MovePoint(0, rand_pos);
                 }
             }
             m_uiPyramidEventTimer = urand(0, 2) ? urand(3000, 10000) : 1000;

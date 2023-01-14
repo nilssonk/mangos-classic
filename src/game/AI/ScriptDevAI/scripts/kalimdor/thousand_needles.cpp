@@ -33,9 +33,13 @@ EndContentData */
 
 #include "AI/ScriptDevAI/base/escort_ai.h"
 
+#include <array>
+
 /*######
 # npc_kanati
 ######*/
+
+namespace {
 
 enum
 {
@@ -49,7 +53,9 @@ enum
     PATH_ID_KANATI              = 10638,
 };
 
-const float m_afGalakLoc[] = { -4867.387695f, -1357.353760f, -48.226f};
+const Position m_afGalakLoc{ -4867.387695f, -1357.353760f, -48.226f, 0.0f };
+
+} // namespace
 
 struct npc_kanatiAI : public npc_escortAI
 {
@@ -79,7 +85,7 @@ struct npc_kanatiAI : public npc_escortAI
     void DoSpawnGalak()
     {
         for (uint32 i = 0; i < 3; ++i)
-            m_creature->SummonCreature(NPC_GALAK_ASS, m_afGalakLoc[0], m_afGalakLoc[1], m_afGalakLoc[2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
+            m_creature->SummonCreature(NPC_GALAK_ASS, m_afGalakLoc, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
     }
 
     void JustSummoned(Creature* summoned) override
@@ -105,6 +111,8 @@ bool QuestAccept_npc_kanati(Player* player, Creature* creature, const Quest* que
 # npc_lakota_windsong
 ######*/
 
+namespace {
+
 enum
 {
     SAY_LAKO_START              = -1000365,
@@ -121,15 +129,17 @@ enum
     ID_AMBUSH_3                 = 4
 };
 
-float m_afBanditLoc[6][6] =
-{
-    { -4905.479492f, -2062.732666f, 84.352f},
-    { -4915.201172f, -2073.528320f, 84.733f},
-    { -4878.883301f, -1986.947876f, 91.966f},
-    { -4877.503906f, -1966.113403f, 91.859f},
-    { -4767.985352f, -1873.169189f, 90.192f},
-    { -4788.861328f, -1888.007813f, 89.888f}
-};
+const std::array<Vec3, 6> aBanditLoc
+{{
+    { -4905.479492f, -2062.732666f, 84.352f },
+    { -4915.201172f, -2073.528320f, 84.733f },
+    { -4878.883301f, -1986.947876f, 91.966f },
+    { -4877.503906f, -1966.113403f, 91.859f },
+    { -4767.985352f, -1873.169189f, 90.192f },
+    { -4788.861328f, -1888.007813f, 89.888f },
+}};
+
+} // namespace
 
 struct npc_lakota_windsongAI : public npc_escortAI
 {
@@ -167,10 +177,15 @@ struct npc_lakota_windsongAI : public npc_escortAI
 
     void DoSpawnBandits(int uiAmbushId)
     {
+        MANGOS_ASSERT(0 <= uiAmbushId && uiAmbushId < aBanditLoc.size());
+
         for (int i = 0; i < 2; ++i)
+        {
+            auto const index = (uiAmbushId + i) % aBanditLoc.size();
             m_creature->SummonCreature(NPC_GRIM_BANDIT,
-                                       m_afBanditLoc[i + uiAmbushId][0], m_afBanditLoc[i + uiAmbushId][1], m_afBanditLoc[i + uiAmbushId][2], 0.0f,
-                                       TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 60000);
+                                       {aBanditLoc.at(index), 0.0f},
+                                       TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 60000);
+        }
     }
 
     void JustSummoned(Creature* pSummoned) override
@@ -201,6 +216,8 @@ bool QuestAccept_npc_lakota_windsong(Player* pPlayer, Creature* pCreature, const
 # npc_paoka_swiftmountain
 ######*/
 
+namespace {
+
 enum
 {
     SAY_START           = -1000362,
@@ -211,12 +228,14 @@ enum
     NPC_WYVERN          = 4107
 };
 
-float m_afWyvernLoc[3][3] =
+const Vec3 m_afWyvernLoc[] =
 {
     { -4990.606f, -906.057f, -5.343f},
     { -4970.241f, -927.378f, -4.951f},
     { -4985.364f, -952.528f, -5.199f}
 };
+
+} // namespace
 
 struct npc_paoka_swiftmountainAI : public npc_escortAI
 {
@@ -248,10 +267,8 @@ struct npc_paoka_swiftmountainAI : public npc_escortAI
 
     void DoSpawnWyvern()
     {
-        for (auto& i : m_afWyvernLoc)
-            m_creature->SummonCreature(NPC_WYVERN,
-                i[0], i[1], i[2], 0.0f,
-                                       TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 60000);
+        for (auto const& pos : m_afWyvernLoc)
+            m_creature->SummonCreature(NPC_WYVERN, {pos, 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 60000);
     }
 };
 

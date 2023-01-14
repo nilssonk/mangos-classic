@@ -155,17 +155,15 @@ void instance_razorfen_downs::DoSpawnWaveIfCan(GameObject* pGo)
     for (uint8 i = 0; i < aWaveSummonInformation[m_uiWaveCounter].m_uiNPCperWave; ++i)
     {
         uint8 uiPos = i % 2;                                        // alternate spawn between the left and right corridor
-        float fPosX, fPosY, fPosZ;
-        float fTargetPosX, fTargetPosY, fTargetPosZ;
 
-        pGo->GetRandomPoint(aSpawnLocations[uiPos].x, aSpawnLocations[uiPos].y, aSpawnLocations[uiPos].z, 5.0f, fPosX, fPosY, fPosZ);
+        auto const rand_pos = pGo->GetRandomPoint(aSpawnLocations[uiPos].xyz(), 5.0f);
 
         // move the summoned NPC toward the gong
-        if (Creature* pSummoned = pGo->SummonCreature(aWaveSummonInformation[m_uiWaveCounter].m_uiNpcEntry, fPosX, fPosY, fPosZ, aSpawnLocations[uiPos].o, TEMPSPAWN_DEAD_DESPAWN, 0))
+        if (Creature* pSummoned = pGo->SummonCreature(aWaveSummonInformation[m_uiWaveCounter].m_uiNpcEntry, {rand_pos, aSpawnLocations[uiPos].w}, TempSpawnType::DEAD_DESPAWN, 0))
         {
             pSummoned->SetWalk(false);
-            pGo->GetContactPoint(pSummoned, fTargetPosX, fTargetPosY, fTargetPosZ);
-            pSummoned->GetMotionMaster()->MovePoint(0, fTargetPosX, fTargetPosY, fTargetPosZ);
+            auto const target_pos = pGo->GetContactPoint(pSummoned);
+            pSummoned->GetMotionMaster()->MovePoint(0, target_pos);
         }
     }
 

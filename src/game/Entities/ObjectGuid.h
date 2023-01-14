@@ -21,7 +21,12 @@
 
 #include "Common.h"
 #include "Util/ByteBuffer.h"
+
 #include <atomic>
+#include <cstdint>
+#include <list>
+#include <set>
+#include <vector>
 
 enum TypeID
 {

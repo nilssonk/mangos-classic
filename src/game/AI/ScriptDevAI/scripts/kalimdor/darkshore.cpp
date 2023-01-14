@@ -268,8 +268,8 @@ struct npc_prospector_remtravelAI : public npc_escortAI
                 DoScriptText(SAY_REM_RAMP1_1, m_creature, pPlayer);
                 break;
             case 7:
-                m_creature->SummonCreature(NPC_GRAVEL_SCOUT, -10.0f, 5.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_GRAVEL_BONE, -10.0f, 7.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_SCOUT, {-10.0f, 5.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_BONE, {-10.0f, 7.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
                 break;
             case 10:
                 DoScriptText(SAY_REM_RAMP1_2, m_creature, pPlayer);
@@ -282,8 +282,8 @@ struct npc_prospector_remtravelAI : public npc_escortAI
                 DoScriptText(SAY_REM_TENT1_1, m_creature, pPlayer);
                 break;
             case 17:
-                m_creature->SummonCreature(NPC_GRAVEL_SCOUT, -10.0f, 5.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_GRAVEL_BONE, -10.0f, 7.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_SCOUT, {-10.0f, 5.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_BONE, {-10.0f, 7.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
                 break;
             case 18:
                 DoScriptText(SAY_REM_TENT1_2, m_creature, pPlayer);
@@ -298,9 +298,9 @@ struct npc_prospector_remtravelAI : public npc_escortAI
                 DoScriptText(SAY_REM_MOSS_PROGRESS, m_creature, pPlayer);
                 break;
             case 30:
-                m_creature->SummonCreature(NPC_GRAVEL_SCOUT, -15.0f, 3.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_GRAVEL_BONE, -15.0f, 5.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_GRAVEL_GEO, -15.0f, 7.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_SCOUT, {-15.0f, 3.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_BONE, {-15.0f, 5.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_GRAVEL_GEO, {-15.0f, 7.0f, 0.0f, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000);
                 break;
             case 32:
                 DoScriptText(SAY_REM_PROGRESS, m_creature, pPlayer);
@@ -435,6 +435,8 @@ bool GossipSelect_npc_threshwackonator(Player* pPlayer, Creature* pCreature, uin
 # npc_volcor
 ######*/
 
+namespace {
+
 enum
 {
     SAY_START                       = -1000789,
@@ -458,13 +460,8 @@ enum
     QUEST_ESCAPE_THROUGH_STEALTH    = 995,
 };
 
-struct SummonLocation
-{
-    float m_fX, m_fY, m_fZ, m_fO;
-};
-
 // Spawn locations
-static const SummonLocation aVolcorSpawnLocs[] =
+const Position aVolcorSpawnLocs[] =
 {
     {4630.2f, 22.6f, 70.1f, 2.4f},
     {4603.8f, 53.5f, 70.4f, 5.4f},
@@ -473,6 +470,8 @@ static const SummonLocation aVolcorSpawnLocs[] =
     {4747.8f, 152.8f, 54.6f, 2.4f},
     {4711.7f, 109.1f, 53.5f, 2.4f},
 };
+
+} // namespace
 
 struct npc_volcorAI : public npc_escortAI
 {
@@ -540,18 +539,18 @@ struct npc_volcorAI : public npc_escortAI
                 DoScriptText(SAY_START, m_creature);
                 break;
             case 5:
-                m_creature->SummonCreature(NPC_BLACKWOOD_SHAMAN, aVolcorSpawnLocs[0].m_fX, aVolcorSpawnLocs[0].m_fY, aVolcorSpawnLocs[0].m_fZ, aVolcorSpawnLocs[0].m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
-                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[1].m_fX, aVolcorSpawnLocs[1].m_fY, aVolcorSpawnLocs[1].m_fZ, aVolcorSpawnLocs[1].m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BLACKWOOD_SHAMAN, aVolcorSpawnLocs[0], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[1], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
                 break;
             case 6:
                 DoScriptText(SAY_FIRST_AMBUSH, m_creature);
                 break;
             case 11:
-                m_creature->SummonCreature(NPC_BLACKWOOD_SHAMAN, aVolcorSpawnLocs[2].m_fX, aVolcorSpawnLocs[2].m_fY, aVolcorSpawnLocs[2].m_fZ, aVolcorSpawnLocs[2].m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
-                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[3].m_fX, aVolcorSpawnLocs[3].m_fY, aVolcorSpawnLocs[3].m_fZ, aVolcorSpawnLocs[3].m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BLACKWOOD_SHAMAN, aVolcorSpawnLocs[2], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[3], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
             case 13:
-                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[4].m_fX, aVolcorSpawnLocs[4].m_fY, aVolcorSpawnLocs[4].m_fZ, aVolcorSpawnLocs[4].m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
-                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[5].m_fX, aVolcorSpawnLocs[5].m_fY, aVolcorSpawnLocs[5].m_fZ, aVolcorSpawnLocs[5].m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[4], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BLACKWOOD_URSA, aVolcorSpawnLocs[5], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
                 break;
             case 15:
                 DoScriptText(SAY_END, m_creature);
@@ -816,7 +815,7 @@ struct npc_corrupted_furbolgAI : public CombatAI
             if (m_isFirst)
                 DoScriptText(EMOTE_PURIFIED, m_creature);
             m_creature->SetFactionTemporary(FACTION_BLACKWOOD, TEMPFACTION_RESTORE_COMBAT_STOP);
-            m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_bowlCoords.GetPositionX(), m_bowlCoords.GetPositionY(), m_bowlCoords.GetPositionZ(), 40.f);
+            m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_bowlCoords.xyz(), 40.f);
             m_creature->SetWalk(true);
             ResetTimer(EVENT_FURBOLG_RESET, 1.5 * MINUTE * IN_MILLISECONDS);
         });
@@ -829,7 +828,7 @@ struct npc_corrupted_furbolgAI : public CombatAI
         });
         AddCustomAction(EVENT_START_PURIFICATION, true, [&]()
         {
-            if (!m_bowlCoords.IsEmpty() && m_bowlCoords.GetDistance(m_creature->GetPosition()) <= 3600.f)
+            if (!m_bowlCoords.isZero() && m_creature->GetDistance(m_bowlCoords.xyz()) <= 3600.f)
             {
                 if (m_isFirst)
                     DoScriptText(EMOTE_LURED, m_creature);
@@ -838,12 +837,10 @@ struct npc_corrupted_furbolgAI : public CombatAI
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PLAYER);
                 m_creature->CombatStop();
 
-                float x, y, z, angle;
-                angle = m_creature->GetAngle(m_bowlCoords.GetPositionX(), m_bowlCoords.GetPositionY());
-                m_creature->GetNearPointAt(m_bowlCoords.GetPositionX(), m_bowlCoords.GetPositionY(), m_bowlCoords.GetPositionZ(),
-                    m_creature, x, y, z, m_creature->GetObjectBoundingRadius(), CONTACT_DISTANCE * 2.f, angle + M_PI);
+                float const angle = m_creature->GetAngle(m_bowlCoords.xy());
+                auto const near_point = m_creature->GetNearPointAt(m_bowlCoords.xyz(), m_creature, m_creature->GetObjectBoundingRadius(), CONTACT_DISTANCE * 2.f, angle + M_PI);
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MovePoint(1, x, y, z);
+                m_creature->GetMotionMaster()->MovePoint(1, near_point);
             }
         });
         AddTimerlessCombatAction(ACTION_FLEE, true);
@@ -952,14 +949,13 @@ bool ProcessEventId_event_purify_food(uint32 /*eventId*/, Object* source, Object
         Position bowlCoords;
         // Get all nearby Blackwood Furbolgs
         GetCreatureListWithEntryInGrid(furbolgs, bonfire, furbolgList, 40.f);
-        player->GetFirstCollisionPosition(bowlCoords, float(BOWL_DISTANCE), player->GetOrientation());
+        auto const bowl_pos = player->GetFirstCollisionPosition(float(BOWL_DISTANCE), player->GetOrientation());
 
         // Spawn two extra Blackwood Warriors
-        float x, y, z;
         for (int8 i = 0; i < 2; ++i)
         {
-            bonfire->GetRandomPoint(bonfire->GetPositionX(), bonfire->GetPositionY(), bonfire->GetPositionZ(), 30.0f, x, y, z);
-            if (Creature* warrior = bonfire->SummonCreature(NPC_BLACKWOOD_WARRIOR, x, y, z, 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 120000))
+            auto const rand_pos = bonfire->GetRandomPoint(bonfire->GetPosition().xyz(), 30.0f);
+            if (Creature* warrior = bonfire->SummonCreature(NPC_BLACKWOOD_WARRIOR, {rand_pos, 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 120000))
                 furbolgs.push_back(warrior);
         }
 
@@ -994,9 +990,8 @@ bool GOUse_go_furbolg_food(Player* player, GameObject* go)
     // Else spawn a new one (and make it attack)
     else
     {
-        float x, y, z;
-        go->GetRandomPoint(go->GetPositionX(), go->GetPositionY(), go->GetPositionZ(), 20.0f, x, y, z);
-        if (Creature* warrior = go->SummonCreature(NPC_BLACKWOOD_WARRIOR, x, y, z, 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 120000))
+        auto const rand_pos = go->GetRandomPoint(go->GetPosition().xyz(), 20.0f);
+        if (Creature* warrior = go->SummonCreature(NPC_BLACKWOOD_WARRIOR, {rand_pos, 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 120000))
             warrior->AI()->AttackStart(player);
     }
 

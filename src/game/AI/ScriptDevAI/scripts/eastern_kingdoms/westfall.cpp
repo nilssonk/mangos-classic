@@ -36,6 +36,8 @@ EndContentData */
 ## npc_daphne_stilwell
 ######*/
 
+namespace {
+
 enum
 {
     YELL_DEFIAS_START   = -1000412,
@@ -62,7 +64,7 @@ enum Wave
     THIRD
 };
 
-float RaiderCoords[15][3] =
+const Vec3 RaiderCoords[15] =
 {
     {-11428.520f, 1612.757f, 72.241f}, // Spawn1
     {-11422.998f, 1616.106f, 74.153f}, // Spawn2
@@ -82,6 +84,8 @@ float RaiderCoords[15][3] =
     {-11465.560f, 1534.399f, 50.649f}, // WP4b
     {-11467.391f, 1537.989f, 50.726f}  // WP5b
 };
+
+} // anonymous namespace
 
 struct npc_daphne_stilwellAI : public npc_escortAI
 {
@@ -190,9 +194,9 @@ struct npc_daphne_stilwellAI : public npc_escortAI
 
         for (int counter = 0; counter < numberOfAdds; counter++)
         {
-            if (Creature* add = m_creature->SummonCreature(NPC_DEFIAS_RAIDER, RaiderCoords[counter][0], RaiderCoords[counter][1], RaiderCoords[counter][2], 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 30000, false, true))
+            if (Creature* add = m_creature->SummonCreature(NPC_DEFIAS_RAIDER, {RaiderCoords[counter], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 30000, SummonFlags{false, true}))
             {
-                add->GetMotionMaster()->MovePoint(counter, RaiderCoords[firstWpOffset + counter][0], RaiderCoords[firstWpOffset + counter][1], RaiderCoords[firstWpOffset + counter][2]);
+                add->GetMotionMaster()->MovePoint(counter, RaiderCoords[firstWpOffset + counter]);
                 if (!m_introIsDone)
                 {
                     DoScriptText(YELL_DEFIAS_START, add);
@@ -219,7 +223,7 @@ struct npc_daphne_stilwellAI : public npc_escortAI
         if (data >= 0 && data <= 4)
         {
             uint8 secondWpOffset = 10;
-            summoned->GetMotionMaster()->MovePoint(5, RaiderCoords[secondWpOffset + data][0], RaiderCoords[secondWpOffset + data][1], RaiderCoords[secondWpOffset + data][2]);
+            summoned->GetMotionMaster()->MovePoint(5, RaiderCoords[secondWpOffset + data]);
             return;
         }
 

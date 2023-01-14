@@ -510,12 +510,12 @@ struct CreatureCreatePos
 {
     public:
         // exactly coordinates used
-        CreatureCreatePos(Map* map, float x, float y, float z, float o)
-            : m_map(map), m_closeObject(nullptr), m_angle(0.0f), m_dist(0.0f) { m_pos.x = x; m_pos.y = y; m_pos.z = z; m_pos.o = o; }
+        CreatureCreatePos(Map* map, Position const& pos)
+            : m_pos{pos}, m_map(map), m_closeObject(nullptr), m_angle(0.0f), m_dist(0.0f) {}
         // if dist == 0.0f -> exactly object coordinates used, in other case close point to object (CONTACT_DIST can be used as minimal distances)
         CreatureCreatePos(WorldObject* closeObject, float ori, float dist = 0.0f, float angle = 0.0f)
             : m_map(closeObject->GetMap()),
-              m_closeObject(closeObject), m_angle(angle), m_dist(dist) { m_pos.o = ori; }
+              m_closeObject(closeObject), m_angle(angle), m_dist(dist) { m_pos.w = ori; }
     public:
         Map* GetMap() const { return m_map; }
         void SelectFinalPoint(Creature* cr, bool staticSpawn);
@@ -790,8 +790,7 @@ class Creature : public Unit
         Position const& GetCombatStartPosition() const { return m_combatStartPos; }
 
         void SetRespawnCoord(CreatureCreatePos const& pos) { m_respawnPos = pos.m_pos; }
-        void SetRespawnCoord(float x, float y, float z, float ori) { m_respawnPos.x = x; m_respawnPos.y = y; m_respawnPos.z = z; m_respawnPos.o = ori; }
-        void GetRespawnCoord(float& x, float& y, float& z, float* ori = nullptr, float* dist = nullptr) const;
+        void SetRespawnPosition(Vec4 const& pos) { m_respawnPos = pos; }
         Position const& GetRespawnPosition() const { return m_respawnPos; }
         void ResetRespawnCoord();
 

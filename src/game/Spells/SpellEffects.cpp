@@ -431,9 +431,8 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (!(m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION))
                         return;
 
-                    float x, y, z;
-                    m_targets.getDestination(x, y, z); // database loaded coordinates due to target type
-                    m_caster->SummonCreature(6239, x, y, z, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 30 * IN_MILLISECONDS);
+                    auto const dst = m_targets.getDestination(); // database loaded coordinates due to target type
+                    m_caster->SummonCreature(6239, {dst, 0.0f}, TEMPSPAWN_TIMED_OOC_DESPAWN, 30 * IN_MILLISECONDS);
 
                     return;
                 }

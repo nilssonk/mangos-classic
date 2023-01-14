@@ -292,18 +292,18 @@ void FillSpellSummary()
     }
 }
 
-void ScriptedAI::DoTeleportPlayer(Unit* unit, float x, float y, float z, float ori)
+void ScriptedAI::DoTeleportPlayer(Unit* unit, Position const& pos)
 {
     if (!unit)
         return;
 
     if (unit->GetTypeId() != TYPEID_PLAYER)
     {
-        script_error_log("%s tried to teleport non-player (%s) to x: %f y:%f z: %f o: %f. Aborted.", m_creature->GetGuidStr().c_str(), unit->GetGuidStr().c_str(), x, y, z, ori);
+        script_error_log("%s tried to teleport non-player (%s) to x: %f y:%f z: %f o: %f. Aborted.", m_creature->GetGuidStr().c_str(), unit->GetGuidStr().c_str(), pos.x, pos.y, pos.z, pos.w);
         return;
     }
 
-    ((Player*)unit)->TeleportTo(unit->GetMapId(), x, y, z, ori, TELE_TO_NOT_LEAVE_COMBAT);
+    ((Player*)unit)->TeleportTo(unit->GetMapId(), pos, TELE_TO_NOT_LEAVE_COMBAT);
 }
 
 CreatureList ScriptedAI::DoFindFriendlyMissingBuff(float range, uint32 spellId, bool inCombat)

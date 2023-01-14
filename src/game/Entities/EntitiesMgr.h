@@ -19,25 +19,21 @@
 #ifndef ENTITIES_MGR_H
 #define ENTITIES_MGR_H
 
-#include "Common.h"
-#include <memory>
-#include "ObjectGuid.h"
-#include "Util/Timer.h"
+#include <list>
+#include <map>
+#include <set>
+#include <unordered_set>
 
 
 #define TIMER_UPDATE_PLAYER_TIMELAPS 1000
 
-class Map;
 class WorldObject;
 class Unit;
 class Creature;
 class GameObject;
 class Player;
-class Pet;
 class DynamicObject;
 class Corpse;
-struct CreatureData;
-struct GameObjectData;
 
 typedef std::list<WorldObject*> WorldObjectList;
 typedef std::set<WorldObject*> WorldObjectSet;

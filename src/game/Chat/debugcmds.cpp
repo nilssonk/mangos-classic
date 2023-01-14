@@ -241,9 +241,11 @@ bool ChatHandler::HandleDebugPlayCinematicCommand(char* args)
         {
             PSendSysMessage("Waypoints for sequence %u, camera %u", dwId, cineSeq->cinematicCamera);
             uint32 count = 1;
-            for (FlyByCamera cam : itr->second)
+            for (FlyByCamera const& cam : itr->second)
             {
-                PSendSysMessage("%02u - %7ums [%f, %f, %f] Facing %f (%f degrees)", count, cam.timeStamp, cam.locations.x, cam.locations.y, cam.locations.z, cam.locations.w, cam.locations.w * (180 / M_PI));
+                auto const& pos = cam.pos;
+                auto const degrees = pos.w * (180 / M_PI);
+                PSendSysMessage("%02u - %7ums [%f, %f, %f] Facing %f (%f degrees)", count, cam.timeStamp, pos.x, pos.y, pos.z, pos.z, pos.w, degrees);
                 count++;
             }
             PSendSysMessage("%u waypoints dumped",uint32(itr->second.size()));
@@ -1433,7 +1435,7 @@ bool ChatHandler::HandleDebugWaypoint(char* args)
         return true;
     }
 
-    target->GetMotionMaster()->MoveWaypoint(pathId, 2);
+    target->GetMotionMaster()->MoveWaypoint(pathId, WaypointPathOrigin::FROM_ENTRY);
 
     return true;
 }
@@ -1807,8 +1809,10 @@ bool ChatHandler::HandleDebugTransports(char* args)
 
     auto& transports = player->GetMap()->GetTransports();
     SendSysMessage("Transports:");
-    for (auto transport : transports)
-        PSendSysMessage("Name %s Entry %u Position %s", transport->GetName(), transport->GetEntry(), transport->GetPosition().to_string().data());
+    for (auto const& transport : transports) {
+        auto const& pos = transport->GetPosition();
+        PSendSysMessage("Name %s Entry %u Position: %f %f %f %f", transport->GetName(), transport->GetEntry(), pos.x, pos.y, pos.z, pos.w);
+    }
     return true;
 }
 

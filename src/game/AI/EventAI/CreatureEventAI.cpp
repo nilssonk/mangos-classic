@@ -19,6 +19,7 @@
 #include "Common.h"
 #include "CreatureEventAI.h"
 #include "CreatureEventAIMgr.h"
+#include "Entities/TempSpawnSettings.h"
 #include "Globals/ObjectMgr.h"
 #include "World/World.h"
 #include "Grids/Cell.h"
@@ -817,9 +818,9 @@ bool CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
 
             Creature* pCreature;
             if (action.summon.duration)
-                pCreature = m_creature->SummonCreature(action.summon.creatureId, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, action.summon.duration);
+                pCreature = m_creature->SummonCreature(action.summon.creatureId, G3D::Vector4{}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, action.summon.duration);
             else
-                pCreature = m_creature->SummonCreature(action.summon.creatureId, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 0);
+                pCreature = m_creature->SummonCreature(action.summon.creatureId, G3D::Vector4{}, TempSpawnType::TIMED_OOC_DESPAWN, 0);
 
             if (!pCreature)
                 sLog.outErrorEventAI("Failed to spawn creature %u. Spawn event %d is on creature %d", action.summon.creatureId, eventId, m_creature->GetEntry());
@@ -1014,11 +1015,11 @@ bool CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             }
 
             Creature* pCreature;
-            const CreatureEventAI_Summon* cEventAI = &i->second;
+            CreatureEventAI_Summon const& cEventAI = i->second;
             if (i->second.SpawnTimeSecs)
-                pCreature = m_creature->SummonCreature(action.summon_id.creatureId, cEventAI->position_x, cEventAI->position_y, cEventAI->position_z, cEventAI->orientation, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, cEventAI->SpawnTimeSecs);
+                pCreature = m_creature->SummonCreature(action.summon_id.creatureId, cEventAI.pos, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, cEventAI.SpawnTimeSecs);
             else
-                pCreature = m_creature->SummonCreature(action.summon_id.creatureId, cEventAI->position_x, cEventAI->position_y, cEventAI->position_z, cEventAI->orientation, TEMPSPAWN_TIMED_OOC_DESPAWN, 0);
+                pCreature = m_creature->SummonCreature(action.summon_id.creatureId, cEventAI.pos, TempSpawnType::TIMED_OOC_DESPAWN, 0);
 
             if (!pCreature)
                 sLog.outErrorEventAI("Failed to spawn creature %u. EventId %d.Creature %d", action.summon_id.creatureId, eventId, m_creature->GetEntry());
@@ -1167,6 +1168,8 @@ bool CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         }
         case ACTION_T_CHANGE_MOVEMENT:
         {
+            using WPO = WaypointPathOrigin;
+
             if (action.changeMovement.flags & CHANGE_MOVEMENT_FLAG_AS_DEFAULT)
                 m_defaultMovement = MovementGeneratorType(action.changeMovement.movementType);
             switch (action.changeMovement.movementType)
@@ -1175,24 +1178,24 @@ bool CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                     m_creature->GetMotionMaster()->MoveIdle();
                     break;
                 case RANDOM_MOTION_TYPE:
-                    m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), float(action.changeMovement.wanderORpathID));
+                    m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->GetPosition().xyz(), float(action.changeMovement.wanderORpathID));
                     break;
                 case WAYPOINT_MOTION_TYPE:
                 {
                     m_creature->StopMoving();
                     m_creature->GetMotionMaster()->Clear(false, true);
-                    WaypointPathOrigin origin = PATH_NO_PATH;
+                    WaypointPathOrigin origin = WPO::NO_PATH;
                     if (action.changeMovement.flags & CHANGE_MOVEMENT_FLAG_WAYPOINT_PATH)
-                        origin = PATH_FROM_WAYPOINT_PATH;
+                        origin = WPO::FROM_WAYPOINT_PATH;
                     m_creature->GetMotionMaster()->MoveWaypoint(action.changeMovement.wanderORpathID, origin);
                     break;
                 }
                 case PATH_MOTION_TYPE:
                 {
                     m_creature->StopMoving();
-                    WaypointPathOrigin origin = PATH_NO_PATH;
+                    auto origin = WPO::NO_PATH;
                     if (action.changeMovement.flags & CHANGE_MOVEMENT_FLAG_WAYPOINT_PATH)
-                        origin = PATH_FROM_WAYPOINT_PATH;
+                        origin = WPO::FROM_WAYPOINT_PATH;
                     m_creature->GetMotionMaster()->MovePath(action.changeMovement.wanderORpathID, origin);
                     break;
                 }
@@ -1200,9 +1203,9 @@ bool CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                 {
                     m_creature->StopMoving();
                     m_creature->GetMotionMaster()->Clear(false, true);
-                    WaypointPathOrigin origin = PATH_NO_PATH;
+                    auto origin = WPO::NO_PATH;
                     if (action.changeMovement.flags & CHANGE_MOVEMENT_FLAG_WAYPOINT_PATH)
-                        origin = PATH_FROM_WAYPOINT_PATH;
+                        origin = WPO::FROM_WAYPOINT_PATH;
                     m_creature->GetMotionMaster()->MoveLinearWP(action.changeMovement.wanderORpathID, origin);
                     break;
                 }
@@ -1316,10 +1319,16 @@ bool CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         {
             if (action.setFacing.reset)
             {
-                float x, y, z, o;
-                if (m_creature->GetMotionMaster()->empty() || !m_creature->GetMotionMaster()->top()->GetResetPosition(*m_creature, x, y, z, o))
-                    m_creature->GetRespawnCoord(x, y, z, &o);
-                m_creature->SetFacingTo(o);
+                if (m_creature->GetMotionMaster()->empty()) {
+                    m_creature->SetFacingTo(m_creature->GetRespawnPosition().w);
+                } else {
+                    auto const maybe_respawn_pos = m_creature->GetMotionMaster()->top()->GetResetPosition(*m_creature);
+                    if (maybe_respawn_pos) {
+                        m_creature->SetFacingTo(maybe_respawn_pos.value().w);
+                    } else {
+                        m_creature->SetFacingTo(m_creature->GetRespawnPosition().w);
+                    }
+                }
             }
             else
             {

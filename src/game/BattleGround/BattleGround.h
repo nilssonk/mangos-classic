@@ -360,15 +360,8 @@ class BattleGround
         }
 
         // Functions that get and set team start location
-        void SetTeamStartLoc(Team team, float x, float y, float z, float o);
-        void GetTeamStartLoc(Team team, float& x, float& y, float& z, float& o) const
-        {
-            PvpTeamIndex idx = GetTeamIndexByTeamId(team);
-            x = m_teamStartLocX[idx];
-            y = m_teamStartLocY[idx];
-            z = m_teamStartLocZ[idx];
-            o = m_teamStartLocO[idx];
-        }
+        void SetTeamStartLoc(Team team, Position const& pos);
+        Position GetTeamStartLoc(Team team) const;
 
         void SetStartMaxDist(float startMaxDist) { m_startMaxDist = startMaxDist; }
         float GetStartMaxDist() const { return m_startMaxDist; }

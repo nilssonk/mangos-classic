@@ -101,7 +101,7 @@ bool AreaTrigger_at_scent_larkorwi(Player* pPlayer, AreaTriggerEntry const* pAt)
     if (pPlayer->IsAlive() && !pPlayer->IsGameMaster() && pPlayer->GetQuestStatus(QUEST_SCENT_OF_LARKORWI) == QUEST_STATUS_INCOMPLETE)
     {
         if (!GetClosestCreatureWithEntry(pPlayer, NPC_LARKORWI_MATE, 25.0f, false, false))
-            pPlayer->SummonCreature(NPC_LARKORWI_MATE, pAt->x, pAt->y, pAt->z, 3.3f, TEMPSPAWN_TIMED_OOC_DESPAWN, 2 * MINUTE * IN_MILLISECONDS);
+            pPlayer->SummonCreature(NPC_LARKORWI_MATE, {pAt->x, pAt->y, pAt->z, 3.3f}, TempSpawnType::TIMED_OOC_DESPAWN, 2 * MINUTE * IN_MILLISECONDS);
     }
 
     return false;
@@ -129,17 +129,16 @@ bool AreaTrigger_at_murkdeep(Player* pPlayer, AreaTriggerEntry const* /*pAt*/)
         if (GetClosestCreatureWithEntry(pPlayer, NPC_GREYMIST_COASTRUNNNER, 60.0f, false, false))
             return true;
 
-        float fX, fY, fZ;
         for (uint8 i = 0; i < 3; ++i)
         {
             // Spawn locations are defined in World Maps Scripts.h
-            pPlayer->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][0], aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][1], aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][2], 5.0f, fX, fY, fZ);
+            auto const rand_pos = pPlayer->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_SPAWN].xyz(), 5.0f);
 
-            if (Creature* pTemp = pPlayer->SummonCreature(NPC_GREYMIST_COASTRUNNNER, fX, fY, fZ, aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][3], TEMPSPAWN_DEAD_DESPAWN, 0))
+            if (Creature* pTemp = pPlayer->SummonCreature(NPC_GREYMIST_COASTRUNNNER, {rand_pos, aSpawnLocations[POS_IDX_MURKDEEP_SPAWN].w}, TempSpawnType::DEAD_DESPAWN, 0))
             {
                 pTemp->SetWalk(false);
-                pTemp->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_MOVE][0], aSpawnLocations[POS_IDX_MURKDEEP_MOVE][1], aSpawnLocations[POS_IDX_MURKDEEP_MOVE][2], 5.0f, fX, fY, fZ);
-                pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                auto const rand_dst = pTemp->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_MOVE].xyz(), 5.0f);
+                pTemp->GetMotionMaster()->MovePoint(0, rand_dst);
             }
         }
     }
@@ -152,6 +151,8 @@ bool AreaTrigger_at_murkdeep(Player* pPlayer, AreaTriggerEntry const* /*pAt*/)
 ## at_ancient_leaf
 ######*/
 
+namespace {
+
 enum
 {
     QUEST_ANCIENT_LEAF              = 7632,
@@ -163,18 +164,20 @@ enum
     MAX_ANCIENTS                    = 3,
 };
 
-struct AncientSpawn
+struct SpawnLocation
 {
-    uint32 uiEntry;
-    float fX, fY, fZ, fO;
+    uint32 ui_entry;
+    Position pos;
 };
 
-static const AncientSpawn afSpawnLocations[MAX_ANCIENTS] =
+const SpawnLocation afSpawnLocations[MAX_ANCIENTS] =
 {
-    { NPC_VARTRUS, 6204.051758f, -1172.575684f, 370.079224f, 0.86052f },    // Vartus the Ancient
-    { NPC_STOMA,   6246.953613f, -1155.985718f, 366.182953f, 2.90269f },    // Stoma the Ancient
-    { NPC_HASTAT,  6193.449219f, -1137.834106f, 366.260529f, 5.77332f },    // Hastat the Ancient
+    { NPC_VARTRUS, {6204.051758f, -1172.575684f, 370.079224f, 0.86052f } },    // Vartus the Ancient
+    { NPC_STOMA,   {6246.953613f, -1155.985718f, 366.182953f, 2.90269f } },    // Stoma the Ancient
+    { NPC_HASTAT,  {6193.449219f, -1137.834106f, 366.260529f, 5.77332f } },    // Hastat the Ancient
 };
+
+} // namespace
 
 bool AreaTrigger_at_ancient_leaf(Player* pPlayer, AreaTriggerEntry const* /*pAt*/)
 {
@@ -188,17 +191,20 @@ bool AreaTrigger_at_ancient_leaf(Player* pPlayer, AreaTriggerEntry const* /*pAt*
         if (GetClosestCreatureWithEntry(pPlayer, NPC_VARTRUS, 50.0f) || GetClosestCreatureWithEntry(pPlayer, NPC_STOMA, 50.0f) || GetClosestCreatureWithEntry(pPlayer, NPC_HASTAT, 50.0f))
             return true;
 
-        for (const auto& afSpawnLocation : afSpawnLocations)
-            pPlayer->SummonCreature(afSpawnLocation.uiEntry, afSpawnLocation.fX, afSpawnLocation.fY, afSpawnLocation.fZ, afSpawnLocation.fO, TEMPSPAWN_TIMED_DESPAWN, 5 * MINUTE * IN_MILLISECONDS);
+        for (const auto& loc : afSpawnLocations)
+            pPlayer->SummonCreature(loc.ui_entry, loc.pos, TempSpawnType::TIMED_DESPAWN, 5 * MINUTE * IN_MILLISECONDS);
     }
 
     return false;
 }
 
+namespace {
+
 /*######
 ## Miran and Huldar are Ambushed when AT-171 is triggered
 ## when quest 273 is active
 ######*/
+
 
 enum
 {
@@ -214,17 +220,14 @@ enum
     SAY_MIRAN_AMBUSH                    = -1010029,
 };
 
-struct Location
-{
-    float m_fX, m_fY, m_fZ, m_fO;
-};
-
-static const Location m_miranAmbushSpawns[] =
+const Position aMiranAmbushSpawns[] =
 {
     { -5760.73f, -3437.71f, 305.54f, 2.41f },   // Saean
     { -5759.85f, -3441.29f, 305.57f, 2.24f },   // Dark Iron Ambusher 1
     { -5757.75f, -3437.61f, 304.32f, 2.56f },   // Dark Iron Ambusher 2
 };
+
+} // namespace
 
 bool AreaTrigger_at_huldar_miran(Player* pPlayer, AreaTriggerEntry const* /*pAt*/)
 {
@@ -261,7 +264,7 @@ bool AreaTrigger_at_huldar_miran(Player* pPlayer, AreaTriggerEntry const* /*pAt*
         m_saean->SetFactionTemporary(FACTION_HOSTILE, TEMPFACTION_RESTORE_RESPAWN);
     else
     {
-        m_saean = m_huldar->SummonCreature(NPC_SAEAN, m_miranAmbushSpawns[0].m_fX, m_miranAmbushSpawns[0].m_fY, m_miranAmbushSpawns[0].m_fZ, m_miranAmbushSpawns[0].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
+        m_saean = m_huldar->SummonCreature(NPC_SAEAN, aMiranAmbushSpawns[0], TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
         if (m_saean)
             m_saean->SetFactionTemporary(FACTION_HOSTILE, TEMPFACTION_RESTORE_RESPAWN);
     }
@@ -269,8 +272,8 @@ bool AreaTrigger_at_huldar_miran(Player* pPlayer, AreaTriggerEntry const* /*pAt*
     // Check if any Dark Iron Ambusher are already spawned or dead, if so, do nothing
     if (m_saean && !GetClosestCreatureWithEntry(pPlayer, NPC_DARK_IRON_AMBUSHER, 60.0f, false, false))
     {
-        m_saean->SummonCreature(NPC_DARK_IRON_AMBUSHER, m_miranAmbushSpawns[1].m_fX, m_miranAmbushSpawns[1].m_fY, m_miranAmbushSpawns[1].m_fZ, m_miranAmbushSpawns[1].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
-        m_saean->SummonCreature(NPC_DARK_IRON_AMBUSHER, m_miranAmbushSpawns[2].m_fX, m_miranAmbushSpawns[2].m_fY, m_miranAmbushSpawns[2].m_fZ, m_miranAmbushSpawns[2].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
+        m_saean->SummonCreature(NPC_DARK_IRON_AMBUSHER, aMiranAmbushSpawns[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
+        m_saean->SummonCreature(NPC_DARK_IRON_AMBUSHER, aMiranAmbushSpawns[2], TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
     }
 
     return true;
@@ -280,6 +283,8 @@ bool AreaTrigger_at_huldar_miran(Player* pPlayer, AreaTriggerEntry const* /*pAt*
 ## at_twilight_grove
 ######*/
 
+namespace {
+
 enum
 {
     NPC_TWILIGHT_CORRUPTER          = 15625,
@@ -288,7 +293,9 @@ enum
     SAY_TWILIGHT_CORRUPTER_SPAWN    = -1000411
 };
 
-static const Location m_twilightCorrupterSpawn = { -10326.3f, -487.423f, 50.1127f, 5.73692f };
+const Position m_twilightCorrupterSpawn = { -10326.3f, -487.423f, 50.1127f, 5.73692f };
+
+} // namespace
 
 bool AreaTrigger_at_twilight_grove(Player* player, AreaTriggerEntry const* /*pAt*/)
 {
@@ -308,7 +315,7 @@ bool AreaTrigger_at_twilight_grove(Player* player, AreaTriggerEntry const* /*pAt
         return true;
 
     // Spawn the Twilight Corrupter and send whisper to player
-    if (Creature* twilightCorrupter = player->SummonCreature(NPC_TWILIGHT_CORRUPTER, m_twilightCorrupterSpawn.m_fX, m_twilightCorrupterSpawn.m_fY, m_twilightCorrupterSpawn.m_fZ, m_twilightCorrupterSpawn.m_fO, TEMPSPAWN_TIMED_OOC_DESPAWN, 30 * MINUTE * IN_MILLISECONDS))
+    if (Creature* twilightCorrupter = player->SummonCreature(NPC_TWILIGHT_CORRUPTER, m_twilightCorrupterSpawn, TempSpawnType::TIMED_OOC_DESPAWN, 30 * MINUTE * IN_MILLISECONDS))
     {
         DoScriptText(SAY_TWILIGHT_CORRUPTER_SPAWN, twilightCorrupter, player);
         return true;
@@ -334,7 +341,7 @@ bool AreaTrigger_at_hive_tower(Player* player, AreaTriggerEntry const* /*pAt*/)
     {
         // spawn three Hive'Ashi Drones for 5 minutes (timer is guesswork)
         for (uint8 i = POS_IDX_HIVE_DRONES_START; i <= POS_IDX_HIVE_DRONES_STOP; ++i)
-            player->SummonCreature(NPC_HIVE_ASHI_DRONES, aSpawnLocations[i][0], aSpawnLocations[i][1], aSpawnLocations[i][2], aSpawnLocations[i][3], TEMPSPAWN_TIMED_OR_DEAD_DESPAWN, 5 * MINUTE * IN_MILLISECONDS);
+            player->SummonCreature(NPC_HIVE_ASHI_DRONES, aSpawnLocations[i], TempSpawnType::TIMED_OR_DEAD_DESPAWN, 5 * MINUTE * IN_MILLISECONDS);
         scriptedMap->SetData(TYPE_HIVE, IN_PROGRESS);   // Notify the map script to start the timer
         return true;
     }

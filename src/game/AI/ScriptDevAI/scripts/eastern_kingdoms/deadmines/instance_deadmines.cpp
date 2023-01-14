@@ -236,10 +236,10 @@ void instance_deadmines::Update(uint32 uiDiff)
                     {
                         for (uint32 i = 148u; i <= 149; ++i)
                             if (Creature* guardfast = pDoor->GetMap()->GetCreature(GUID_PREFIX + i))
-                                guardfast->GetMotionMaster()->MovePoint(0, pDoor->GetPositionX(), pDoor->GetPositionY(), pDoor->GetPositionZ(), FORCED_MOVEMENT_RUN, true);
+                                guardfast->GetMotionMaster()->MovePoint(0, pDoor->GetPosition().xyz(), FORCED_MOVEMENT_RUN, true);
 
                         if (Creature* guardlow = pDoor->GetMap()->GetCreature(GUID_PREFIX + 150))
-                            guardlow->GetMotionMaster()->MovePoint(0, pDoor->GetPositionX(), pDoor->GetPositionY(), pDoor->GetPositionZ(), FORCED_MOVEMENT_WALK, true);
+                            guardlow->GetMotionMaster()->MovePoint(0, pDoor->GetPosition().xyz(), FORCED_MOVEMENT_WALK, true);
                     }
                     ++m_uiDoorStep;
                     m_uiIronDoorTimer = 15000;

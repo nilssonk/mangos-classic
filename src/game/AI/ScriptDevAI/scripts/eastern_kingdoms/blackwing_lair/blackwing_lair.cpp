@@ -26,6 +26,15 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "blackwing_lair.h"
 
+namespace bwl {
+
+const Vec3 aNefarianLocs[3] =
+{
+    { -7599.32f, -1191.72f, 475.545f},                      // opening where red/blue/black darknid spawner appear (ori 3.05433)
+    { -7526.27f, -1135.04f, 473.445f},                      // same as above, closest to door (ori 5.75959)
+    { -7348.849f, -1495.134f, 552.5152f},                   // nefarian spawn location (ori 1.798)
+};
+
 instance_blackwing_lair::instance_blackwing_lair(Map* pMap) : ScriptedInstance(pMap),
     m_uiResetTimer(0),
     m_uiDefenseTimer(0),
@@ -527,7 +536,7 @@ void instance_blackwing_lair::Update(uint32 uiDiff)
         {
             if (Creature* nefarius = GetSingleCreatureFromStorage(NPC_LORD_VICTOR_NEFARIUS))
             {
-                nefarius->SummonCreature(NPC_NEFARIAN, aNefarianLocs[2].m_fX, aNefarianLocs[2].m_fY, aNefarianLocs[2].m_fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0, true);
+                nefarius->SummonCreature(NPC_NEFARIAN, {aNefarianLocs[2], 0}, TempSpawnType::DEAD_DESPAWN, 0, SummonFlags{true});
                 // Despawn Nefarius
                 if (!nefarius->IsDespawned() && GetData(TYPE_NEFARIAN) == SPECIAL)
                 {
@@ -846,3 +855,5 @@ void AddSC_instance_blackwing_lair()
     pNewScript->pProcessEventId = &ProcessEventId_event_weekly_chromatic_selection;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

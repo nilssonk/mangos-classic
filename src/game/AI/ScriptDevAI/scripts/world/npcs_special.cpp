@@ -112,6 +112,8 @@ UnitAI* GetAI_npc_chicken_cluck(Creature* pCreature)
 ## Triage quest
 ######*/
 
+namespace {
+
 enum
 {
     SAY_DOC1                    = -1000201,
@@ -127,12 +129,7 @@ enum
     HORDE_COORDS                = 6
 };
 
-struct Location
-{
-    float x, y, z, o;
-};
-
-static Location AllianceCoords[] =
+const Position aAllianceCoords[] =
 {
     { -3757.38f, -4533.05f, 14.16f, 3.62f},                 // Top-far-right bunk as seen from entrance
     { -3754.36f, -4539.13f, 14.16f, 5.13f},                 // Top-far-left bunk
@@ -143,12 +140,12 @@ static Location AllianceCoords[] =
     { -3746.37f, -4525.35f, 14.16f, 5.22f},                 // Left bunk near entrance
 };
 
-// alliance run to where
-#define A_RUNTOX -3742.96f
-#define A_RUNTOY -4531.52f
-#define A_RUNTOZ 11.91f
 
-static Location HordeCoords[] =
+
+// alliance run to where
+const Vec3 aAllianceRunPosition{ -3742.96f, -4531.52f, 11.91f };
+
+const Position aHordeCoords[] =
 {
     { -1013.75f, -3492.59f, 62.62f, 4.34f},                 // Left, Behind
     { -1017.72f, -3490.92f, 62.62f, 4.34f},                 // Right, Behind
@@ -159,23 +156,23 @@ static Location HordeCoords[] =
 };
 
 // horde run to where
-#define H_RUNTOX -1016.44f
-#define H_RUNTOY -3508.48f
-#define H_RUNTOZ 62.96f
+const Vec3 aHordeRunPosition{ -1016.44f, -3508.48f, 62.96f };
 
-const uint32 AllianceSoldierId[3] =
+const uint32 aAllianceSoldierId[3] =
 {
     12938,                                                  // 12938 Injured Alliance Soldier
     12936,                                                  // 12936 Badly injured Alliance Soldier
     12937                                                   // 12937 Critically injured Alliance Soldier
 };
 
-const uint32 HordeSoldierId[3] =
+const uint32 aHordeSoldierId[3] =
 {
     12923,                                                  // 12923 Injured Soldier
     12924,                                                  // 12924 Badly injured Soldier
     12925                                                   // 12925 Critically injured Soldier
 };
+
+} // namespace
 
 /*######
 ## npc_doctor (handles both Gustaf Vanhowzen and Gregory Victor)
@@ -195,7 +192,7 @@ struct npc_doctorAI : public ScriptedAI
     bool m_bIsEventInProgress;
 
     GuidList m_lPatientGuids;
-    std::vector<Location*> m_vPatientSummonCoordinates;
+    std::vector<std::reference_wrapper<Position const>> m_vPatientSummonCoordinates;
 
     void Reset() override
     {
@@ -215,8 +212,8 @@ struct npc_doctorAI : public ScriptedAI
     }
 
     void BeginEvent(Player* pPlayer);
-    void PatientDied(Location* pPoint);
-    void PatientSaved(Creature* pSoldier, Player* pPlayer, Location* pPoint);
+    void PatientDied(Position const& pPoint);
+    void PatientSaved(Creature* pSoldier, Player* pPlayer, Position const& pPoint);
     void UpdateAI(const uint32 uiDiff) override;
 };
 
@@ -229,7 +226,7 @@ struct npc_injured_patientAI : public ScriptedAI
     npc_injured_patientAI(Creature* pCreature) : ScriptedAI(pCreature), isSaved(false) {Reset();}
 
     ObjectGuid m_doctorGuid;
-    Location* m_pCoord;
+    Position const* m_pCoord;
     bool isSaved;
 
     void EnterEvadeMode() override
@@ -278,7 +275,10 @@ struct npc_injured_patientAI : public ScriptedAI
                 if (Creature* pDoctor = m_creature->GetMap()->GetCreature(m_doctorGuid))
                 {
                     if (npc_doctorAI* pDocAI = dynamic_cast<npc_doctorAI*>(pDoctor->AI()))
-                        pDocAI->PatientSaved(m_creature, pPlayer, m_pCoord);
+                    {
+                        MANGOS_ASSERT(m_pCoord != nullptr);
+                        pDocAI->PatientSaved(m_creature, pPlayer, *m_pCoord);
+                    }
                 }
             }
             // make not selectable
@@ -303,12 +303,12 @@ struct npc_injured_patientAI : public ScriptedAI
                 case 12923:
                 case 12924:
                 case 12925:
-                    m_creature->GetMotionMaster()->MovePoint(0, H_RUNTOX, H_RUNTOY, H_RUNTOZ);
+                    m_creature->GetMotionMaster()->MovePoint(0, aHordeRunPosition);
                     break;
                 case 12936:
                 case 12937:
                 case 12938:
-                    m_creature->GetMotionMaster()->MovePoint(0, A_RUNTOX, A_RUNTOY, A_RUNTOZ);
+                    m_creature->GetMotionMaster()->MovePoint(0, aAllianceRunPosition);
                     break;
             }
         }
@@ -336,8 +336,10 @@ struct npc_injured_patientAI : public ScriptedAI
 
             if (Creature* pDoctor = m_creature->GetMap()->GetCreature(m_doctorGuid))
             {
-                if (npc_doctorAI* pDocAI = dynamic_cast<npc_doctorAI*>(pDoctor->AI()))
-                    pDocAI->PatientDied(m_pCoord);
+                if (npc_doctorAI* pDocAI = dynamic_cast<npc_doctorAI*>(pDoctor->AI())) {
+                    MANGOS_ASSERT(m_pCoord != nullptr);
+                    pDocAI->PatientDied(*m_pCoord);
+                }
             }
         }
     }
@@ -364,12 +366,12 @@ void npc_doctorAI::BeginEvent(Player* pPlayer)
     switch (m_creature->GetEntry())
     {
         case DOCTOR_ALLIANCE:
-            for (auto& AllianceCoord : AllianceCoords)
-                m_vPatientSummonCoordinates.push_back(&AllianceCoord);
+            for (auto const& pos : aAllianceCoords)
+                m_vPatientSummonCoordinates.push_back(std::cref(pos));
             break;
         case DOCTOR_HORDE:
-            for (auto& HordeCoord : HordeCoords)
-                m_vPatientSummonCoordinates.push_back(&HordeCoord);
+            for (auto const& pos : aHordeCoords)
+                m_vPatientSummonCoordinates.emplace_back(std::cref(pos));
             break;
     }
 
@@ -377,7 +379,7 @@ void npc_doctorAI::BeginEvent(Player* pPlayer)
     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNINTERACTIBLE);
 }
 
-void npc_doctorAI::PatientDied(Location* pPoint)
+void npc_doctorAI::PatientDied(Position const& pPoint)
 {
     Player* pPlayer = m_creature->GetMap()->GetPlayer(m_playerGuid);
 
@@ -403,7 +405,7 @@ void npc_doctorAI::PatientDied(Location* pPoint)
         Reset();
 }
 
-void npc_doctorAI::PatientSaved(Creature* /*soldier*/, Player* pPlayer, Location* pPoint)
+void npc_doctorAI::PatientSaved(Creature* /*soldier*/, Player* pPlayer, Position const& pPoint)
 {
     if (pPlayer && m_playerGuid == pPlayer->GetObjectGuid())
     {
@@ -449,19 +451,19 @@ void npc_doctorAI::UpdateAI(const uint32 uiDiff)
     {
         if (m_uiSummonPatientTimer < uiDiff)
         {
-            std::vector<Location*>::iterator itr = m_vPatientSummonCoordinates.begin() + urand(0, m_vPatientSummonCoordinates.size() - 1);
+            auto const it = m_vPatientSummonCoordinates.begin() + urand(0, m_vPatientSummonCoordinates.size() - 1);
             uint32 patientEntry = 0;
 
             switch (m_creature->GetEntry())
             {
-                case DOCTOR_ALLIANCE: patientEntry = AllianceSoldierId[urand(0, 2)]; break;
-                case DOCTOR_HORDE:    patientEntry = HordeSoldierId[urand(0, 2)];    break;
+                case DOCTOR_ALLIANCE: patientEntry = aAllianceSoldierId[urand(0, 2)]; break;
+                case DOCTOR_HORDE:    patientEntry = aHordeSoldierId[urand(0, 2)];    break;
                 default:
                     script_error_log("Invalid entry for Triage doctor. Please check your database");
                     return;
             }
 
-            if (Creature* Patient = m_creature->SummonCreature(patientEntry, (*itr)->x, (*itr)->y, (*itr)->z, (*itr)->o, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, 5000))
+            if (Creature* Patient = m_creature->SummonCreature(patientEntry, it->get(), TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, 5000))
             {
                 // 2.4.3, this flag appear to be required for client side item->spell to work (TARGET_UNIT_FRIEND)
                 Patient->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP);
@@ -471,8 +473,8 @@ void npc_doctorAI::UpdateAI(const uint32 uiDiff)
                 if (npc_injured_patientAI* pPatientAI = dynamic_cast<npc_injured_patientAI*>(Patient->AI()))
                 {
                     pPatientAI->m_doctorGuid = m_creature->GetObjectGuid();
-                    pPatientAI->m_pCoord = *itr;
-                    m_vPatientSummonCoordinates.erase(itr);
+                    pPatientAI->m_pCoord = &(it->get());
+                    m_vPatientSummonCoordinates.erase(it);
                 }
             }
             m_uiSummonPatientTimer = 10000;

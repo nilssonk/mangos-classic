@@ -75,9 +75,9 @@ struct boss_moamAI : public CombatAI
 
         if (m_creature->GetInstanceData())
         {
-            m_creature->GetCombatManager().SetLeashingCheck([](Unit* unit, float x, float y, float z)
+            m_creature->GetCombatManager().SetLeashingCheck([](Unit const& u)
             {
-                return static_cast<ScriptedInstance*>(unit->GetInstanceData())->GetPlayerInMap(true, false) == nullptr;
+                return static_cast<ScriptedInstance*>(u.GetInstanceData())->GetPlayerInMap(true, false) == nullptr;
             });
         }
     }

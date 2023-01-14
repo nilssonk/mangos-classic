@@ -27,6 +27,8 @@ EndScriptData
 #include "zulgurub.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace {
+
 enum
 {
     NPC_OHGAN           = 14988,
@@ -64,12 +66,7 @@ enum
     POINT_DOWNSTAIRS    = 1
 };
 
-struct SpawnLocations
-{
-    float fX, fY, fZ, fAng;
-};
-
-static SpawnLocations aSpirits[] =
+const Position aSpiritPositions[] =
 {
     { -12150.9f, -1956.24f, 133.407f, 2.57835f},
     { -12157.1f, -1972.78f, 133.947f, 2.64903f},
@@ -97,6 +94,8 @@ enum MandokirActions
     MANDOKIR_ACTION_MAX,
 };
 
+} // anonymous namespace
+
 struct boss_mandokirAI : public CombatAI
 {
     boss_mandokirAI(Creature* creature) : CombatAI(creature, MANDOKIR_ACTION_MAX), m_instance(static_cast<ScriptedInstance*>(creature->GetInstanceData()))
@@ -123,8 +122,8 @@ struct boss_mandokirAI : public CombatAI
     {
         DoScriptText(SAY_AGGRO, m_creature);
 
-        for (auto& aSpirit : aSpirits)
-            m_creature->SummonCreature(NPC_CHAINED_SPIRIT, aSpirit.fX, aSpirit.fY, aSpirit.fZ, aSpirit.fAng, TEMPSPAWN_CORPSE_DESPAWN, 0);
+        for (auto const& pos : aSpiritPositions)
+            m_creature->SummonCreature(NPC_CHAINED_SPIRIT, pos, TempSpawnType::CORPSE_DESPAWN, 0);
 
         // At combat start Mandokir is mounted so we must unmount it first
         m_creature->Unmount();

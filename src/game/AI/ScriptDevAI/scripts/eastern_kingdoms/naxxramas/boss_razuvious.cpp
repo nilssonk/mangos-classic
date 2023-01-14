@@ -59,7 +59,7 @@ struct boss_razuviousAI : public CombatAI
 {
     boss_razuviousAI(Creature* creature) : CombatAI(creature, RAZUVIOUS_ACTION_MAX), m_instance(static_cast<ScriptedInstance*>(creature->GetInstanceData()))
     {
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit*, float, float, float z) { return z > resetZ; });
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const& u) { return u.GetPositionZ() > resetZ; });
         AddCombatAction(RAZUVIOUS_UNBALANCING_STRIKE, 30u * IN_MILLISECONDS);
         AddCombatAction(RAZUVIOUS_DISRUPTING_SHOUT, 25u * IN_MILLISECONDS);
     }

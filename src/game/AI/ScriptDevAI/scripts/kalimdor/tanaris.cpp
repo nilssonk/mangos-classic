@@ -137,6 +137,8 @@ UnitAI* GetAI_mob_aquementas(Creature* pCreature)
 ## npc_oox17tn
 ######*/
 
+namespace {
+
 enum
 {
     SAY_OOX_START           = -1000287,
@@ -152,6 +154,14 @@ enum
     NPC_SCOFFLAW            = 7805,
     NPC_SHADOW_MAGE         = 5617
 };
+
+const Position aScorpionAmbushPositions[] = {
+    {-8340.70f, -4448.17f, 9.17f, 3.10f},
+    {-8343.18f, -4444.35f, 9.44f, 2.35f},
+    {-8348.70f, -4457.80f, 9.58f, 2.02f},
+};
+
+} // namespace
 
 struct npc_oox17tnAI : public npc_escortAI
 {
@@ -171,18 +181,18 @@ struct npc_oox17tnAI : public npc_escortAI
             // 1. Ambush: 3 scorpions
             case 23:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_SCORPION, -8340.70f, -4448.17f, 9.17f, 3.10f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_SCORPION, -8343.18f, -4444.35f, 9.44f, 2.35f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_SCORPION, -8348.70f, -4457.80f, 9.58f, 2.02f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
+                for (auto const& pos : aScorpionAmbushPositions) {
+                    m_creature->SummonCreature(NPC_SCORPION, pos, TempSpawnType::CORPSE_TIMED_DESPAWN, 30000);
+                }
                 break;
             // 2. Ambush: 2 Rogues & 1 Shadow Mage
             case 29:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
 
-                m_creature->SummonCreature(NPC_SCOFFLAW, -7488.02f, -4786.56f, 10.67f, 3.74f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_SHADOW_MAGE, -7486.41f, -4791.55f, 10.54f, 3.26f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_SCOFFLAW, {-7488.02f, -4786.56f, 10.67f, 3.74f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_SHADOW_MAGE, {-7486.41f, -4791.55f, 10.54f, 3.26f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 30000);
 
-                if (Creature* pCreature = m_creature->SummonCreature(NPC_SCOFFLAW, -7488.47f, -4800.77f, 9.77f, 2.50f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000))
+                if (Creature* pCreature = m_creature->SummonCreature(NPC_SCOFFLAW, {-7488.47f, -4800.77f, 9.77f, 2.50f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 30000))
                     DoScriptText(SAY_OOX17_AMBUSH_REPLY, pCreature);
 
                 break;
@@ -308,6 +318,8 @@ bool GossipSelect_npc_stone_watcher_of_norgannon(Player* pPlayer, Creature* pCre
 # npc_tooga
 ####*/
 
+namespace {
+
 enum
 {
     SAY_TOOG_THIRST             = -1000391,
@@ -325,7 +337,9 @@ enum
     POINT_ID_TO_WATER           = 1
 };
 
-const float m_afToWaterLoc[] = { -7032.664551f, -4906.199219f, -1.606446f};
+const Vec3 m_afToWaterLoc{ -7032.664551f, -4906.199219f, -1.606446f};
+
+} // namespace
 
 struct npc_toogaAI : public FollowerAI
 {
@@ -414,7 +428,7 @@ struct npc_toogaAI : public FollowerAI
                             break;
                         case 6:
                             DoScriptText(SAY_TORT_POST_6, pTorta);
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_TO_WATER, m_afToWaterLoc[0], m_afToWaterLoc[1], m_afToWaterLoc[2]);
+                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_TO_WATER, m_afToWaterLoc);
                             break;
                     }
 

@@ -26,6 +26,12 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "maraudon.h"
 
+namespace {
+
+const Position spawnLocation{937.213f, -377.967f, -50.346f, 2.578f};
+
+} // namespace
+
 instance_maraudon::instance_maraudon(Map* map) : ScriptedInstance(map),
     m_spewLarvaTimer(1 * MINUTE * IN_MILLISECONDS)
 {
@@ -152,7 +158,7 @@ void instance_maraudon::Update(uint32 uiDiff)
         if (m_spewLarvaTimer <= uiDiff)
         {
             if (GameObject* pGo = GetSingleGameObjectFromStorage(GO_LARVA_SPEWER))
-                pGo->SummonCreature(NPC_SPEWED_LARVA, spawnLocation.m_fX, spawnLocation.m_fY, spawnLocation.m_fZ, spawnLocation.m_fO, TEMPSPAWN_TIMED_DESPAWN, 10 * MINUTE * IN_MILLISECONDS); // Despawn is handled by DBScript we just want to avoid an infinite number of larvas near Noxxion
+                pGo->SummonCreature(NPC_SPEWED_LARVA, spawnLocation, TempSpawnType::TIMED_DESPAWN, 10 * MINUTE * IN_MILLISECONDS); // Despawn is handled by DBScript we just want to avoid an infinite number of larvas near Noxxion
             m_spewLarvaTimer = 1 * MINUTE * IN_MILLISECONDS;
         }
         else

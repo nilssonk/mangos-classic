@@ -26,11 +26,69 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "blackfathom_deeps.h"
 
+namespace {
+
 /* Encounter 0 = Twilight Lord Kelris
    Encounter 1 = Shrine event
    Must kill twilight lord for shrine event to be possible
    Encounter 2 = Baron Aquanis (spawned by GO use but should only spawn once per instance)
  */
+
+
+/* This is the spawn pattern for the event mobs
+*     D
+* 0        3
+* 1   S    4
+* 2        5
+*     E
+
+* This event spawns 4 sets of mobs
+* The order in whitch the fires are lit doesn't matter
+
+* First:    3 Snapjaws:     Positions 0, 1, 5
+* Second:   2 Servants:     Positions 1, 4
+* Third:    4 Crabs:        Positions 0, 2, 3, 4
+* Fourth:  10 Murkshallows: Positions 2*0, 1, 2*2; 3, 2*4, 2*5
+
+* On wipe the mobs don't despawn; they stay there until player returns
+*/
+
+const Position aSpawnLocations[6] =                  // Should be near the correct positions
+{
+    { -768.949f, -174.413f, -25.87f, 3.09f},                // Left side
+    { -768.888f, -164.238f, -25.87f, 3.09f},
+    { -768.951f, -153.911f, -25.88f, 3.09f},
+    { -867.782f, -174.352f, -25.87f, 6.27f},                // Right side
+    { -867.875f, -164.089f, -25.87f, 6.27f},
+    { -867.859f, -153.927f, -25.88f, 6.27f}
+};
+
+struct PosCount
+{
+    uint8 m_uiCount, m_uiSummonPosition;
+};
+
+struct SummonInformation
+{
+    uint8 m_uiWaveIndex;
+    uint32 m_uiNpcEntry;
+    PosCount m_aCountAndPos[MAX_COUNT_POS];
+};
+
+// ASSERT m_uiSummonPosition < 6 (see aSpawnLocations)
+const SummonInformation aWaveSummonInformation[] =
+{
+    {0, NPC_AKUMAI_SNAPJAW,         {{1, 0}, {1, 1}, {1, 5}}},
+    {1, NPC_AKUMAI_SERVANT,         {{1, 1}, {1, 4}, {0, 0}}},
+    {2, NPC_BARBED_CRUSTACEAN,      {{1, 0}, {1, 2}, {0, 0}}},
+    {2, NPC_BARBED_CRUSTACEAN,      {{1, 3}, {1, 4}, {0, 0}}},
+    {3, NPC_MURKSHALLOW_SOFTSHELL,  {{2, 0}, {1, 1}, {2, 2}}},
+    {3, NPC_MURKSHALLOW_SOFTSHELL,  {{1, 3}, {2, 4}, {2, 5}}}
+};
+
+const Position afAquanisPos{-782.21f, -63.26f, -42.43f, 2.36f};
+
+} // anonymous namespace
 
 instance_blackfathom_deeps::instance_blackfathom_deeps(Map* pMap) : ScriptedInstance(pMap),
     m_uiWaveCounter(0)
@@ -76,9 +134,7 @@ void instance_blackfathom_deeps::DoSpawnMobs(uint8 uiWaveIndex)
     if (!pKelris)
         return;
 
-    float fX_resp, fY_resp, fZ_resp;
-
-    pKelris->GetRespawnCoord(fX_resp, fY_resp, fZ_resp);
+    auto const& respawn_pos = pKelris->GetRespawnPosition();
 
     for (auto i : aWaveSummonInformation)
     {
@@ -91,18 +147,15 @@ void instance_blackfathom_deeps::DoSpawnMobs(uint8 uiWaveIndex)
             for (uint8 k = 0; k < i.m_aCountAndPos[j].m_uiCount; ++k)
             {
                 uint8 uiPos = i.m_aCountAndPos[j].m_uiSummonPosition;
-                float fPosX = aSpawnLocations[uiPos].x;
-                float fPosY = aSpawnLocations[uiPos].y;
-                float fPosZ = aSpawnLocations[uiPos].z;
-                float fPosO = aSpawnLocations[uiPos].o;
+                auto tmp_pos = aSpawnLocations[uiPos];
 
                 // Adapt fPosY slightly in case of higher summon-counts
                 if (i.m_aCountAndPos[j].m_uiCount > 1)
-                    fPosY = fPosY - INTERACTION_DISTANCE / 2 + k * INTERACTION_DISTANCE / i.m_aCountAndPos[j].m_uiCount;
+                    tmp_pos.y = tmp_pos.y - INTERACTION_DISTANCE / 2 + k * INTERACTION_DISTANCE / i.m_aCountAndPos[j].m_uiCount;
 
-                if (Creature* pSummoned = pKelris->SummonCreature(i.m_uiNpcEntry, fPosX, fPosY, fPosZ, fPosO, TEMPSPAWN_DEAD_DESPAWN, 0))
+                if (Creature* pSummoned = pKelris->SummonCreature(i.m_uiNpcEntry, tmp_pos, TempSpawnType::DEAD_DESPAWN, 0))
                 {
-                    pSummoned->GetMotionMaster()->MovePoint(0, fX_resp, fY_resp, fZ_resp);
+                    pSummoned->GetMotionMaster()->MovePoint(0, respawn_pos);
                     m_lWaveMobsGuids[uiWaveIndex].push_back(pSummoned->GetGUIDLow());
                 }
             }
@@ -280,7 +333,7 @@ bool GOUse_go_fathom_stone(Player* pPlayer, GameObject* pGo)
 
     if (pInstance->GetData(TYPE_AQUANIS) == NOT_STARTED)
     {
-        pPlayer->SummonCreature(NPC_BARON_AQUANIS, afAquanisPos[0], afAquanisPos[1], afAquanisPos[2], afAquanisPos[3], TEMPSPAWN_DEAD_DESPAWN, 0);
+        pPlayer->SummonCreature(NPC_BARON_AQUANIS, afAquanisPos, TempSpawnType::DEAD_DESPAWN, 0);
         pInstance->SetData(TYPE_AQUANIS, IN_PROGRESS);
     }
 

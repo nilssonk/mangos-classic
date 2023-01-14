@@ -25,11 +25,7 @@
 struct WorldSafeLocsEntry
 {
     uint32  ID;
-    uint32  map_id;
-    float   x;
-    float   y;
-    float   z;
-    float   o;
+    WorldLocation loc;
     char*   name;
 };
 

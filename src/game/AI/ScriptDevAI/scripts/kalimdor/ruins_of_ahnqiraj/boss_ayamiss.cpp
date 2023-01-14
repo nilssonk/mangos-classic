@@ -194,7 +194,7 @@ struct boss_ayamissAI : public CombatAI
 
     void StartLanding()
     {
-        m_creature->GetMotionMaster()->MovePath(1, PATH_FROM_ENTRY, FORCED_MOVEMENT_NONE, true);
+        m_creature->GetMotionMaster()->MovePath(1, WaypointPathOrigin::FROM_ENTRY, FORCED_MOVEMENT_NONE, true);
     }
 
     void ExecuteAction(uint32 action) override
@@ -206,7 +206,7 @@ struct boss_ayamissAI : public CombatAI
                 m_creature->SetLevitate(true);
                 m_creature->SetHover(true);
                 SetCombatScriptStatus(true);
-                m_creature->GetMotionMaster()->MovePoint(POINT_AIR, -9689.292f, 1547.912f, 48.02729f);
+                m_creature->GetMotionMaster()->MovePoint(POINT_AIR, {-9689.292f, 1547.912f, 48.02729f});
                 SetActionReadyStatus(action, false);
                 break;
             }

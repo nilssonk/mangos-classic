@@ -74,39 +74,6 @@ enum
     SPELL_XMAS_GANDLING     = 26199,
 };
 
-struct SpawnLocation
-{
-    float m_fX, m_fY, m_fZ, m_fO;
-};
-
-static const SpawnLocation aGandlingSpawnLocs[1] =
-{
-    {180.771f, -5.4286f, 75.5702f, 1.29154f}
-};
-
-// Coordinates used to respawn the NPCs in the entrance room
-// (right before the Viewing Room) on Rattlegore's death
-static const SpawnLocation aEntranceRoomSpawnLocs[17] =
-{
-    {186.036f, 94.5f, 104.72f, 1.29154f},      // First corner
-    {179.117f, 95.5166f, 104.81f, 1.29154f},
-    {180.612f, 100.176f, 104.80f, 1.29154f},
-    {185.926f, 100.079f, 104.80f, 1.29154f},
-    {178.999f, 75.2952f, 104.72f, 1.29154f},   // Second corner
-    {185.558f, 77.276f, 104.72f, 1.29154f},
-    {187.556f, 70.4334f, 104.72f, 1.29154f},
-    {180.51f, 82.3917f, 104.72f, 1.29154f},
-    {212.915f, 70.6005f, 104.80f, 1.29154f},   // Third corner
-    {221.199f, 77.0037f, 104.72f, 1.29154f},
-    {214.381f, 76.233f, 104.80f, 1.29154f},
-    {218.64f, 71.5957f, 104.72f, 1.29154f},
-    {221.249f, 94.9361f, 104.72f, 1.29154f},   // Fourth corner
-    {214.406f, 101.903f, 104.72f, 1.29154f},
-    {217.521f, 95.4237f, 104.72f, 1.29154f},
-    {223.296f, 105.101f, 104.72f, 1.29154f},
-    {209.233f, 73.2819f, 104.80f, 1.29154f}    // patrolling necrofiend
-};
-
 struct GandlingEventData
 {
     GandlingEventData() : m_bIsActive(false) {}
@@ -129,6 +96,31 @@ static const BoxVolume aEntranceRoom = { 174.13f, 63.84f, 104.0f, 54, 44 };
 static const uint32 aGandlingEvents[MAX_EVENTS] = {EVENT_ID_POLKELT, EVENT_ID_THEOLEN, EVENT_ID_MALICIA, EVENT_ID_ILLUCIA, EVENT_ID_BAROV, EVENT_ID_RAVENIAN};
 
 typedef std::map<uint32, GandlingEventData> GandlingEventMap;
+
+static const Position aGandlingSpawnLocs{180.771f, -5.4286f, 75.5702f, 1.29154f};
+
+// Coordinates used to respawn the NPCs in the entrance room
+// (right before the Viewing Room) on Rattlegore's death
+static const Position aEntranceRoomSpawnLocs[17] =
+{
+    {186.036f, 94.5f, 104.72f, 1.29154f},      // First corner
+    {179.117f, 95.5166f, 104.81f, 1.29154f},
+    {180.612f, 100.176f, 104.80f, 1.29154f},
+    {185.926f, 100.079f, 104.80f, 1.29154f},
+    {178.999f, 75.2952f, 104.72f, 1.29154f},   // Second corner
+    {185.558f, 77.276f, 104.72f, 1.29154f},
+    {187.556f, 70.4334f, 104.72f, 1.29154f},
+    {180.51f, 82.3917f, 104.72f, 1.29154f},
+    {212.915f, 70.6005f, 104.80f, 1.29154f},   // Third corner
+    {221.199f, 77.0037f, 104.72f, 1.29154f},
+    {214.381f, 76.233f, 104.80f, 1.29154f},
+    {218.64f, 71.5957f, 104.72f, 1.29154f},
+    {221.249f, 94.9361f, 104.72f, 1.29154f},   // Fourth corner
+    {214.406f, 101.903f, 104.72f, 1.29154f},
+    {217.521f, 95.4237f, 104.72f, 1.29154f},
+    {223.296f, 105.101f, 104.72f, 1.29154f},
+    {209.233f, 73.2819f, 104.80f, 1.29154f}    // patrolling necrofiend
+};
 
 class instance_scholomance : public ScriptedInstance
 {

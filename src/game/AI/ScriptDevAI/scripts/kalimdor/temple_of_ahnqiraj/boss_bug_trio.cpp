@@ -27,6 +27,8 @@ EndScriptData
 #include "temple_of_ahnqiraj.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace {
+
 enum
 {
     EMOTE_CONSUMED          = -1531048,
@@ -60,17 +62,14 @@ enum
     POINT_CONSUME           = 0,
 };
 
-struct Location
-{
-    float m_fX, m_fY, m_fZ;
-};
-
-static const Location resetPoint = { -8582.0f, 2047.0f, -1.62f };
+const Vec3 resetPoint{ -8582.0f, 2047.0f, -1.62f };
 
 enum RoyaltyActions
 {
     ROYALTY_DEVOUR_DELAY = 10,
 };
+
+} // namespace
 
 struct boss_silithidRoyaltyAI : public CombatAI
 {
@@ -80,9 +79,9 @@ struct boss_silithidRoyaltyAI : public CombatAI
         m_deathAbility(0)
     {
         AddCustomAction(ROYALTY_DEVOUR_DELAY, true, [&]() { HandleDevourDelay(); });
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit* unit, float x, float y, float z) -> bool
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const&) -> bool
         {
-            return m_creature->GetDistance(resetPoint.m_fX, resetPoint.m_fY, resetPoint.m_fZ, DIST_CALC_COMBAT_REACH) < 10.0f;
+            return m_creature->GetDistance(resetPoint, DIST_CALC_COMBAT_REACH) < 10.0f;
         });
     }
 
@@ -182,9 +181,8 @@ struct boss_silithidRoyaltyAI : public CombatAI
             SetCombatMovement(false);
             m_creature->SetTarget(nullptr);
             m_creature->SetBaseRunSpeed(45.f/7.f); // sniffed
-            float x, y, z;
-            invoker->GetClosePoint(x, y, z, 0.f);
-            m_creature->GetMotionMaster()->MovePoint(POINT_CONSUME, x, y, z);
+            auto const close_point = invoker->GetClosePoint(0.0f);
+            m_creature->GetMotionMaster()->MovePoint(POINT_CONSUME, close_point);
         }
     }
 };

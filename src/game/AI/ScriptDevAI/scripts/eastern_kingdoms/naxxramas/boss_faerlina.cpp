@@ -66,9 +66,9 @@ struct boss_faerlinaAI : public CombatAI
         AddCombatAction(FAERLINA_POISON_VOLLEY, 8000u);
         AddCombatAction(FAERLINA_RAIN_FIRE, 16000u);
         AddCombatAction(FAERLINA_ENRAGE, 60000u);
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit*, float, float, float z)
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const& u)
         {
-            return z > resetZ;
+            return u.GetPositionZ() > resetZ;
         });
     }
 

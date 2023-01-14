@@ -16,14 +16,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MANGOS_MOVEMENTGENERATOR_H
-#define MANGOS_MOVEMENTGENERATOR_H
+#ifndef MOVEMENTGENERATOR_H
+#define MOVEMENTGENERATOR_H
 
 #include "Platform/Define.h"
 #include "Dynamic/FactoryHolder.h"
 #include "MotionMaster.h"
 #include "Util/Timer.h"
 #include "Globals/SharedDefines.h"
+
+#include <optional>
 
 class Unit;
 class Creature;
@@ -52,7 +54,7 @@ class MovementGenerator
         virtual void UnitSpeedChanged() { }
 
         // used by Evade code for select point to evade with expected restart default movement
-        virtual bool GetResetPosition(Unit&, float& /*x*/, float& /*y*/, float& /*z*/, float& /*o*/) const { return false; }
+        virtual std::optional<Position> GetResetPosition(Unit&) const { return {}; }
 
         // given destination unreachable? due to pathfinsing or other
         virtual bool IsReachable() const { return true; }
@@ -93,10 +95,10 @@ class MovementGeneratorMedium : public MovementGenerator
             // u->AssertIsType<T>();
             return (static_cast<D*>(this))->Update(*((T*)&u), time_diff);
         }
-        bool GetResetPosition(Unit& u, float& x, float& y, float& z, float& o) const override
+        std::optional<Position> GetResetPosition(Unit& u) const override
         {
             // u->AssertIsType<T>();
-            return (static_cast<D const*>(this))->GetResetPosition(*((T*)&u), x, y, z, o);
+            return (static_cast<D const*>(this))->GetResetPosition(*((T*)&u));
         }
     public:
         // Will not link if not overridden in the generators - also not generate for T==Unit

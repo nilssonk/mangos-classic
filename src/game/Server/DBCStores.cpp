@@ -795,34 +795,36 @@ bool MapCoordinateVsZoneCheck(float x, float y, uint32 mapid, uint32 zone)
     return false;
 }
 
-bool Zone2MapCoordinates(float& x, float& y, uint32 zone)
+std::optional<Vec2> Zone2MapCoordinates(Vec2 const& pos, uint32 zone)
 {
     WorldMapAreaEntry const* maEntry = sWorldMapAreaStore.LookupEntry(zone);
 
     // if not listed then map coordinates (instance)
     if (!maEntry || maEntry->x2 == maEntry->x1 || maEntry->y2 == maEntry->y1)
-        return false;
+        return {};
 
-    std::swap(x, y);                                        // at client map coords swapped
-    x = x * ((maEntry->x2 - maEntry->x1) / 100) + maEntry->x1;
-    y = y * ((maEntry->y2 - maEntry->y1) / 100) + maEntry->y1; // client y coord from top to down
-
-    return true;
+    // at client map coords swapped              
+    // client y coord from top to down           
+    return std::make_optional<Vec2>(
+        pos.y * ((maEntry->y2 - maEntry->y1) / 100) + maEntry->y1,
+        pos.x * ((maEntry->x2 - maEntry->x1) / 100) + maEntry->x1
+    );
 }
 
-bool Map2ZoneCoordinates(float& x, float& y, uint32 zone)
+std::optional<Vec2> Map2ZoneCoordinates(Vec2 const& pos, uint32 zone)
 {
     WorldMapAreaEntry const* maEntry = sWorldMapAreaStore.LookupEntry(zone);
 
     // if not listed then map coordinates (instance)
     if (!maEntry || maEntry->x2 == maEntry->x1 || maEntry->y2 == maEntry->y1)
-        return false;
+        return {};
 
-    x = (x - maEntry->x1) / ((maEntry->x2 - maEntry->x1) / 100);
-    y = (y - maEntry->y1) / ((maEntry->y2 - maEntry->y1) / 100); // client y coord from top to down
-    std::swap(x, y);                                        // client have map coords swapped
-
-    return true;
+    // client have map coords swapped
+    // client y coord from top to down      
+    return {
+        (pos.y - maEntry->y1) / ((maEntry->y2 - maEntry->y1) / 100),
+        (pos.x - maEntry->x1) / ((maEntry->x2 - maEntry->x1) / 100)
+    };                                
 }
 
 uint32 GetTalentInspectBitPosInTab(uint32 talentId)

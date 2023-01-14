@@ -122,15 +122,12 @@ set(LIBRARY_SRCS
 FILE(GLOB LIBRARY_HDRS "${CMAKE_CURRENT_SOURCE_DIR}/G3D/*.h")
 list(APPEND LIBRARY_SRCS "${LIBRARY_HDRS}")
 
-add_library(${LIBRARY_NAME} STATIC
-  ${LIBRARY_SRCS}
-)
-target_link_libraries(${LIBRARY_NAME}
-  PRIVATE zlib
-)
+add_library(${LIBRARY_NAME} STATIC ${LIBRARY_SRCS})
+
+target_link_libraries(${LIBRARY_NAME} PRIVATE zlib)
 
 target_include_directories(${LIBRARY_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
 configure_lto(${LIBRARY_NAME})

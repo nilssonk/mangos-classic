@@ -121,12 +121,11 @@ struct boss_mr_smiteAI : public ScriptedAI
 
         m_uiPhase = PHASE_EQUIP_NULL;
 
-        float fX, fY, fZ;
-        pChest->GetContactPoint(m_creature, fX, fY, fZ, CONTACT_DISTANCE);
+        auto const contact_point = pChest->GetContactPoint(m_creature, CONTACT_DISTANCE);
 
         m_creature->GetMotionMaster()->Clear();
         m_creature->SetFacingToObject(pChest);
-        m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ, FORCED_MOVEMENT_RUN);
+        m_creature->GetMotionMaster()->MovePoint(0, contact_point, FORCED_MOVEMENT_RUN);
     }
 
     void PhaseEquipProcess()

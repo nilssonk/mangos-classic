@@ -30,6 +30,8 @@ EndScriptData
 #include "MotionGenerators/WaypointManager.h"
 #include <G3D/Vector3.h>
 
+namespace bwl {
+
 enum
 {
     SAY_AGGRO                   = -1469007,
@@ -156,7 +158,8 @@ struct boss_nefarianAI : public CombatAI
     void StartLanding()
     {
         m_creature->SetWalk(false);
-        m_creature->GetMotionMaster()->MoveWaypoint(0, FORCED_MOVEMENT_NONE, true);
+        // @FIXME: This seems really incorrect
+        m_creature->GetMotionMaster()->MoveWaypoint(0, WaypointPathOrigin::NO_PATH, true);
     }
 
     void MovementInform(uint32 type, uint32 pointId) override
@@ -298,3 +301,5 @@ void AddSC_boss_nefarian()
     pNewScript->GetAI = &GetNewAIInstance<boss_nefarianAI>;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

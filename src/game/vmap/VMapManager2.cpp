@@ -53,15 +53,14 @@ namespace VMAP
 
     //=========================================================
 
-    Vector3 VMapManager2::convertPositionToInternalRep(float x, float y, float z) const
+    Vec3 VMapManager2::convertPositionToInternalRep(Vec3 const& pos) const
     {
-        Vector3 pos;
         const float mid = 0.5f * 64.0f * 533.33333333f;
-        pos.x = mid - x;
-        pos.y = mid - y;
-        pos.z = z;
-
-        return pos;
+        return {
+            mid - pos.x,
+            mid - pos.y,
+            pos.z
+        };
     }
 
     // move to MapTree too?
@@ -178,28 +177,23 @@ namespace VMAP
     get the hit position and return true if we hit something
     otherwise the result pos will be the dest pos
     */
-    bool VMapManager2::getObjectHitPos(unsigned int pMapId, float x1, float y1, float z1, float x2, float y2, float z2, float& rx, float& ry, float& rz, float pModifyDist)
+    std::optional<Vec3> VMapManager2::getObjectHitPos(unsigned int pMapId, Vec3 const& src, Vec3 const& dst, float pModifyDist)
     {
         bool result = false;
-        rx = x2;
-        ry = y2;
-        rz = z2;
         if (isLineOfSightCalcEnabled())
         {
             InstanceTreeMap::iterator instanceTree = iInstanceMapTrees.find(pMapId);
             if (instanceTree != iInstanceMapTrees.end())
             {
-                Vector3 pos1 = convertPositionToInternalRep(x1, y1, z1);
-                Vector3 pos2 = convertPositionToInternalRep(x2, y2, z2);
-                Vector3 resultPos;
-                result = instanceTree->second->getObjectHitPos(pos1, pos2, resultPos, pModifyDist);
-                resultPos = convertPositionToInternalRep(resultPos.x, resultPos.y, resultPos.z);
-                rx = resultPos.x;
-                ry = resultPos.y;
-                rz = resultPos.z;
+                Vector3 pos1 = convertPositionToInternalRep(src);
+                Vector3 pos2 = convertPositionToInternalRep(dst);
+                auto maybe_result = instanceTree->second->getObjectHitPos(pos1, pos2, pModifyDist);
+                if (maybe_result) {
+                    return convertPositionToInternalRep(*maybe_result);
+                }
             }
         }
-        return result;
+        return {};
     }
 
     //=========================================================
@@ -207,7 +201,7 @@ namespace VMAP
     get height or INVALID_HEIGHT if no height available
     */
 
-    float VMapManager2::getHeight(unsigned int pMapId, float x, float y, float z, float maxSearchDist)
+    float VMapManager2::getHeight(unsigned int pMapId, Vec3 const& pos, float maxSearchDist)
     {
         float height = VMAP_INVALID_HEIGHT_VALUE;           // no height
         if (isHeightCalcEnabled())
@@ -215,8 +209,8 @@ namespace VMAP
             InstanceTreeMap::iterator instanceTree = iInstanceMapTrees.find(pMapId);
             if (instanceTree != iInstanceMapTrees.end())
             {
-                Vector3 pos = convertPositionToInternalRep(x, y, z);
-                height = instanceTree->second->getHeight(pos, maxSearchDist);
+                auto const internal_pos = convertPositionToInternalRep(pos);
+                height = instanceTree->second->getHeight(internal_pos, maxSearchDist);
                 if (!(height < G3D::inf()))
                 {
                     height = VMAP_INVALID_HEIGHT_VALUE;     // no height

@@ -34,6 +34,8 @@ EndContentData */
 # npc_belnistrasz
 ####*/
 
+namespace {
+
 enum
 {
     QUEST_EXTINGUISHING_THE_IDOL    = 3525,
@@ -71,14 +73,16 @@ enum
     // SPELL_SUMMON_3                  = 14801,             // NPC_WITHERED_QUILGUARD
 };
 
-static float m_fSpawnerCoord[3][4] =
+const Position m_fSpawnerCoord[3] =
 {
     {2582.79f, 954.392f, 52.4821f, 3.78736f},
     {2569.42f, 956.380f, 52.2732f, 5.42797f},
     {2570.62f, 942.393f, 53.7433f, 0.71558f}
 };
 
-static const uint32 aGOList[] = {GO_IDOL_OVEN_FIRE, GO_IDOL_CUP_FIRE, GO_IDOL_MOUTH_FIRE};
+const uint32 aGOList[] = {GO_IDOL_OVEN_FIRE, GO_IDOL_CUP_FIRE, GO_IDOL_MOUTH_FIRE};
+
+} // namespace
 
 struct npc_belnistraszAI : public npc_escortAI
 {
@@ -123,7 +127,7 @@ struct npc_belnistraszAI : public npc_escortAI
     {
         if (m_uiRitualPhase > 7)
         {
-            pSummoner->SummonCreature(NPC_PLAGUEMAW_THE_ROTTING, pSummoner->GetPositionX(), pSummoner->GetPositionY(), pSummoner->GetPositionZ(), pSummoner->GetOrientation(), TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
+            pSummoner->SummonCreature(NPC_PLAGUEMAW_THE_ROTTING, pSummoner->GetPosition(), TempSpawnType::TIMED_OOC_DESPAWN, 60000);
             return;
         }
 
@@ -133,8 +137,7 @@ struct npc_belnistraszAI : public npc_escortAI
 
             // ref
             float angle = 2.0f * M_PI_F * rand_norm_f();
-            float fX, fZ, fY;
-            pSummoner->GetClosePoint(fX, fZ, fY, 0.0f, 2.0f, angle);
+            auto const close_point = pSummoner->GetClosePoint(2.0f, angle);
 
             switch (i)
             {
@@ -150,7 +153,7 @@ struct npc_belnistraszAI : public npc_escortAI
                     break;
             }
 
-            pSummoner->SummonCreature(uiEntry, fX, fZ, fY, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
+            pSummoner->SummonCreature(uiEntry, {close_point, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
         }
     }
 
@@ -161,7 +164,8 @@ struct npc_belnistraszAI : public npc_escortAI
 
     void DoSummonSpawner(int32 iType)
     {
-        m_creature->SummonCreature(NPC_IDOL_ROOM_SPAWNER, m_fSpawnerCoord[iType][0], m_fSpawnerCoord[iType][1], m_fSpawnerCoord[iType][2], m_fSpawnerCoord[iType][3], TEMPSPAWN_TIMED_DESPAWN, 10000);
+        MANGOS_ASSERT(0 <= iType && iType <= 3);
+        m_creature->SummonCreature(NPC_IDOL_ROOM_SPAWNER, m_fSpawnerCoord[iType], TempSpawnType::TIMED_DESPAWN, 10000);
     }
 
     void WaypointReached(uint32 uiPointId) override

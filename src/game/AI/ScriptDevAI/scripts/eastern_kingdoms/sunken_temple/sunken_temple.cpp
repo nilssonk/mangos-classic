@@ -234,7 +234,7 @@ void instance_sunken_temple::SetData(uint32 uiType, uint32 uiData)
                 if (!pPlayer)
                     return;
 
-                if (Creature* pShade = pPlayer->SummonCreature(NPC_SHADE_OF_HAKKAR, aSunkenTempleLocation[1].m_fX, aSunkenTempleLocation[1].m_fY, aSunkenTempleLocation[1].m_fZ, aSunkenTempleLocation[1].m_fO, TEMPSPAWN_MANUAL_DESPAWN, 0))
+                if (Creature* pShade = pPlayer->SummonCreature(NPC_SHADE_OF_HAKKAR, aSunkenTempleLocation[1], TempSpawnType::MANUAL_DESPAWN, 0))
                 {
                     m_npcEntryGuidStore[NPC_SHADE_OF_HAKKAR] = pShade->GetObjectGuid();
                     pShade->SetRespawnDelay(DAY);
@@ -303,7 +303,7 @@ void instance_sunken_temple::DoSpawnAtalarionIfCan()
     if (!pPlayer)
         return;
 
-    pPlayer->SummonCreature(NPC_ATALARION, aSunkenTempleLocation[0].m_fX, aSunkenTempleLocation[0].m_fY, aSunkenTempleLocation[0].m_fZ, aSunkenTempleLocation[0].m_fO, TEMPSPAWN_DEAD_DESPAWN, 0);
+    pPlayer->SummonCreature(NPC_ATALARION, aSunkenTempleLocation[0], TempSpawnType::DEAD_DESPAWN, 0);
 
     // Spawn the idol of Hakkar
     DoRespawnGameObject(GO_IDOL_OF_HAKKAR, 30 * MINUTE);
@@ -420,12 +420,12 @@ void instance_sunken_temple::Update(uint32 uiDiff)
                 for (GuidVector::const_iterator itr = m_evilCircleGuidList.begin(); itr != m_evilCircleGuidList.end(); ++itr)
                 {
                     if (GameObject* pCircle = instance->GetGameObject(*itr))
-                        pShade->SummonCreature(NPC_HAKKARI_MINION, pCircle->GetPositionX(), pCircle->GetPositionY(), pCircle->GetPositionZ(), 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                        pShade->SummonCreature(NPC_HAKKARI_MINION, {pCircle->GetPosition().xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                 }
 
                 // Summon Bloodkeeper at random circle
                 if (GameObject* pCircle = instance->GetGameObject(m_evilCircleGuidList[urand(0, m_evilCircleGuidList.size() - 1)]))
-                    pShade->SummonCreature(NPC_BLOODKEEPER, pCircle->GetPositionX(), pCircle->GetPositionY(), pCircle->GetPositionZ(), 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    pShade->SummonCreature(NPC_BLOODKEEPER, {pCircle->GetPosition().xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
 
                 m_bCanSummonBloodkeeper = false;
                 m_bIsFirstHakkarWave = false;
@@ -440,7 +440,7 @@ void instance_sunken_temple::Update(uint32 uiDiff)
                 {
                     // Summon a Bloodkeeper
                     if (GameObject* pCircle = instance->GetGameObject(m_evilCircleGuidList[urand(0, m_evilCircleGuidList.size() - 1)]))
-                        pShade->SummonCreature(NPC_BLOODKEEPER, pCircle->GetPositionX(), pCircle->GetPositionY(), pCircle->GetPositionZ(), 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                        pShade->SummonCreature(NPC_BLOODKEEPER, {pCircle->GetPosition().xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
 
                     m_bCanSummonBloodkeeper = false;
                     --uiMaxSummons;
@@ -449,7 +449,7 @@ void instance_sunken_temple::Update(uint32 uiDiff)
                 for (uint8 i = 0; i < uiMaxSummons; ++i)
                 {
                     if (GameObject* pCircle = instance->GetGameObject(m_evilCircleGuidList[urand(0, m_evilCircleGuidList.size() - 1)]))
-                        pShade->SummonCreature(NPC_HAKKARI_MINION, pCircle->GetPositionX(), pCircle->GetPositionY(), pCircle->GetPositionZ(), 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                        pShade->SummonCreature(NPC_HAKKARI_MINION, {pCircle->GetPosition().xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                 }
                 m_uiAvatarSummonTimer = urand(3000, 15000);
             }
@@ -472,7 +472,7 @@ void instance_sunken_temple::Update(uint32 uiDiff)
 
             // Summon npc at random door; movement and script handled in DB
             uint8 uiSummonLoc = urand(0, 1);
-            if (Creature* suppressor = pShade->SummonCreature(NPC_SUPPRESSOR, aHakkariDoorLocations[uiSummonLoc].m_fX, aHakkariDoorLocations[uiSummonLoc].m_fY, aHakkariDoorLocations[uiSummonLoc].m_fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
+            if (Creature* suppressor = pShade->SummonCreature(NPC_SUPPRESSOR, aHakkariDoorLocations[uiSummonLoc], TempSpawnType::DEAD_DESPAWN, 0))
             {
                 suppressor->GetMotionMaster()->MoveWaypoint(uiSummonLoc);
                 uint32 sayTextId;

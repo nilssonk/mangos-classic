@@ -148,7 +148,7 @@ struct boss_majordomoAI : public CombatAI
             m_creature->SetFactionTemporary(FACTION_MAJORDOMO_FRIENDLY, TEMPFACTION_RESTORE_RESPAWN);
 
             // Reset orientation
-            m_creature->SetFacingTo(m_aMajordomoLocations[0].m_fO);
+            m_creature->SetFacingTo(m_aMajordomoLocations[0].pos.w);
 
             // Start his speech
             ResetTimer(MAJORDOMO_OUTRO, 0); // at next tick
@@ -311,7 +311,7 @@ struct boss_majordomoAI : public CombatAI
             case 11:
                 DoCastSpellIfCan(nullptr, SPELL_SUMMON_RAGNAROS);
                 // TODO - Move along, this expects to be handled with mmaps
-                m_creature->GetMotionMaster()->MovePoint(1, 830.9636f, -814.7055f, -228.9733f);
+                m_creature->GetMotionMaster()->MovePoint(1, {830.9636f, -814.7055f, -228.9733f});
                 ++m_speechStage;
                 timer = 11500;
                 break;
@@ -327,7 +327,7 @@ struct boss_majordomoAI : public CombatAI
                 // Summon Ragnaros and make sure it faces Majordomo Executus
                 if (m_instance)
                     if (GameObject* pGo = m_instance->GetSingleGameObjectFromStorage(GO_LAVA_STEAM))
-                        m_creature->SummonCreature(NPC_RAGNAROS, 838.3082f, -831.4665f, -232.1853f, 2.199115f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 2 * HOUR * IN_MILLISECONDS);
+                        m_creature->SummonCreature(NPC_RAGNAROS, {838.3082f, -831.4665f, -232.1853f, 2.199115f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 2 * HOUR * IN_MILLISECONDS);
                 ++m_speechStage;
                 timer = 8700;
                 break;

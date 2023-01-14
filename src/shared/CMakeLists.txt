@@ -229,21 +229,17 @@ target_include_directories(${LIBRARY_NAME}
 
 configure_lto(${LIBRARY_NAME})
 
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC
+  framework
+  g3dlite
+  utf8cpp
+  ${Boost_LIBRARIES}
+  ${OPENSSL_LIBRARIES}
+)
+
 if(UNIX)
-  target_link_libraries(${LIBRARY_NAME}
-    PUBLIC framework
-    PUBLIC utf8cpp
-    PUBLIC dl
-    PUBLIC ${Boost_LIBRARIES}
-    PUBLIC ${OPENSSL_LIBRARIES}
-  )
-else()
-  target_link_libraries(${LIBRARY_NAME}
-    PUBLIC framework
-    PUBLIC ${Boost_LIBRARIES}
-    PUBLIC ${OPENSSL_LIBRARIES}
-    PUBLIC utf8cpp
-  )
+  target_link_libraries(${LIBRARY_NAME} PUBLIC dl)
 endif()
 
 if(POSTGRESQL AND POSTGRESQL_FOUND)

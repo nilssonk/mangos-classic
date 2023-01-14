@@ -352,16 +352,14 @@ struct boss_kelthuzadAI : public ScriptedAI
         if (!m_instance)
             return false;
 
-        float newX, newY, newZ;
-
         // Spawn all the adds for phase 1 from each of the trigger NPCs
         for (auto& trigger : m_summoningTriggers)
         {
             // "How many NPCs per type" is stored in a vector: {npc_entry:number_of_npcs}
             for (uint8 i = 0; i < count; ++i)
             {
-                m_creature->GetRandomPoint(trigger->GetPositionX(), trigger->GetPositionY(), trigger->GetPositionZ(), 12.0f, newX, newY, newZ);
-                if (Creature* summoned = m_creature->SummonCreature(entry, newX, newY, newZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 5 * MINUTE * IN_MILLISECONDS))
+                auto const new_pos = m_creature->GetRandomPoint(trigger->GetPosition().xyz(), 12.0f);
+                if (Creature* summoned = m_creature->SummonCreature(entry, {new_pos, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 5 * MINUTE * IN_MILLISECONDS))
                 {
                     if (summoned->AI())
                         summoned->AI()->SetReactState(REACT_PASSIVE);   // Intro mobs only attack if engaged or hostile target in range

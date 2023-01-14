@@ -498,7 +498,7 @@ void WaypointManager::Load()
 }
 
 /// Insert a node into the storage for external access
-bool WaypointManager::AddExternalNode(uint32 entry, int32 pathId, uint32 pointId, float x, float y, float z, float o, uint32 waittime, uint32 scriptId)
+bool WaypointManager::AddExternalNode(uint32 entry, int32 pathId, uint32 pointId, Position const& pos, uint32 waittime, uint32 scriptId)
 {
     if (pathId < 0 || pathId >= 0xFF)
     {
@@ -506,18 +506,18 @@ bool WaypointManager::AddExternalNode(uint32 entry, int32 pathId, uint32 pointId
         return false;
     }
 
-    if (!MaNGOS::IsValidMapCoord(x, y, z, o))
+    if (!MaNGOS::IsValidMapCoord(pos))
     {
         sLog.outErrorScriptLib("WaypointManager::AddExternalNode: (Npc-Entry %u, PathId %i) Invalid coordinates", entry, pathId);
         return false;
     }
 
-    m_externalPathTemplateMap[(entry << 8) + pathId][pointId] = WaypointNode(x, y, z, o, waittime, scriptId);
+    m_externalPathTemplateMap[(entry << 8) + pathId][pointId] = WaypointNode(pos, waittime, scriptId);
     return true;
 }
 
 /// - Insert at a certain point, if pointId == 0 insert last. In this case pointId will be changed to the id to which the node was added
-WaypointNode const* WaypointManager::AddNode(uint32 entry, uint32 dbGuid, uint32 pathId, uint32& pointId, WaypointPathOrigin wpDest, float x, float y, float z, float orientation)
+WaypointNode const* WaypointManager::AddNode(uint32 entry, uint32 dbGuid, uint32 pathId, uint32& pointId, WaypointPathOrigin wpDest, Position const& pos)
 {
     // Support only normal movement tables
     if (wpDest != PATH_FROM_GUID && wpDest != PATH_FROM_ENTRY)
@@ -615,7 +615,7 @@ void WaypointManager::DeletePath(uint32 id)
     // only meant to be called by GM commands
 }
 
-void WaypointManager::SetNodePosition(uint32 entry, uint32 dbGuid, uint32 point, uint32 pathId, WaypointPathOrigin wpOrigin, float x, float y, float z)
+void WaypointManager::SetNodePosition(uint32 entry, uint32 dbGuid, uint32 point, uint32 pathId, WaypointPathOrigin wpOrigin, Vec3 const& pos)
 {
     // Support only normal movement tables
     if (wpOrigin == PATH_FROM_EXTERNAL)

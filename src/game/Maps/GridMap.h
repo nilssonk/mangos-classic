@@ -91,12 +91,12 @@ class GridMap
         bool isHole(int row, int col) const;
 
         // Get height functions and pointers
-        typedef float(GridMap::*pGetHeightPtr)(float x, float y) const;
+        typedef float(GridMap::*pGetHeightPtr)(Vec2 const& pos) const;
         pGetHeightPtr m_gridGetHeight;
-        float getHeightFromFloat(float x, float y) const;
-        float getHeightFromUint16(float x, float y) const;
-        float getHeightFromUint8(float x, float y) const;
-        float getHeightFromFlat(float x, float y) const;
+        float getHeightFromFloat(Vec2 const& pos) const;
+        float getHeightFromUint16(Vec2 const& pos) const;
+        float getHeightFromUint8(Vec2 const& pos) const;
+        float getHeightFromFlat(Vec2 const& pos) const;
 
     public:
 
@@ -111,12 +111,12 @@ class GridMap
         static bool ExistMap(uint32 mapid, int gx, int gy);
         static bool ExistVMap(uint32 mapid, int gx, int gy);
 
-        uint16 getArea(float x, float y) const;
+        uint16 getArea(Vec2 const& pos) const;
 
-        inline float getHeight(float x, float y) const { return (this->*m_gridGetHeight)(x, y); }
-        float getLiquidLevel(float x, float y) const;
-        uint8 getTerrainType(float x, float y) const;
-        GridMapLiquidStatus getLiquidStatus(float x, float y, float z, uint8 ReqLiquidType, GridMapLiquidData* data = nullptr, float collisionHeight = 2.03128f);
+        inline float getHeight(Vec2 const& pos) const { return (this->*m_gridGetHeight)(pos); }
+        float getLiquidLevel(Vec2 const& pos) const;
+        uint8 getTerrainType(Vec2 const& pos) const;
+        GridMapLiquidStatus getLiquidStatus(Vec3 const& pos, uint8 ReqLiquidType, GridMapLiquidData* data = nullptr, float collisionHeight = 2.03128f);
 };
 
 template<typename Countable>
@@ -147,25 +147,25 @@ class TerrainInfo : public Referencable<std::atomic_long>
 
         // TODO: move all terrain/vmaps data info query functions
         // from 'Map' class into this class
-        float GetHeightStatic(float x, float y, float z, bool checkVMap = true, float maxSearchDist = DEFAULT_HEIGHT_SEARCH) const;
-        float GetWaterLevel(float x, float y, float z, float* pGround = nullptr) const;
-        float GetWaterOrGroundLevel(float x, float y, float z, float& groundZ, bool swim = false, float minWaterDeep = DEFAULT_COLLISION_HEIGHT) const;
-        bool IsInWater(float x, float y, float z, GridMapLiquidData* data = nullptr) const;
-        bool IsSwimmable(float x, float y, float z, float radius = 1.5f, GridMapLiquidData* data = nullptr) const;
-        bool IsUnderWater(float x, float y, float z, float* waterZ = nullptr) const;
+        float GetHeightStatic(Vec3 const& pos, bool checkVMap = true, float maxSearchDist = DEFAULT_HEIGHT_SEARCH) const;
+        float GetWaterLevel(Vec3 const& pos, float* pGround = nullptr) const;
+        float GetWaterOrGroundLevel(Vec3 const& ground_pos, bool swim = false, float minWaterDeep = DEFAULT_COLLISION_HEIGHT) const;
+        bool IsInWater(Vec3 const& pos, GridMapLiquidData* data = nullptr) const;
+        bool IsSwimmable(Vec3 const& pos, float radius = 1.5f, GridMapLiquidData* data = nullptr) const;
+        bool IsUnderWater(Vec3 const& pos, float* waterZ = nullptr) const;
 
-        GridMapLiquidStatus getLiquidStatus(float x, float y, float z, uint8 ReqLiquidType, GridMapLiquidData* data = nullptr, float collisionHeight = 2.03128f) const;
+        GridMapLiquidStatus getLiquidStatus(Vec3 const& pos, uint8 ReqLiquidType, GridMapLiquidData* data = nullptr, float collisionHeight = 2.03128f) const;
 
-        uint16 GetAreaFlag(float x, float y, float z, bool* isOutdoors = nullptr) const;
-        uint8 GetTerrainType(float x, float y) const;
+        uint16 GetAreaFlag(Vec3 const& pos, bool* isOutdoors = nullptr) const;
+        uint8 GetTerrainType(Vec2 const& pos) const;
 
-        uint32 GetAreaId(float x, float y, float z) const;
-        uint32 GetZoneId(float x, float y, float z) const;
-        void GetZoneAndAreaId(uint32& zoneid, uint32& areaid, float x, float y, float z) const;
+        uint32 GetAreaId(Vec3 const& pos) const;
+        uint32 GetZoneId(Vec3 const& pos) const;
+        void GetZoneAndAreaId(uint32& zoneid, uint32& areaid, Vec3 const& pos) const;
 
-        bool GetAreaInfo(float x, float y, float z, uint32& flags, int32& adtId, int32& rootId, int32& groupId) const;
-        char const* GetAreaName(float x, float y, float z, uint32 langIndex) const;
-        bool IsOutdoors(float x, float y, float z) const;
+        bool GetAreaInfo(Vec3 const& pos, uint32& flags, int32& adtId, int32& rootId, int32& groupId) const;
+        char const* GetAreaName(Vec3 const& pos, uint32 langIndex) const;
+        bool IsOutdoors(Vec3 const& pos) const;
 
 
         // this method should be used only by TerrainManager
@@ -174,7 +174,7 @@ class TerrainInfo : public Referencable<std::atomic_long>
         // THIS METHOD IS NOT THREAD-SAFE!!!! AND IT SHOULDN'T BE THREAD-SAFE!!!!
         void CleanUpGrids(const uint32 diff);
 
-        bool CanCheckLiquidLevel(float x, float y) const;
+        bool CanCheckLiquidLevel(Vec2 const& pos) const;
 
     protected:
         friend class Map;
@@ -223,22 +223,22 @@ class TerrainManager : public MaNGOS::Singleton<TerrainManager, MaNGOS::ClassLev
         void Update(const uint32 diff);
         void UnloadAll();
 
-        uint16 GetAreaFlag(uint32 mapid, float x, float y, float z) const
+        uint16 GetAreaFlag(uint32 mapid, Vec3 const& pos) const
         {
             TerrainInfo* pData = const_cast<TerrainManager*>(this)->LoadTerrain(mapid);
-            return pData->GetAreaFlag(x, y, z);
+            return pData->GetAreaFlag(pos);
         }
-        uint32 GetAreaId(uint32 mapid, float x, float y, float z) const
+        uint32 GetAreaId(uint32 mapid, Vec3 const& pos) const
         {
-            return TerrainManager::GetAreaIdByAreaFlag(GetAreaFlag(mapid, x, y, z), mapid);
+            return TerrainManager::GetAreaIdByAreaFlag(GetAreaFlag(mapid, pos), mapid);
         }
-        uint32 GetZoneId(uint32 mapid, float x, float y, float z) const
+        uint32 GetZoneId(uint32 mapid, Vec3 const& pos) const
         {
-            return TerrainManager::GetZoneIdByAreaFlag(GetAreaFlag(mapid, x, y, z), mapid);
+            return TerrainManager::GetZoneIdByAreaFlag(GetAreaFlag(mapid, pos), mapid);
         }
-        void GetZoneAndAreaId(uint32& zoneid, uint32& areaid, uint32 mapid, float x, float y, float z) const
+        void GetZoneAndAreaId(uint32& zoneid, uint32& areaid, uint32 mapid, Vec3 const& pos) const
         {
-            TerrainManager::GetZoneAndAreaIdByAreaFlag(zoneid, areaid, GetAreaFlag(mapid, x, y, z), mapid);
+            TerrainManager::GetZoneAndAreaIdByAreaFlag(zoneid, areaid, GetAreaFlag(mapid, pos), mapid);
         }
 
         static uint32 GetAreaIdByAreaFlag(uint16 areaflag, uint32 map_id);

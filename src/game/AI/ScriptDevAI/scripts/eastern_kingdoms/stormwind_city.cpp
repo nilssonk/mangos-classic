@@ -145,10 +145,10 @@ struct npc_dashel_stonefistAI : public ScriptedAI
                 {
                     AttackStart(pPlayer);
 
-                    if (Creature* pThug = m_creature->SummonCreature(NPC_OLD_TOWN_THUG, -8672.33f, 442.88f, 99.98f, 3.5f, TEMPSPAWN_DEAD_DESPAWN, 300000))
+                    if (Creature* pThug = m_creature->SummonCreature(NPC_OLD_TOWN_THUG, {-8672.33f, 442.88f, 99.98f, 3.5f}, TempSpawnType::DEAD_DESPAWN, 300000))
                         pThug->AI()->AttackStart(pPlayer);
 
-                    if (Creature* pThug = m_creature->SummonCreature(NPC_OLD_TOWN_THUG, -8691.59f, 441.66f, 99.41f, 6.1f, TEMPSPAWN_DEAD_DESPAWN, 300000))
+                    if (Creature* pThug = m_creature->SummonCreature(NPC_OLD_TOWN_THUG, {-8691.59f, 441.66f, 99.41f, 6.1f}, TempSpawnType::DEAD_DESPAWN, 300000))
                         pThug->AI()->AttackStart(pPlayer);
                 }
 
@@ -248,6 +248,8 @@ bool GossipSelect_npc_lady_katrana_prestor(Player* player, Creature* creature, u
 ## npc_squire_rowe
 ######*/
 
+namespace {
+
 enum
 {
     SAY_SIGNAL_SENT             = -1000822,
@@ -270,7 +272,7 @@ enum
     QUEST_THE_GREAT_MASQUERADE  = 6403,
 };
 
-static const DialogueEntry aIntroDialogue[] =
+const DialogueEntry aIntroDialogue[] =
 {
     {NPC_WINDSOR,                0,           3000},        // wait
     {NPC_WINDSOR_MOUNT,          0,           1000},        // summon horse
@@ -280,8 +282,10 @@ static const DialogueEntry aIntroDialogue[] =
     {0, 0, 0},
 };
 
-static const float aWindsorSpawnLoc[3] = { -9145.68f, 373.79f, 90.64f};
-static const float aWindsorMoveLoc[3] = { -9050.39f, 443.55f, 93.05f};
+const Vec3 aWindsorSpawnLoc{-9145.68f, 373.79f, 90.64f};
+const Vec3 aWindsorMoveLoc{ -9050.39f, 443.55f, 93.05f};
+
+} // anonymous naemspace
 
 struct npc_squire_roweAI : public npc_escortAI, private DialogueHelper
 {
@@ -303,7 +307,7 @@ struct npc_squire_roweAI : public npc_escortAI, private DialogueHelper
         if (summoned->GetEntry() == NPC_WINDSOR)
         {
             summoned->SetWalk(false);
-            summoned->GetMotionMaster()->MovePoint(1, aWindsorMoveLoc[0], aWindsorMoveLoc[1], aWindsorMoveLoc[2]);
+            summoned->GetMotionMaster()->MovePoint(1, aWindsorMoveLoc);
 
             m_windsorGuid = summoned->GetObjectGuid();
             m_isEventInProgress = true;
@@ -339,7 +343,7 @@ struct npc_squire_roweAI : public npc_escortAI, private DialogueHelper
             case 4:
                 DoCastSpellIfCan(m_creature, SPELL_BLUE_FIREWORK, CAST_TRIGGERED);
                 m_creature->SetStandState(UNIT_STAND_STATE_STAND);
-                if (Creature* windsor = m_creature->SummonCreature(NPC_WINDSOR, aWindsorSpawnLoc[0], aWindsorSpawnLoc[1], aWindsorSpawnLoc[2], 0, TEMPSPAWN_CORPSE_DESPAWN, 0))
+                if (Creature* windsor = m_creature->SummonCreature(NPC_WINDSOR, {aWindsorSpawnLoc, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0))
                     windsor->SetWalk(false);
                 break;
             case 7:
@@ -452,6 +456,8 @@ bool GossipSelect_npc_squire_rowe(Player* player, Creature* creature, uint32 /*u
 ## npc_reginald_windsor
 ######*/
 
+namespace {
+
 enum
 {
     SAY_WINDSOR_QUEST_ACCEPT    = -1000825,
@@ -522,7 +528,7 @@ enum
     MAX_ROYAL_GUARDS            = 6,
 };
 
-static const float aGuardLocations[MAX_ROYAL_GUARDS][4] =
+const Position aGuardLocations[MAX_ROYAL_GUARDS] =
 {
     { -8968.510f, 512.556f, 96.352f, 3.849f},               // guard right - left
     { -8969.780f, 515.012f, 96.593f, 3.955f},               // guard right - middle
@@ -532,7 +538,7 @@ static const float aGuardLocations[MAX_ROYAL_GUARDS][4] =
     { -8961.080f, 503.828f, 96.593f, 3.465f},               // guard left - left
 };
 
-static const float aMoveLocations[10][3] =
+const Vec3 aMoveLocations[10] =
 {
     { -8967.960f, 510.008f, 96.351f},                       // Jonathan move
     { -8959.440f, 505.424f, 96.595f},                       // Guard Left - Middle kneel
@@ -545,7 +551,7 @@ static const float aMoveLocations[10][3] =
     { -8448.279f, 338.398f, 121.329f}                       // Bolvar kneel
 };
 
-static const DialogueEntry aMasqueradeDialogue[] =
+const DialogueEntry aMasqueradeDialogue[] =
 {
     {SAY_WINDSOR_QUEST_ACCEPT,  NPC_WINDSOR,    7000},
     {SAY_WINDSOR_GET_READY,     NPC_WINDSOR,    6000},
@@ -604,6 +610,8 @@ static const DialogueEntry aMasqueradeDialogue[] =
     {0, 0, 0},
 };
 
+} // anonymous namespace
+
 struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
 {
     npc_reginald_windsorAI(Creature* m_creature) : npc_escortAI(m_creature),
@@ -657,13 +665,13 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                     // Summon 3 guards on each side and move Jonathan in the middle
                     for (uint8 i = 0; i < MAX_ROYAL_GUARDS; ++i)
                     {
-                        if (Creature* temp = m_creature->SummonCreature(NPC_GUARD_ROYAL, aGuardLocations[i][0], aGuardLocations[i][1], aGuardLocations[i][2], aGuardLocations[i][3], TEMPSPAWN_TIMED_DESPAWN, 180000))
+                        if (Creature* temp = m_creature->SummonCreature(NPC_GUARD_ROYAL, aGuardLocations[i], TempSpawnType::TIMED_DESPAWN, 180000))
                             m_guardsGuid[i] = temp->GetObjectGuid();
                     }
 
                     jonathan->SetWalk(false);
                     jonathan->Unmount();
-                    jonathan->GetMotionMaster()->MovePoint(0, aMoveLocations[0][0], aMoveLocations[0][1], aMoveLocations[0][2]);
+                    jonathan->GetMotionMaster()->MovePoint(0, aMoveLocations[0]);
                 }
                 break;
             case 2:
@@ -742,9 +750,9 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                     guard->SetStandState(UNIT_STAND_STATE_KNEEL);
                 }
                 if (Creature* guard = m_creature->GetMap()->GetCreature(m_guardsGuid[4]))
-                    guard->GetMotionMaster()->MovePoint(1, aMoveLocations[1][0], aMoveLocations[1][1], aMoveLocations[1][2]);
+                    guard->GetMotionMaster()->MovePoint(1, aMoveLocations[1]);
                 if (Creature* guard = m_creature->GetMap()->GetCreature(m_guardsGuid[3]))
-                    guard->GetMotionMaster()->MovePoint(2, aMoveLocations[2][0], aMoveLocations[2][1], aMoveLocations[2][2]);
+                    guard->GetMotionMaster()->MovePoint(2, aMoveLocations[2]);
                 break;
             case SAY_JON_DIALOGUE_9:
                 // Turn right and move the guards
@@ -756,9 +764,9 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                     guard->SetStandState(UNIT_STAND_STATE_KNEEL);
                 }
                 if (Creature* guard = m_creature->GetMap()->GetCreature(m_guardsGuid[1]))
-                    guard->GetMotionMaster()->MovePoint(3, aMoveLocations[3][0], aMoveLocations[3][1], aMoveLocations[3][2]);
+                    guard->GetMotionMaster()->MovePoint(3, aMoveLocations[3]);
                 if (Creature* guard = m_creature->GetMap()->GetCreature(m_guardsGuid[0]))
-                    guard->GetMotionMaster()->MovePoint(4, aMoveLocations[4][0], aMoveLocations[4][1], aMoveLocations[4][2]);
+                    guard->GetMotionMaster()->MovePoint(4, aMoveLocations[4]);
                 break;
             case SAY_JON_DIALOGUE_10:
                 if (Creature* jonathan = m_scriptedMap->GetSingleCreatureFromStorage(NPC_JONATHAN))
@@ -772,7 +780,7 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                 if (Creature* jonathan = m_scriptedMap->GetSingleCreatureFromStorage(NPC_JONATHAN))
                 {
                     jonathan->SetWalk(true);
-                    jonathan->GetMotionMaster()->MovePoint(0, aMoveLocations[5][0], aMoveLocations[5][1], aMoveLocations[5][2]);
+                    jonathan->GetMotionMaster()->MovePoint(0, aMoveLocations[5]);
                 }
                 break;
             case EMOTE_ONESHOT_KNEEL:
@@ -818,7 +826,7 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                 {
                     wrynn->SetWalk(false);
                     wrynn->ForcedDespawn(15000);
-                    wrynn->GetMotionMaster()->MovePoint(0, aMoveLocations[6][0], aMoveLocations[6][1], aMoveLocations[6][2]);
+                    wrynn->GetMotionMaster()->MovePoint(0, aMoveLocations[6]);
 
                     // Store all the nearby guards, in order to transform them into Onyxia guards
                     CreatureList lGuardsList;
@@ -843,7 +851,7 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                 if (Creature* bolvar = m_scriptedMap->GetSingleCreatureFromStorage(NPC_BOLVAR))
                 {
                     bolvar->SetWalk(false);
-                    bolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[7][0], aMoveLocations[7][1], aMoveLocations[7][2]);
+                    bolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[7]);
                 }
                 break;
             case SAY_BOLVAR_KEEP_10:
@@ -904,13 +912,13 @@ struct npc_reginald_windsorAI : public npc_escortAI, private DialogueHelper
                 break;
             case NPC_GUARD_ONYXIA:
                 if (Creature* bolvar = m_scriptedMap->GetSingleCreatureFromStorage(NPC_BOLVAR))
-                    bolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[7][0], aMoveLocations[7][1], aMoveLocations[7][2]);
+                    bolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[7]);
                 break;
             case NPC_BOLVAR:
                 if (Creature* bolvar = m_scriptedMap->GetSingleCreatureFromStorage(NPC_BOLVAR))
                 {
                     bolvar->SetWalk(true);
-                    bolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[8][0], aMoveLocations[8][1], aMoveLocations[8][2]);
+                    bolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[8]);
                 }
                 break;
             case SAY_BOLVAR_KEEP_15:

@@ -5,6 +5,14 @@
 #ifndef DEF_BLACKWING_LAIR
 #define DEF_BLACKWING_LAIR
 
+#include <G3D/Vector3.h>
+
+namespace bwl {
+
+using SpawnLocation = G3D::Vector3;
+
+extern const SpawnLocation aNefarianLocs[3];
+
 enum
 {
     MAX_ENCOUNTER               = 13,
@@ -108,22 +116,6 @@ enum
     EMOTE_REDSHARD_TAUNT_2      = -1469044,
 };
 
-struct SpawnLocation
-{
-    float m_fX, m_fY, m_fZ;
-};
-
-static const SpawnLocation aNefarianLocs[3] =
-{
-    { -7599.32f, -1191.72f, 475.545f},                      // opening where red/blue/black darknid spawner appear (ori 3.05433)
-    { -7526.27f, -1135.04f, 473.445f},                      // same as above, closest to door (ori 5.75959)
-    { -7348.849f, -1495.134f, 552.5152f},                   // nefarian spawn location (ori 1.798)
-};
-
-// Coords used in intro event for Vaelastrasz to spawn Nefarius at the throne and sort the gobelins
-static const float aNefariusSpawnLoc[4] = { -7466.16f, -1040.80f, 412.053f, 2.14675f};
-static const float fVaelXPos = -7483.0f;
-
 class instance_blackwing_lair : public ScriptedInstance
 {
     public:
@@ -181,5 +173,7 @@ class instance_blackwing_lair : public ScriptedInstance
         GuidList m_drakonids;
         GuidVector m_vGeneratorGuids;
 };
+
+} // namespace bwl
 
 #endif

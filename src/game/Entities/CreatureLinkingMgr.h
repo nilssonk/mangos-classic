@@ -160,12 +160,14 @@ class CreatureLinkingHolder
         // Function to check if a passive spawning condition is met
         bool CanSpawn(Creature* pCreature) const;
         // Helper function for recursive spawning-checks of an additional linked - also used in pooling
-        bool CanSpawn(uint32 lowGuid, Map* _map, CreatureLinkingInfo const*  pInfo, float sx, float sy) const;
+        bool CanSpawn(uint32 lowGuid, Map* _map, CreatureLinkingInfo const*  pInfo, Vec2 const& pos) const;
 
         // This function lets a slave refollow his master
         bool TryFollowMaster(Creature* pCreature);
 
     private:
+        bool CanSpawnImpl(uint32 lowGuid, Map* _map, CreatureLinkingInfo const&  pInfo, Vec2 const& pos) const;
+
         // Structure associated to a master
         struct InfoAndGuids
         {
@@ -194,7 +196,7 @@ class CreatureLinkingHolder
         void SetFollowing(Creature* pWho, Creature* pWhom) const;
         // Helper function to return if a slave is in range of a boss
         bool IsSlaveInRangeOfMaster(Creature const* pSlave, Creature const* pBoss, uint16 searchRange) const;
-        bool IsSlaveInRangeOfMaster(Creature const* pBoss, float sX, float sY, uint16 searchRange) const;
+        bool IsSlaveInRangeOfMaster(Creature const* pBoss, Vec2 const& pos, uint16 searchRange) const;
         // Another helper function
         bool IsRespawnReady(uint32 dbLowGuid, Map* _map) const;
 

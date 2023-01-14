@@ -73,7 +73,9 @@ bool Corpse::Create(uint32 guidlow, Player* owner)
     MANGOS_ASSERT(owner);
 
     WorldObject::_Create(guidlow, HIGHGUID_CORPSE);
-    Relocate(owner->GetPositionX(), owner->GetPositionY(), owner->GetPositionZ(), owner->GetOrientation());
+
+    auto const& owner_pos = owner->GetPosition();
+    Relocate(owner_pos);
 
     // we need to assign owner's map for corpse
     // in other way we will get a crash in Corpse::SaveToDB()
@@ -82,18 +84,20 @@ bool Corpse::Create(uint32 guidlow, Player* owner)
     if (!IsPositionValid())
     {
         sLog.outError("Corpse (guidlow %d, owner %s) not created. Suggested coordinates isn't valid (X: %f Y: %f)",
-                      guidlow, owner->GetName(), owner->GetPositionX(), owner->GetPositionY());
+                      guidlow, owner->GetName(), owner_pos.x, owner_pos.y);
         return false;
     }
 
+    auto const& pos = GetPosition();
+
     SetObjectScale(DEFAULT_OBJECT_SCALE);
-    SetFloatValue(CORPSE_FIELD_POS_X, GetPositionX());
-    SetFloatValue(CORPSE_FIELD_POS_Y, GetPositionY());
-    SetFloatValue(CORPSE_FIELD_POS_Z, GetPositionZ());
-    SetFloatValue(CORPSE_FIELD_FACING, GetOrientation());
+    SetFloatValue(CORPSE_FIELD_POS_X, pos.x);
+    SetFloatValue(CORPSE_FIELD_POS_Y, pos.y);
+    SetFloatValue(CORPSE_FIELD_POS_Z, pos.z);
+    SetFloatValue(CORPSE_FIELD_FACING, pos.w);
     SetOwnerGuid(owner->GetObjectGuid());
 
-    m_grid = MaNGOS::ComputeGridPair(GetPositionX(), GetPositionY());
+    m_grid = MaNGOS::ComputeGridPair(pos.xy());
     m_rankSnapshot = owner->GetHonorRankInfo().rank;
 
     return true;
@@ -157,10 +161,12 @@ bool Corpse::LoadFromDB(uint32 lowguid, Field* fields)
     ////   7     8            9         10      11    12     13           14            15              16       17
     //    "time, corpse_type, instance, gender, race, class, playerBytes, playerBytes2, equipmentCache, guildId, playerFlags FROM corpse"
     uint32 playerLowGuid = fields[1].GetUInt32();
-    float positionX     = fields[2].GetFloat();
-    float positionY     = fields[3].GetFloat();
-    float positionZ     = fields[4].GetFloat();
-    float orientation   = fields[5].GetFloat();
+    Position pos{
+        fields[2].GetFloat(),
+        fields[3].GetFloat(),
+        fields[4].GetFloat(),
+        fields[5].GetFloat()
+    };
     uint32 mapid        = fields[6].GetUInt32();
 
     Object::_Create(lowguid, lowguid, 0, HIGHGUID_CORPSE);
@@ -238,16 +244,16 @@ bool Corpse::LoadFromDB(uint32 lowguid, Field* fields)
     // place
     SetLocationInstanceId(instanceid);
     SetLocationMapId(mapid);
-    Relocate(positionX, positionY, positionZ, orientation);
+    Relocate(pos);
 
     if (!IsPositionValid())
     {
         sLog.outError("%s Owner %s not created. Suggested coordinates isn't valid (X: %f Y: %f)",
-                      GetGuidStr().c_str(), GetOwnerGuid().GetString().c_str(), GetPositionX(), GetPositionY());
+                      GetGuidStr().c_str(), GetOwnerGuid().GetString().c_str(), pos.x, pos.y);
         return false;
     }
 
-    m_grid = MaNGOS::ComputeGridPair(GetPositionX(), GetPositionY());
+    m_grid = MaNGOS::ComputeGridPair(pos.xy());
 
     return true;
 }

@@ -165,6 +165,8 @@ bool QuestAccept_npc_morokk(Player* pPlayer, Creature* pCreature, const Quest* p
 ## npc_ogron
 ######*/
 
+namespace {
+
 enum
 {
     SAY_OGR_START                       = -1000452,
@@ -206,8 +208,10 @@ enum
     PHASE_COMPLETE                      = 3
 };
 
-static float m_afSpawn[] = { -3383.501953f, -3203.383301f, 36.149f};
-static float m_afMoveTo[] = { -3371.414795f, -3212.179932f, 34.210f};
+const Position afSpawn{ -3383.501953f, -3203.383301f, 36.149f, 0.0f};
+const Vec3 afMoveTo{ -3371.414795f, -3212.179932f, 34.210f};
+
+} // namespace
 
 struct npc_ogronAI : public npc_escortAI
 {
@@ -286,7 +290,7 @@ struct npc_ogronAI : public npc_escortAI
         pSummoned->setFaction(FACTION_GENERIC_FRIENDLY);
 
         if (pSummoned->GetEntry() == NPC_CALDWELL)
-            pSummoned->GetMotionMaster()->MovePoint(0, m_afMoveTo[0], m_afMoveTo[1], m_afMoveTo[2]);
+            pSummoned->GetMotionMaster()->MovePoint(0, afMoveTo);
         else
         {
             if (Creature* pCaldwell = GetCreature(NPC_CALDWELL))
@@ -356,10 +360,10 @@ struct npc_ogronAI : public npc_escortAI
                                     if (Creature* pReethe = GetCreature(NPC_REETHE))
                                         DoScriptText(SAY_OGR_RET_HEAR, pReethe);
 
-                                    m_creature->SummonCreature(NPC_CALDWELL, m_afSpawn[0], m_afSpawn[1], m_afSpawn[2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 300000);
-                                    m_creature->SummonCreature(NPC_HALLAN, m_afSpawn[0], m_afSpawn[1], m_afSpawn[2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 300000);
-                                    m_creature->SummonCreature(NPC_SKIRMISHER, m_afSpawn[0], m_afSpawn[1], m_afSpawn[2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 300000);
-                                    m_creature->SummonCreature(NPC_SKIRMISHER, m_afSpawn[0], m_afSpawn[1], m_afSpawn[2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 300000);
+                                    m_creature->SummonCreature(NPC_CALDWELL, afSpawn, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 300000);
+                                    m_creature->SummonCreature(NPC_HALLAN, afSpawn, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 300000);
+                                    m_creature->SummonCreature(NPC_SKIRMISHER, afSpawn, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 300000);
+                                    m_creature->SummonCreature(NPC_SKIRMISHER, afSpawn, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 300000);
 
                                     m_uiPhase = PHASE_GUESTS;
                                     break;
@@ -469,6 +473,8 @@ UnitAI* GetAI_npc_ogron(Creature* pCreature)
 ## npc_private_hendel
 ######*/
 
+namespace {
+
 enum
 {
     EMOTE_SURRENDER             = -1000415,
@@ -487,31 +493,33 @@ enum
 
 struct OutroSpawnLocation
 {
-    float fX, fY, fZ, fO;
-    float fDestX, fDestY, fDestZ;
+    Position pos;
+    Vec3 dest;
     uint32 uiEntry;
 };
 
 const OutroSpawnLocation lOutroSpawns[] =
 {
     {
-        -2857.604492f, -3354.784912f, 35.369640f, 3.16604f,
-        -2881.546631f, -3346.477539f, 34.143719f,
+        {-2857.604492f, -3354.784912f, 35.369640f, 3.16604f},
+        {-2881.546631f, -3346.477539f, 34.143719f},
         NPC_TERVOSH
     },
     {
-        -2858.120117f, -3358.469971f, 36.086300f, 3.16604f,
-        -2879.697998f, -3347.789063f, 34.772892f,
+        {-2858.120117f, -3358.469971f, 36.086300f, 3.16604f},
+        {-2879.697998f, -3347.789063f, 34.772892f},
         NPC_JAINA
     },
     {
-        -2857.379883f, -3351.370117f, 34.178001f, 3.16604f,
-        -2879.959961f, -3344.469971f, 34.670502f,
+        {-2857.379883f, -3351.370117f, 34.178001f, 3.16604f},
+        {-2879.959961f, -3344.469971f, 34.670502f},
         NPC_PAINED
-    }
+    },
 };
 
-const float fSentryFleePoint[] {-2917.56f, -3329.90f, 30.37f};
+const Vec3 fSentryFleePoint{-2917.56f, -3329.90f, 30.37f};
+
+} // namespace
 
 struct npc_private_hendelAI : public ScriptedAI
 {
@@ -569,19 +577,19 @@ struct npc_private_hendelAI : public ScriptedAI
                     (*itr)->RemoveAllAurasOnEvade();
                     (*itr)->CombatStop(true);
                     (*itr)->SetWalk(false);
-                    (*itr)->GetMotionMaster()->MovePoint(0, fSentryFleePoint[0], fSentryFleePoint[1], fSentryFleePoint[2]);
+                    (*itr)->GetMotionMaster()->MovePoint(0, fSentryFleePoint);
                     (*itr)->ForcedDespawn(4000);
                 }
             }
 
             // Summon Jaina Proudmoore, Archmage Tervosh and Pained
-            for (const auto& lOutroSpawn : lOutroSpawns)
+            for (const auto& spawn : lOutroSpawns)
             {
-                Creature* pCreature = m_creature->SummonCreature(lOutroSpawn.uiEntry, lOutroSpawn.fX, lOutroSpawn.fY, lOutroSpawn.fZ, lOutroSpawn.fO, TEMPSPAWN_TIMED_DESPAWN, 3 * MINUTE * IN_MILLISECONDS, false, true);
+                Creature* pCreature = m_creature->SummonCreature(spawn.uiEntry, spawn.pos, TempSpawnType::TIMED_DESPAWN, 3 * MINUTE * IN_MILLISECONDS, SummonFlags{false, true});
                 if (pCreature)
                 {
                     pCreature->CastSpell(pCreature, SPELL_TELEPORT_VISUAL, TRIGGERED_NONE);
-                    pCreature->GetMotionMaster()->MovePoint(0, lOutroSpawn.fDestX, lOutroSpawn.fDestY, lOutroSpawn.fDestZ);
+                    pCreature->GetMotionMaster()->MovePoint(0, spawn.dest);
 
                     // Exception case for Archmage Tervosh: the outro event is a simple speech with visual spell cast
                     // so it will be handled by a DBScript held by NPC Archmage Tervosh
@@ -777,7 +785,7 @@ bool AreaTrigger_at_sentry_point(Player* pPlayer, const AreaTriggerEntry* /*pAt*
 
     if (!GetClosestCreatureWithEntry(pPlayer, NPC_TERVOSH, 100.0f))
     {
-        if (Creature* pTervosh = pPlayer->SummonCreature(NPC_TERVOSH, -3476.51f, -4105.94f, 17.1f, 5.3816f, TEMPSPAWN_TIMED_DESPAWN, 60000))
+        if (Creature* pTervosh = pPlayer->SummonCreature(NPC_TERVOSH, {-3476.51f, -4105.94f, 17.1f, 5.3816f}, TempSpawnType::TIMED_DESPAWN, 60000))
         {
             pTervosh->CastSpell(pTervosh, SPELL_TELEPORT_VISUAL_2, TRIGGERED_OLD_TRIGGERED);
 

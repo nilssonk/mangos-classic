@@ -274,6 +274,8 @@ UnitAI* GetAI_npc_taskmaster_fizzule(Creature* creature)
 ## npc_twiggy_flathead
 #####*/
 
+namespace {
+
 enum
 {
     SAY_BIG_WILL_READY                  = -1000123,
@@ -295,7 +297,7 @@ enum
     MAX_CHALLENGERS                     = 6,
 };
 
-static const float aAffrayChallengerLoc[8][4] =
+const Position aAffrayChallengerLoc[] =
 {
     { -1683.0f, -4326.0f, 2.79f, 0.00f},
     { -1682.0f, -4329.0f, 2.79f, 0.00f},
@@ -306,6 +308,8 @@ static const float aAffrayChallengerLoc[8][4] =
     { -1713.79f, -4342.09f, 6.05f, 6.15f},          // Big Will spawn loc
     { -1682.31f, -4329.68f, 2.78f, 0.0f},           // Big Will move loc
 };
+
+} // namespace
 
 struct npc_twiggy_flatheadAI : public ScriptedAI
 {
@@ -369,7 +373,7 @@ struct npc_twiggy_flatheadAI : public ScriptedAI
         m_vAffrayChallengerGuidsVector.reserve(MAX_CHALLENGERS);
 
         for (uint8 i = 0; i < MAX_CHALLENGERS; ++i)
-            m_creature->SummonCreature(NPC_AFFRAY_CHALLENGER, aAffrayChallengerLoc[i][0], aAffrayChallengerLoc[i][1], aAffrayChallengerLoc[i][2], aAffrayChallengerLoc[i][3], TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 600000);
+            m_creature->SummonCreature(NPC_AFFRAY_CHALLENGER, aAffrayChallengerLoc[i], TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 600000);
     }
 
     void SetChallengerReady(Creature* pChallenger)
@@ -389,7 +393,7 @@ struct npc_twiggy_flatheadAI : public ScriptedAI
             m_bigWillGuid = pSummoned->GetObjectGuid();
             pSummoned->setFaction(FACTION_FRIENDLY);
             pSummoned->SetWalk(false);
-            pSummoned->GetMotionMaster()->MovePoint(1, aAffrayChallengerLoc[7][0], aAffrayChallengerLoc[7][1], aAffrayChallengerLoc[7][2]);
+            pSummoned->GetMotionMaster()->MovePoint(1, aAffrayChallengerLoc[7]);
         }
         else
         {
@@ -468,7 +472,7 @@ struct npc_twiggy_flatheadAI : public ScriptedAI
                         m_uiEventTimer = 25000;
                     break;
                 case 2:
-                    m_creature->SummonCreature(NPC_BIG_WILL, aAffrayChallengerLoc[6][0], aAffrayChallengerLoc[6][1], aAffrayChallengerLoc[6][2], aAffrayChallengerLoc[6][3], TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 300000);
+                    m_creature->SummonCreature(NPC_BIG_WILL, aAffrayChallengerLoc[6], TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 300000);
                     m_uiEventTimer = 15000;
                     ++m_uiStep;
                     break;
@@ -566,10 +570,10 @@ struct npc_wizzlecranks_shredderAI : public npc_escortAI
                 SetRun(false);
                 break;
             case 18:
-                if (Creature* pTemp = m_creature->SummonCreature(NPC_MERCENARY, 1128.489f, -3037.611f, 92.701f, 1.472f, TEMPSPAWN_TIMED_OOC_DESPAWN, 120000))
+                if (Creature* pTemp = m_creature->SummonCreature(NPC_MERCENARY, {1128.489f, -3037.611f, 92.701f, 1.472f}, TempSpawnType::TIMED_OOC_DESPAWN, 120000))
                 {
                     DoScriptText(SAY_MERCENARY, pTemp);
-                    m_creature->SummonCreature(NPC_MERCENARY, 1160.172f, -2980.168f, 97.313f, 3.690f, TEMPSPAWN_TIMED_OOC_DESPAWN, 120000);
+                    m_creature->SummonCreature(NPC_MERCENARY, {1160.172f, -2980.168f, 97.313f, 3.690f}, TempSpawnType::TIMED_OOC_DESPAWN, 120000);
                 }
                 break;
             case 25:
@@ -627,7 +631,7 @@ struct npc_wizzlecranks_shredderAI : public npc_escortAI
                             if (Player* pPlayer = GetPlayerForEscort())
                             {
                                 pPlayer->RewardPlayerAndGroupAtEventExplored(QUEST_ESCAPE, m_creature);
-                                m_creature->SummonCreature(NPC_PILOT_WIZZ, 0.0f, 0.0f, 0.0f, 0.0f, TEMPSPAWN_TIMED_DESPAWN, 180000);
+                                m_creature->SummonCreature(NPC_PILOT_WIZZ, Position{}, TempSpawnType::TIMED_DESPAWN, 180000);
                             }
                             break;
                     }
@@ -751,6 +755,8 @@ UnitAI* GetAI_npc_foreman_silixiz(Creature* creature)
 ## npc_regthar_deathgate
 #####*/
 
+namespace {
+
 enum
 {
     QUEST_COUNTERATTACK        = 4021,
@@ -774,14 +780,7 @@ enum
 #define COUNTERATTACK_RESPAWN_TIME_HORDE_INC  1  // increased respawn time to have enough defender everytime
 #define COUNTERATTACK_RESPAWN_TIME_KOLKAR     10
 
-struct SpawnPoint
-{
-    float fX, fY, fZ, fO;
-};
-
-typedef std::vector<SpawnPoint> SpawnPointVector;
-
-static const SpawnPointVector spawnPointsHorde
+const Position spawnPointsHorde[] =
 {
     { -307.23f, -1919.84f, 91.66f, 0.64f},
     { -281.15f, -1906.39f, 91.66f, 1.88f},
@@ -792,14 +791,14 @@ static const SpawnPointVector spawnPointsHorde
     { -226.65f, -1927.87f, 93.24f, 0.41f},
 };
 
-static const SpawnPointVector spawnPointsKromzar
+const Position spawnPointsKromzar[] =
 {
     { -281.19f, -1855.54f, 92.58f, 4.85f},
     { -283.66f, -1858.45f, 92.47f, 4.85f},
     { -286.50f, -1856.18f, 92.44f, 4.85f}
 };
 
-static const SpawnPointVector spawnPointsKolkar
+const Position spawnPointsKolkar[] =
 {
     { -290.26f, -1860.85f, 92.48f, 3.68f},
     { -311.46f, -1871.16f, 92.64f, 6.06f},
@@ -817,6 +816,8 @@ static const SpawnPointVector spawnPointsKolkar
     { -283.57f, -1883.91f, 92.60f, 3.53f},
     { -197.50f, -1929.31f, 94.03f, 3.51f}
 };
+
+} // namespace
 
 struct npc_regthar_deathgateAI : public ScriptedAI
 {
@@ -847,7 +848,8 @@ private:
     bool   m_isKromzarSpawned;
 
     // Spawn one creature if there is at least one killed in killedGuidList (DB waypoint for all spawnpoint index less or equal given moveToWP argument)
-    bool SpawnCreature(SpawnPointVector const& spawnPoints, SpawnPointIndexMap& creatureSlotMap, FullGuidList& killedGuidList, uint32 entry1, uint32 entry2, int32 moveToWP = -1)
+    template<typename ContainerT>
+    bool SpawnCreature(ContainerT const& spawnPoints, SpawnPointIndexMap& creatureSlotMap, FullGuidList& killedGuidList, uint32 entry1, uint32 entry2, int32 moveToWP = -1)
     {
         if (killedGuidList.empty())
             return false;
@@ -867,8 +869,8 @@ private:
             killedGuidList.erase(killedGuidList.begin());
             uint32 summonEntry = urand(0, 1) ? entry1 : entry2;
             int32 spawnPointIdx = int32(itr->second);
-            SpawnPoint const& spawnPoint = spawnPoints[spawnPointIdx];
-            if (Creature * creature = m_creature->SummonCreature(summonEntry, spawnPoint.fX, spawnPoint.fY, spawnPoint.fZ, spawnPoint.fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS))
+            auto const& spawnPoint = spawnPoints[spawnPointIdx];
+            if (Creature * creature = m_creature->SummonCreature(summonEntry, spawnPoint, TempSpawnType::CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS))
             {
                 // Force Horde NPCs spawned in main point to move towards kolkar invaders. We give them WP movement to ensure they always move there event after evade/reset. WP are handled in DB
                 if (spawnPointIdx < moveToWP)
@@ -884,13 +886,14 @@ private:
     }
 
     // spawn all slot with given entry1/entry2 randomly and store them to SpawnPointIndexMap storage (moveTOWP is max slot index that should use DB waypoint)
-    void SpawnAllSlot(SpawnPointVector const& spawnPoints, SpawnPointIndexMap& creatureSlotMap, uint32 entry1, uint32 entry2, int32 moveToWP = -1)
+    template<typename ContainerT>
+    void SpawnAllSlot(ContainerT const& spawnPoints, SpawnPointIndexMap& creatureSlotMap, uint32 entry1, uint32 entry2, int32 moveToWP = -1)
     {
         int32 counter = 0;
-        for (auto& spawnPoint : spawnPoints)
+        for (auto const& spawnPoint : spawnPoints)
         {
             uint32 summonEntry = urand(0, 1) ? entry1 : entry2;
-            if (Creature * creature = m_creature->SummonCreature(summonEntry, spawnPoint.fX, spawnPoint.fY, spawnPoint.fZ, spawnPoint.fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS))
+            if (Creature * creature = m_creature->SummonCreature(summonEntry, spawnPoint, TempSpawnType::CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS))
             {
                 if (counter < moveToWP)
                 {
@@ -1031,9 +1034,9 @@ public:
         {
             if (m_kolkarKillCount >= KILL_LIMIT)  // Kill count reached: spawn Warlord Kromzar and his bodyguards
             {
-                m_creature->SummonCreature(NPC_KOLKAR_INVADER,  spawnPointsKromzar[0].fX, spawnPointsKromzar[0].fY, spawnPointsKromzar[0].fZ, spawnPointsKromzar[0].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_WARLORD_KROMZAR,  spawnPointsKromzar[1].fX, spawnPointsKromzar[1].fY, spawnPointsKromzar[1].fZ, spawnPointsKromzar[1].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_KOLKAR_STORMSEER,  spawnPointsKromzar[2].fX, spawnPointsKromzar[2].fY, spawnPointsKromzar[2].fZ, spawnPointsKromzar[2].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_KOLKAR_INVADER,  spawnPointsKromzar[0], TempSpawnType::CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_WARLORD_KROMZAR,  spawnPointsKromzar[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_KOLKAR_STORMSEER,  spawnPointsKromzar[2], TempSpawnType::CORPSE_TIMED_DESPAWN, 40 * IN_MILLISECONDS);
                 m_isKromzarSpawned = true;
                 return;
             }

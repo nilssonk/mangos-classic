@@ -213,7 +213,7 @@ CanCastResult UnitAI::DoCastSpellIfCan(Unit* target, uint32 spellId, uint32 cast
 
             SpellCastResult result;
             if (castFlags & CAST_ONLY_XYZ)
-                result = caster->CastSpell(target->GetPositionX(), target->GetPositionY(), target->GetPositionZ(), spellInfo, flags);
+                result = caster->CastSpell(target->GetPosition().xyz(), spellInfo, flags);
             else
                 result = caster->CastSpell(target, spellInfo, flags);
             if (result != SPELL_CAST_OK)

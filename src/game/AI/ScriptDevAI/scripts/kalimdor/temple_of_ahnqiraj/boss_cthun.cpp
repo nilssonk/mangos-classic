@@ -27,6 +27,8 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "temple_of_ahnqiraj.h"
 
+namespace {
+
 enum
 {
     EMOTE_WEAKENED                  = -1531011,
@@ -89,7 +91,7 @@ enum
     MAX_FLESH_TENTACLES             = 2,
 };
 
-static const float cthunLocations[4][4] =
+const Position cthunLocations[4] =
 {
     { -8571.0f,  1990.0f,    -98.0f,  1.22f},       // Flesh Tentacles locations
     { -8525.0f,  1994.0f,    -98.0f,  2.12f},
@@ -108,6 +110,8 @@ enum EyeCthunActions
     EYECTHUN_ACTION_MAX,
     EYECTHUN_END_DARKGLARE,
 };
+
+} // namespace
 
 struct boss_eye_of_cthunAI : public CombatAI
 {
@@ -379,7 +383,7 @@ struct boss_cthunAI : public CombatAI
         // Flesh Tentacles inside stomach, two of them
         m_fleshTentaclesKilled = 0;
         for (uint8 i = 0; i < MAX_FLESH_TENTACLES; ++i)
-            m_creature->SummonCreature(NPC_FLESH_TENTACLE, cthunLocations[i][0], cthunLocations[i][1], cthunLocations[i][2], cthunLocations[i][3], TEMPSPAWN_DEAD_DESPAWN, 0);
+            m_creature->SummonCreature(NPC_FLESH_TENTACLE, cthunLocations[i], TempSpawnType::DEAD_DESPAWN, 0);
     }
 
     void StopSpawningTentacles()
@@ -578,7 +582,7 @@ bool AreaTrigger_at_stomach_cthun(Player* player, AreaTriggerEntry const* at)
             return false;
 
         // Teleport player near the third area trigger
-        player->NearTeleportTo(cthunLocations[3][0], cthunLocations[3][1], cthunLocations[3][2], cthunLocations[3][3]);
+        player->NearTeleportTo(cthunLocations[3]);
         return true;
     }
 

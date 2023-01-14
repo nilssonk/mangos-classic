@@ -25,6 +25,7 @@
 
 #include <list>
 #include <vector>
+#include <optional>
 
 bool IsAcceptableClientBuild(uint32 build);
 std::string AcceptableClientBuildsListStr();
@@ -55,8 +56,8 @@ CharSectionsEntry const* GetCharSectionEntry(uint8 race, CharSectionType genType
 // [-ZERO] bool IsTotemCategoryCompatiableWith(uint32 itemTotemCategoryId, uint32 requiredTotemCategoryId);
 
 bool MapCoordinateVsZoneCheck(float x, float y, uint32 mapid, uint32 zone);
-bool Zone2MapCoordinates(float& x, float& y, uint32 zone);
-bool Map2ZoneCoordinates(float& x, float& y, uint32 zone);
+std::optional<Vec2> Zone2MapCoordinates(Vec2 const& pos, uint32 zone);
+std::optional<Vec2> Map2ZoneCoordinates(Vec2 const& pos, uint32 zone);
 
 uint32 GetTalentInspectBitPosInTab(uint32 talentId);
 uint32 GetTalentTabInspectBitSize(uint32 talentTabId);

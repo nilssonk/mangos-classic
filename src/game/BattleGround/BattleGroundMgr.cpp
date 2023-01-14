@@ -1301,7 +1301,7 @@ BattleGround* BattleGroundMgr::CreateNewBattleGround(BattleGroundTypeId bgTypeId
   @param    team 2 start location O
   @param    start max distance
 */
-uint32 BattleGroundMgr::CreateBattleGround(BattleGroundTypeId bgTypeId, uint32 minPlayersPerTeam, uint32 maxPlayersPerTeam, uint32 levelMin, uint32 levelMax, char const* battleGroundName, uint32 mapId, float team1StartLocX, float team1StartLocY, float team1StartLocZ, float team1StartLocO, float team2StartLocX, float team2StartLocY, float team2StartLocZ, float team2StartLocO, float startMaxDist, uint32 playerSkinReflootId)
+uint32 BattleGroundMgr::CreateBattleGround(BattleGroundTypeId bgTypeId, uint32 minPlayersPerTeam, uint32 maxPlayersPerTeam, uint32 levelMin, uint32 levelMax, char const* battleGroundName, uint32 mapId, Position const& team1StartLoc, Position const& team2StartLoc, float startMaxDist, uint32 playerSkinReflootId)
 {
     // Create the BG
     BattleGround* bg;
@@ -1320,8 +1320,8 @@ uint32 BattleGroundMgr::CreateBattleGround(BattleGroundTypeId bgTypeId, uint32 m
     bg->SetMinPlayers(minPlayersPerTeam * 2);
     bg->SetMaxPlayers(maxPlayersPerTeam * 2);
     bg->SetName(battleGroundName);
-    bg->SetTeamStartLoc(ALLIANCE, team1StartLocX, team1StartLocY, team1StartLocZ, team1StartLocO);
-    bg->SetTeamStartLoc(HORDE,    team2StartLocX, team2StartLocY, team2StartLocZ, team2StartLocO);
+    bg->SetTeamStartLoc(ALLIANCE, team1StartLoc);
+    bg->SetTeamStartLoc(HORDE,    team2StartLoc);
     bg->SetStartMaxDist(startMaxDist);
     bg->SetLevelRange(levelMin, levelMax);
     bg->SetPlayerSkinRefLootId(playerSkinReflootId);
@@ -1367,18 +1367,15 @@ void BattleGroundMgr::CreateInitialBattleGrounds()
         uint32 minLvl = fields[3].GetUInt32();
         uint32 maxLvl = fields[4].GetUInt32();
 
-        float allianceStartLoc[4];
-        float hordeStartLoc[4];
+        Position allianceStartPos;
+        Position hordeStartPos;
 
         uint32 start1 = fields[5].GetUInt32();
 
         WorldSafeLocsEntry const* start = sWorldSafeLocsStore.LookupEntry<WorldSafeLocsEntry>(start1);
         if (start)
         {
-            allianceStartLoc[0] = start->x;
-            allianceStartLoc[1] = start->y;
-            allianceStartLoc[2] = start->z;
-            allianceStartLoc[3] = start->o;
+            allianceStartPos = start->loc.pos;
         }
         else
         {
@@ -1391,10 +1388,7 @@ void BattleGroundMgr::CreateInitialBattleGrounds()
         start = sWorldSafeLocsStore.LookupEntry<WorldSafeLocsEntry>(start2);
         if (start)
         {
-            hordeStartLoc[0] = start->x;
-            hordeStartLoc[1] = start->y;
-            hordeStartLoc[2] = start->z;
-            hordeStartLoc[3] = start->o;
+            hordeStartPos = start->loc.pos;
         }
         else
         {
@@ -1425,7 +1419,7 @@ void BattleGroundMgr::CreateInitialBattleGrounds()
             m_usedRefloot.insert(playerSkinReflootId);
 
         // sLog.outDetail("Creating battleground %s, %u-%u", bl->name[sWorld.GetDBClang()], MinLvl, MaxLvl);
-        if (!CreateBattleGround(bgTypeId, minPlayersPerTeam, maxPlayersPerTeam, minLvl, maxLvl, name, mapId, allianceStartLoc[0], allianceStartLoc[1], allianceStartLoc[2], allianceStartLoc[3], hordeStartLoc[0], hordeStartLoc[1], hordeStartLoc[2], hordeStartLoc[3], startMaxDist, playerSkinReflootId))
+        if (!CreateBattleGround(bgTypeId, minPlayersPerTeam, maxPlayersPerTeam, minLvl, maxLvl, name, mapId, allianceStartPos, hordeStartPos, startMaxDist, playerSkinReflootId))
             continue;
 
         ++count;
@@ -1488,14 +1482,13 @@ void BattleGroundMgr::SendToBattleGround(Player* player, uint32 instanceId, Batt
     if (bg)
     {
         uint32 mapid = bg->GetMapId();
-        float x, y, z, O;
         Team team = player->GetBGTeam();
         if (team == 0)
             team = player->GetTeam();
-        bg->GetTeamStartLoc(team, x, y, z, O);
+        auto const start_loc = bg->GetTeamStartLoc(team);
 
-        DETAIL_LOG("BATTLEGROUND: Sending %s to map %u, X %f, Y %f, Z %f, O %f", player->GetName(), mapid, x, y, z, O);
-        player->TeleportTo(mapid, x, y, z, O);
+        DETAIL_LOG("BATTLEGROUND: Sending %s to map %u, X %f, Y %f, Z %f, O %f", player->GetName(), mapid, start_loc.x, start_loc.y, start_loc.z, start_loc.w);
+        player->TeleportTo(mapid, start_loc);
     }
     else
     {

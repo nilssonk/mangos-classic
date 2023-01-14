@@ -1831,9 +1831,9 @@ bool Player::isGMChat() const
     return false;
 }
 
-bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options /*=0*/, AreaTrigger const* at /*=nullptr*/, GenericTransport* transport /*=nullptr*/)
+bool Player::TeleportTo(uint32 mapid, Position const& pos, uint32 options /*=0*/, AreaTrigger const* at /*=nullptr*/, GenericTransport* transport /*=nullptr*/)
 {
-    if (!MapManager::IsValidMapCoord(mapid, x, y, z, orientation))
+    if (!MapManager::IsValidMapCoord(mapid, pos))
     {
         sLog.outError("TeleportTo: invalid map %d or absent instance template.", mapid);
         return false;
@@ -1902,14 +1902,14 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         {
             if (Unit* charm = GetCharm())
             {
-                if (!charm->IsWithinDist3d(x, y, z, 100.f))
+                if (!charm->IsWithinDist3d(pos.xyz(), 100.f))
                     BreakCharmOutgoing(charm);
             }
 
             if (Pet* pet = GetPet())
             {
                 // same map, only remove pet if out of range for new position
-                if (!pet->IsWithinDist3d(x, y, z, 50.f))
+                if (!pet->IsWithinDist3d(pos.xyz(), 50.f))
                     UnsummonPetTemporaryIfAny();
             }
         }
@@ -13929,23 +13929,24 @@ void Player::_LoadForgottenSkills(QueryResult* result)
     }
 }
 
-bool Player::LoadPositionFromDB(ObjectGuid guid, uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight)
+std::optional<WorldLocation> Player::LoadLocationFromDB(ObjectGuid guid)
 {
-    QueryResult* result = CharacterDatabase.PQuery("SELECT position_x,position_y,position_z,orientation,map,taxi_path FROM characters WHERE guid = '%u'", guid.GetCounter());
-    if (!result)
-        return false;
+    auto result = 
+        std::unique_ptr<Result>{CharacterDatabase.PQuery("SELECT position_x,position_y,position_z,orientation,map FROM characters WHERE guid = '%u'", guid.GetCounter())};
+    if (result == nullptr)
+        return {};
 
     Field* fields = result->Fetch();
 
-    x = fields[0].GetFloat();
-    y = fields[1].GetFloat();
-    z = fields[2].GetFloat();
-    o = fields[3].GetFloat();
-    mapid = fields[4].GetUInt32();
-    in_flight = !fields[5].GetCppString().empty();
-
-    delete result;
-    return true;
+    return std::make_optional<WorldLocation>(
+        fields[4].GetUInt32(),
+        Position{
+            fields[0].GetFloat(),
+            fields[1].GetFloat(),
+            fields[2].GetFloat(),
+            fields[3].GetFloat()
+        }
+    );
 }
 
 void Player::_LoadIntoDataField(const char* data, uint32 startOffset, uint32 count)
@@ -16294,11 +16295,13 @@ void Player::SendAttackSwingNotInRange() const
     GetSession()->SendPacket(data);
 }
 
-void Player::SavePositionInDB(ObjectGuid guid, uint32 mapid, float x, float y, float z, float o, uint32 zone)
+void Player::SaveLocationInDB(ObjectGuid guid, WorldLocation const& loc, uint32 zone)
 {
+    auto const& pos = loc.pos;
+
     std::ostringstream ss;
-    ss << "UPDATE characters SET position_x='" << x << "',position_y='" << y
-       << "',position_z='" << z << "',orientation='" << o << "',map='" << mapid
+    ss << "UPDATE characters SET position_x='" << pos.x << "',position_y='" << pos.y
+       << "',position_z='" << pos.z << "',orientation='" << pos.w << "',map='" << loc.mapid
        << "',zone='" << zone << "',trans_x='0',trans_y='0',trans_z='0',"
        << "transguid='0',taxi_path='' WHERE guid='" << guid.GetCounter() << "'";
     DEBUG_LOG("%s", ss.str().c_str());

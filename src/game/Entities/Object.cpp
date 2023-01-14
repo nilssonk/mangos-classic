@@ -45,6 +45,9 @@
 #include "Spells/SpellMgr.h"
 #include "MotionGenerators/PathFinder.h"
 
+#include <G3D/Vector3.h>
+#include <G3D/Vector4.h>
+
 Object::Object(): m_updateFlag(0), m_itsNewObject(false), m_dbGuid(0)
 {
     m_objectTypeId      = TYPEID_OBJECT;
@@ -1137,26 +1140,22 @@ void WorldObject::_Create(uint32 guidlow, HighGuid guidhigh)
     Object::_Create(guidlow, guidlow, 0, guidhigh);
 }
 
-void WorldObject::Relocate(float x, float y, float z, float orientation)
+void WorldObject::Relocate(Vec3 const& pos)
 {
-    m_position.x = x;
-    m_position.y = y;
-    m_position.z = z;
-    m_position.o = orientation;
+    m_position = {pos, 0.0f};
 
     if (isType(TYPEMASK_UNIT))
-        m_movementInfo.ChangePosition(x, y, z, orientation);
+        m_movementInfo.ChangePosition({pos, GetOrientation()});
 }
 
-void WorldObject::Relocate(float x, float y, float z)
+void WorldObject::Relocate(Position const& pos)
 {
-    m_position.x = x;
-    m_position.y = y;
-    m_position.z = z;
+    m_position = pos;
 
     if (isType(TYPEMASK_UNIT))
-        m_movementInfo.ChangePosition(x, y, z, GetOrientation());
+        m_movementInfo.ChangePosition(pos);
 }
+
 
 void WorldObject::SetOrientation(float orientation)
 {
@@ -1222,13 +1221,11 @@ float WorldObject::GetDistance(const WorldObject* obj, bool is3D, DistanceCalcul
     }
 }
 
-float WorldObject::GetDistance(float x, float y, float z, DistanceCalculation distcalc, bool transport) const
+float WorldObject::GetDistance(Vec3 const& target, DistanceCalculation distcalc, bool transport) const
 {
     Position pos = GetPosition(transport ? GetTransport() : nullptr);
-    float dx = pos.x - x;
-    float dy = pos.y - y;
-    float dz = pos.z - z;
-    float dist = dx * dx + dy * dy + dz * dz;
+    auto const dx = pos.xyz() - target;
+    float dist = dx.squaredLength();
 
     switch (distcalc)
     {
@@ -1249,11 +1246,10 @@ float WorldObject::GetDistance(float x, float y, float z, DistanceCalculation di
     }
 }
 
-float WorldObject::GetDistance2d(float x, float y, DistanceCalculation distcalc) const
+float WorldObject::GetDistance(Vec2 const& target, DistanceCalculation distcalc) const
 {
-    float dx = GetPositionX() - x;
-    float dy = GetPositionY() - y;
-    float dist = dx * dx + dy * dy;
+    auto const dx = m_position.xy() - target;
+    float dist = dx.squaredLength();
 
     switch (distcalc)
     {
@@ -1282,18 +1278,18 @@ float WorldObject::GetDistanceZ(const WorldObject* obj) const
     return dist > 0 ? dist : 0;
 }
 
-bool WorldObject::IsWithinDist3d(float x, float y, float z, float dist2compare) const
+bool WorldObject::IsWithinDist(Vec3 const& pos, float dist2compare) const
 {
-    float distsq = GetDistance(x, y, z, DIST_CALC_NONE);
+    float distsq = GetDistance(pos, DIST_CALC_NONE);
     float sizefactor = GetCombatReach();
     float maxdist = dist2compare + sizefactor;
 
     return distsq < maxdist * maxdist;
 }
 
-bool WorldObject::IsWithinDist2d(float x, float y, float dist2compare) const
+bool WorldObject::IsWithinDist(Vec2 const& pos, float dist2compare) const
 {
-    float distsq = GetDistance2d(x, y, DIST_CALC_NONE);
+    float distsq = GetDistance(pos, DIST_CALC_NONE);
     float sizefactor = GetCombatReach();
     float maxdist = dist2compare + sizefactor;
 
@@ -1326,11 +1322,11 @@ bool WorldObject::IsWithinLOSInMap(const WorldObject* obj, bool ignoreM2Model) c
     return IsWithinLOS(x, y, z + obj->GetCollisionHeight(), ignoreM2Model);
 }
 
-bool WorldObject::IsWithinLOS(float ox, float oy, float oz, bool ignoreM2Model) const
+bool WorldObject::IsWithinLOS(Vec3 const& target_pos, bool ignoreM2Model) const
 {
-    float x, y, z;
-    GetPosition(x, y, z);
-    return GetMap()->IsInLineOfSight(x, y, z + GetCollisionHeight(), ox, oy, oz, ignoreM2Model);
+    auto pos = GetPosition().xyz();
+    pos.z += GetCollisionHeight();
+    return GetMap()->IsInLineOfSight(pos, target_pos, ignoreM2Model);
 }
 
 bool WorldObject::GetDistanceOrder(WorldObject const* obj1, WorldObject const* obj2, bool is3D /* = true */, DistanceCalculation distcalc /* = NONE */) const
@@ -1404,22 +1400,21 @@ bool WorldObject::IsInRange3d(float x, float y, float z, float minRange, float m
 }
 
 // Return angle in range 0..2*pi
-float WorldObject::GetAngleAt(float x, float y, float ox, float oy)
+float WorldObject::GetAngleAt(Vec2 const& pos, Vec2 const& target)
 {
-    float dx = (ox - x);
-    float dy = (oy - y);
+    auto const dx = target - pos;
 
-    float ang = std::atan2(dy, dx);                              // returns value between -Pi..Pi
+    float ang = std::atan2(dx.x, dx.y);                              // returns value between -Pi..Pi
     ang = (ang >= 0) ? ang : 2 * M_PI_F + ang;
     return ang;
 }
 
-float WorldObject::GetAngle(float x, float y) const
+float WorldObject::GetAngle(Vec2 const& pos) const
 {
-    return m_position.GetAngle(x, y);
+    return m_position.GetAngle(pos);
 }
 
-float WorldObject::GetAngleAt(float x, float y, const WorldObject* obj) const
+float WorldObject::GetAngleAt(Vec2 const& pos, const WorldObject* obj) const
 {
     if (!obj)
         return 0.0f;
@@ -1431,7 +1426,7 @@ float WorldObject::GetAngleAt(float x, float y, const WorldObject* obj) const
         sLog.outError("INVALID CALL for GetAngle for %s", obj->GetGuidStr().c_str());
         return 0.0f;
     }
-    return GetAngleAt(x, y, obj->GetPositionX(), obj->GetPositionY());
+    return GetAngleAt(pos, obj->GetPosition().xy());
 }
 
 float WorldObject::GetAngle(const WorldObject* obj) const
@@ -1439,7 +1434,7 @@ float WorldObject::GetAngle(const WorldObject* obj) const
     if (!obj)
         return 0.0f;
 
-    return GetAngleAt(GetPositionX(), GetPositionY(), obj->GetPositionX(), obj->GetPositionY());
+    return GetAngleAt(GetPosition().xy(), obj->GetPosition().xy());
 }
 
 bool WorldObject::HasInArcAt(float x, float y, float o, const WorldObject* target, float arc/* = M_PI_F*/) const
@@ -1523,26 +1518,21 @@ bool WorldObject::isInBack(WorldObject const* target, float distance, float arc 
 
 Position WorldObject::GetFirstRandomAngleCollisionPosition(float dist, float angle)
 {
-    Position pos;
     for (uint32 i = 0; i < 10; ++i)
     {
-        GetFirstCollisionPosition(pos, dist, angle);
-        if (GetPosition().GetDistance(pos) > dist * 0.8f) // if at least 80% distance, good enough
+        auto pos = GetFirstCollisionPosition(dist, angle);
+        auto const dx = GetPosition() - pos;
+        if (dx.squaredLength() > dist * 0.8f) // if at least 80% distance, good enough
             break;
         angle += (M_PI_F / 5); // else try slightly different angle
     }
     return pos;
 }
 
-void WorldObject::GetRandomPoint(float x, float y, float z, float distance, float& rand_x, float& rand_y, float& rand_z, float minDist /*=0.0f*/, float const* ori /*=nullptr*/) const
+Vec3 WorldObject::GetRandomPoint(Vec3 const& pos, float distance, float minDist /*=0.0f*/, float const* ori /*=nullptr*/) const
 {
     if (distance == 0)
-    {
-        rand_x = x;
-        rand_y = y;
-        rand_z = z;
-        return;
-    }
+        return pos;
 
     // angle to face `obj` to `this`
     float angle;
@@ -1557,37 +1547,43 @@ void WorldObject::GetRandomPoint(float x, float y, float z, float distance, floa
     else
         new_dist = minDist + rand_norm_f() * (distance - minDist);
 
-    rand_x = x + new_dist * cos(angle);
-    rand_y = y + new_dist * sin(angle);
-    rand_z = z;
+    Vec3 rand_pos{
+        MaNGOS::NormalizeMapCoord(pos.x + new_dist * cos(angle)),
+        MaNGOS::NormalizeMapCoord(pos.y + new_dist * sin(angle)),
+        pos.z};
 
-    MaNGOS::NormalizeMapCoord(rand_x);
-    MaNGOS::NormalizeMapCoord(rand_y);
-    UpdateAllowedPositionZ(rand_x, rand_y, rand_z);          // update to LOS height if available
+    return UpdateAllowedPositionZ(rand_pos);          // update to LOS height if available
 }
 
-void WorldObject::UpdateGroundPositionZ(float x, float y, float& z) const
+Vec3 WorldObject::UpdateGroundPositionZ(Vec3 const& pos) const
 {
-    float new_z = GetMap()->GetHeight(x, y, z);
+    Vec3 result{pos};
+    float new_z = GetMap()->GetHeight(pos);
     if (new_z > INVALID_HEIGHT)
-        z = new_z + 0.05f;                                  // just to be sure that we are not a few pixel under the surface
+        result.z = new_z + 0.05f;                                  // just to be sure that we are not a few pixel under the surface
+
+    return result;
 }
 
-void WorldObject::UpdateAllowedPositionZ(float x, float y, float& z, Map* atMap /*=nullptr*/) const
+Vec3 WorldObject::UpdateAllowedPositionZ(Vec3 const& pos, Map* atMap /*=nullptr*/) const
 {
+    Vec3 result{pos};
+
     if (!atMap)
         atMap = GetMap();
 
-    float ground_z = atMap->GetHeight(x, y, z);
+    float ground_z = atMap->GetHeight(pos);
     if (ground_z > INVALID_HEIGHT)
-        z = ground_z;
+        result.z = ground_z;
+
+    return result;
 }
 
-void WorldObject::MovePositionToFirstCollision(Position& pos, float dist, float angle)
+Position WorldObject::MovePositionToFirstCollision(Position const& pos, float dist, float angle)
 {
-    float destX = pos.x + dist * cos(angle);
-    float destY = pos.y + dist * sin(angle);
-    float destZ = pos.z;
+    Vec3 dest{pos.xyz()};
+    dest.x += dist * cos(angle);
+    dest.y += dist * sin(angle);
 
     GenericTransport* transport = GetTransport();
 
@@ -1595,21 +1591,20 @@ void WorldObject::MovePositionToFirstCollision(Position& pos, float dist, float 
     if (IsUnit())
     {
         PathFinder path(static_cast<Unit*>(this));
-        Vector3 src(pos.x, pos.y, pos.z);
-        Vector3 dest(destX, destY, destZ + halfHeight);
+        Vec3 src{pos.xyz()};
+        Vec3 unit_dest{dest};
+        unit_dest.z += halfHeight;
         if (transport) // need to use offsets for PF check
         {
-            transport->CalculatePassengerOffset(src.x, src.y, src.z);
-            transport->CalculatePassengerOffset(dest.x, dest.y, dest.z);
+            transport->CalculatePassengerOffset(src);
+            transport->CalculatePassengerOffset(unit_dest);
         }
         UpdateAllowedPositionZ(dest.x, dest.y, dest.z);
         path.calculate(src, dest, false, true);
         if ((path.getPathType() & PATHFIND_NOPATH) == 0)
         {
-            G3D::Vector3 result = path.getPath().back();
-            destX = result.x;
-            destY = result.y;
-            destZ = result.z;
+            auto const last_path = result = path.getPath().back();
+            dest = result;
             // no collision detected - reset height
             if (dest.z == result.z)
                 destZ -= halfHeight;
@@ -1618,8 +1613,8 @@ void WorldObject::MovePositionToFirstCollision(Position& pos, float dist, float 
         }
     }
 
-    UpdateAllowedPositionZ(destX, destY, destZ);
-    destZ += halfHeight;
+    dest = UpdateAllowedPositionZ(dest);
+    dest.z += halfHeight;
     bool colPoint = GetMap()->GetHitPosition(pos.x, pos.y, pos.z + halfHeight, destX, destY, destZ, -0.5f);
     destZ -= halfHeight;
 
@@ -1939,7 +1934,7 @@ void WorldObject::GetPosition(float& x, float& y, float& z, GenericTransport* tr
         transport->CalculatePassengerOffset(x, y, z);
 }
 
-Creature* WorldObject::SummonCreature(TempSpawnSettings settings, Map* map)
+Creature* WorldObject::SummonCreature(TempSpawnSettings const& settings, Map* map)
 {
     CreatureInfo const* cinfo = ObjectMgr::GetCreatureTemplate(settings.entry);
     if (!cinfo)
@@ -1961,12 +1956,14 @@ Creature* WorldObject::SummonCreature(TempSpawnSettings settings, Map* map)
     if (transport)
         transport->CalculatePassengerPosition(x, y, z);
 
-    CreatureCreatePos pos(map, x, y, z, settings.ori);
+    auto const& p = settings.pos;
 
-    if (settings.x == 0.0f && settings.y == 0.0f && settings.z == 0.0f && settings.spawner)
+    CreatureCreatePos pos(map, p.x, p.y, p.z, p.w);
+
+    if (p.x == 0.0f && p.y == 0.0f && p.z == 0.0f && settings.spawner)
     {
         float dist = settings.forcedOnTop ? 0.0f : CONTACT_DISTANCE;
-        pos = CreatureCreatePos(settings.spawner, settings.spawner->GetOrientation(), dist, settings.ori);
+        pos = CreatureCreatePos(settings.spawner, settings.spawner->GetOrientation(), dist, settings.pos.w);
     }
     uint32 lowGuid = map->GenerateLocalLowGuid(cinfo->GetHighGuid());
     if (!creature->Create(lowGuid, lowGuid, pos, cinfo))
@@ -1978,10 +1975,10 @@ Creature* WorldObject::SummonCreature(TempSpawnSettings settings, Map* map)
     creature->SetRespawnCoord(pos);
     if (transport)
     {
-        creature->m_movementInfo.t_pos.x = settings.x;
-        creature->m_movementInfo.t_pos.y = settings.y;
-        creature->m_movementInfo.t_pos.z = settings.z;
-        creature->m_movementInfo.t_pos.o = settings.ori;
+        creature->m_movementInfo.t_pos.x = p.x;
+        creature->m_movementInfo.t_pos.y = p.y;
+        creature->m_movementInfo.t_pos.z = p.z;
+        creature->m_movementInfo.t_pos.o = p.w;
     }
 
     // Set run or walk before any other movement starts
@@ -2077,9 +2074,9 @@ Creature* WorldObject::SummonCreature(TempSpawnSettings settings, Map* map)
     return creature;
 }
 
-Creature* WorldObject::SummonCreature(uint32 id, float x, float y, float z, float ang, TempSpawnType spwtype, uint32 despwtime, bool asActiveObject, bool setRun, uint32 pathId, uint32 faction, uint32 modelId, bool spawnCounting, bool forcedOnTop)
+Creature* WorldObject::SummonCreature(uint32 id, Position const& pos, float ang, TempSpawnType spwtype, uint32 despwtime, bool asActiveObject, bool setRun, uint32 pathId, uint32 faction, uint32 modelId, bool spawnCounting, bool forcedOnTop)
 {
-    return WorldObject::SummonCreature(TempSpawnSettings(this, id, x, y, z, ang, spwtype, despwtime, asActiveObject, setRun, pathId, faction, modelId, spawnCounting, forcedOnTop), GetMap());
+    return WorldObject::SummonCreature(TempSpawnSettings(this, id, pos, ang, spwtype, despwtime, asActiveObject, setRun, pathId, faction, modelId, spawnCounting, forcedOnTop), GetMap());
 }
 
 GameObject* WorldObject::SpawnGameObject(uint32 dbGuid, Map* map, uint32 forcedEntry)
@@ -2213,25 +2210,25 @@ namespace MaNGOS
 
 //===================================================================================================
 
-void WorldObject::GetNearPoint2dAt(const float posX, const float posY, float& x, float& y, float distance2d, float absAngle)
+Vec2 WorldObject::GetNearPoint2dAt(Vec2 const& pos, float distance2d, float absAngle)
 {
-    x = (posX + (distance2d * cosf(absAngle)));
-    y = (posY + (distance2d * sinf(absAngle)));
+    float const x = MaNGOS::NormalizeMapCoord(pos.x + (distance2d * cosf(absAngle)));
+    float const y = MaNGOS::NormalizeMapCoord(pos.y + (distance2d * sinf(absAngle)));
 
-    MaNGOS::NormalizeMapCoord(x);
-    MaNGOS::NormalizeMapCoord(y);
+    return {x,y}
 }
 
-void WorldObject::GetNearPointAt(const float posX, const float posY, const float posZ, WorldObject const* searcher, float& x, float& y, float& z, float searcher_bounding_radius, float distance2d, float absAngle, bool isInWater) const
+Vec3 WorldObject::GetNearPointAt(Vec3 const& pos, WorldObject const* searcher, float searcher_bounding_radius, float distance2d, float absAngle, bool isInWater) const
 {
-    GetNearPoint2dAt(posX, posY, x, y, distance2d, absAngle);
-    const float init_z = z = posZ;
+    auto const pos2d = GetNearPoint2dAt(pos.xy(), distance2d, absAngle);
+    Vec3 result{};
+    const float init_z = result.z = pos.z;
 
     // if detection disabled, return first point
     if (!sWorld.getConfig(CONFIG_BOOL_DETECT_POS_COLLISION))
     {
         if (searcher)
-            searcher->UpdateAllowedPositionZ(x, y, z, GetMap()); // update to LOS height if available
+            result = searcher->UpdateAllowedPositionZ(pos, GetMap()); // update to LOS height if available
         else if (!isInWater)
             UpdateGroundPositionZ(x, y, z);
         return;

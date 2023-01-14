@@ -59,7 +59,7 @@ struct boss_thermapluggAI : public ScriptedAI
     uint32 m_uiActivateBombTimer;
 
     sBombFace* m_asBombFaces;
-    float m_afSpawnPos[3];
+    Vec3 m_afSpawnPos;
 
     GuidList m_lSummonedBombGUIDs;
     GuidList m_lLandedBombGUIDs;
@@ -135,7 +135,7 @@ struct boss_thermapluggAI : public ScriptedAI
             m_lSummonedBombGUIDs.push_back(pSummoned->GetObjectGuid());
             float fX = 0.2 * m_afSpawnPos[0] + 0.8 * pSummoned->GetPositionX();
             float fY = 0.2 * m_afSpawnPos[1] + 0.8 * pSummoned->GetPositionY();
-            pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, m_afSpawnPos[2] - 2.0f);
+            pSummoned->GetMotionMaster()->MovePoint(1, {fX, fY, m_afSpawnPos[2] - 2.0f});
         }
     }
 
@@ -210,13 +210,12 @@ struct boss_thermapluggAI : public ScriptedAI
                     if (m_asBombFaces[i].m_uiBombTimer < uiDiff)
                     {
                         // Calculate the spawning position as 90% between face and thermaplugg spawn-pos, and hight hardcoded
-                        float fX = 0.0f, fY = 0.0f;
+                        Vec2 new_pos{};
                         if (GameObject* pFace = m_creature->GetMap()->GetGameObject(m_asBombFaces[i].m_gnomeFaceGuid))
                         {
-                            fX = 0.35 * m_afSpawnPos[0] + 0.65 * pFace->GetPositionX();
-                            fY = 0.35 * m_afSpawnPos[1] + 0.65 * pFace->GetPositionY();
+                            new_pos = 0.35f * m_afSpawnPos.xy() + 0.65f * pFace->GetPosition().xy();
                         }
-                        m_creature->SummonCreature(NPC_WALKING_BOMB, fX, fY, fBombSpawnZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 0);
+                        m_creature->SummonCreature(NPC_WALKING_BOMB, {new_pos, fBombSpawnZ, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0);
                         m_asBombFaces[i].m_uiBombTimer = urand(10000, 25000);   // TODO
                     }
                     else

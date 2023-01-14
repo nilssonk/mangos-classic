@@ -33,6 +33,8 @@ EndContentData */
 ## npc_eris_havenfire
 ######*/
 
+namespace {
+
 enum
 {
     SAY_PHASE_HEAL                      = -1000815,
@@ -62,7 +64,7 @@ enum
     MAX_ARCHERS                         = 8,
 };
 
-static const float aArcherSpawn[8][4] =
+const Vec4 aArcherSpawn[8] =
 {
     {3327.42f, -3021.11f, 170.57f, 6.01f},
     {3335.4f,  -3054.3f,  173.63f, 0.49f},
@@ -74,10 +76,12 @@ static const float aArcherSpawn[8][4] =
     {3380.03f, -3062.73f, 181.90f, 2.31f},
 };
 
-static const float aPeasantSpawnLoc[3] = {3360.12f, -3047.79f, 165.26f};
-static const float aPeasantMoveLoc[3] = {3335.0f, -2994.04f, 161.14f};
+const Vec3 aPeasantSpawnLoc{3360.12f, -3047.79f, 165.26f};
+const Vec3 aPeasantMoveLoc{3335.0f, -2994.04f, 161.14f};
 
-static const int32 aPeasantSpawnYells[3] = {SAY_PEASANT_APPEAR_1, SAY_PEASANT_APPEAR_2, SAY_PEASANT_APPEAR_3};
+const int32 aPeasantSpawnYells[3] = {SAY_PEASANT_APPEAR_1, SAY_PEASANT_APPEAR_2, SAY_PEASANT_APPEAR_3};
+
+} // anonymous namespace
 
 struct npc_eris_havenfireAI : public ScriptedAI
 {
@@ -114,14 +118,13 @@ struct npc_eris_havenfireAI : public ScriptedAI
     {
         switch (pSummoned->GetEntry())
         {
-            case NPC_INJURED_PEASANT:
-            case NPC_PLAGUED_PEASANT:
-                float fX, fY, fZ;
-                pSummoned->GetRandomPoint(aPeasantMoveLoc[0], aPeasantMoveLoc[1], aPeasantMoveLoc[2], 10.0f, fX, fY, fZ);
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+            case NPC_INJURED_PEASANT: [[fallthrough]];
+            case NPC_PLAGUED_PEASANT: {
+                auto const rand_pos = pSummoned->GetRandomPoint(aPeasantMoveLoc, 10.0f);
+                pSummoned->GetMotionMaster()->MovePoint(1, rand_pos);
                 m_uiTotalCounter++;
-                break;
-            case NPC_SCOURGE_FOOTSOLDIER:
+            } break;
+            case NPC_SCOURGE_FOOTSOLDIER: [[fallthrough]];
             case NPC_THE_CLEANER:
                 if (Player* pPlayer = m_creature->GetMap()->GetPlayer(m_playerGuid))
                     pSummoned->AI()->AttackStart(pPlayer);
@@ -178,15 +181,13 @@ struct npc_eris_havenfireAI : public ScriptedAI
 
     void DoSummonWave(uint32 uiSummonId = 0)
     {
-        float fX, fY, fZ;
-
         if (!uiSummonId)
         {
             for (uint8 i = 0; i < BASE_PEASANTS_PER_WAVE + m_uiCurrentWave; ++i)
             {
                 uint32 uiSummonEntry = roll_chance_i(70) ? NPC_INJURED_PEASANT : NPC_PLAGUED_PEASANT;
-                m_creature->GetRandomPoint(aPeasantSpawnLoc[0], aPeasantSpawnLoc[1], aPeasantSpawnLoc[2], 10.0f, fX, fY, fZ);
-                if (Creature* pTemp = m_creature->SummonCreature(uiSummonEntry, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
+                auto const rand_pos = m_creature->GetRandomPoint(aPeasantSpawnLoc, 10.0f);
+                if (Creature* pTemp = m_creature->SummonCreature(uiSummonEntry, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0))
                 {
                     // Only the first mob needs to yell
                     if (!i)
@@ -201,14 +202,14 @@ struct npc_eris_havenfireAI : public ScriptedAI
             uint8 uiRand = urand(2, 3);
             for (uint8 i = 0; i < uiRand; ++i)
             {
-                m_creature->GetRandomPoint(aPeasantSpawnLoc[0], aPeasantSpawnLoc[1], aPeasantSpawnLoc[2], 15.0f, fX, fY, fZ);
-                m_creature->SummonCreature(NPC_SCOURGE_FOOTSOLDIER, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                auto const rand_pos = m_creature->GetRandomPoint(aPeasantSpawnLoc, 15.0f);
+                m_creature->SummonCreature(NPC_SCOURGE_FOOTSOLDIER, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
             }
         }
         else if (uiSummonId == NPC_SCOURGE_ARCHER)
         {
-            for (auto i : aArcherSpawn)
-                m_creature->SummonCreature(NPC_SCOURGE_ARCHER, i[0], i[1], i[2], i[3], TEMPSPAWN_DEAD_DESPAWN, 0);
+            for (auto const& spawn : aArcherSpawn)
+                m_creature->SummonCreature(NPC_SCOURGE_ARCHER, spawn, TempSpawnType::DEAD_DESPAWN, 0);
         }
     }
 

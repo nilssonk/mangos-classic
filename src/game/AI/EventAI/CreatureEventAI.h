@@ -26,6 +26,8 @@
 #include "AI/ScriptDevAI/base/TimerAI.h"
 #include <set>
 
+#include <G3D/Vector4.h>
+
 class Player;
 class WorldObject;
 
@@ -821,10 +823,7 @@ struct CreatureEventAI_Summon
 {
     uint32 id;
 
-    float position_x;
-    float position_y;
-    float position_z;
-    float orientation;
+    G3D::Vector4 pos;
     uint32 SpawnTimeSecs;
 };
 

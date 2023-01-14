@@ -144,23 +144,6 @@ enum
     YELL_MAGMUS_INTRO        = -1230070
 };
 
-// Random emotes for Grim Guzzler patrons
-static const uint32 aPatronsEmotes[] =
-{
-    EMOTE_ONESHOT_EXCLAMATION, EMOTE_ONESHOT_CHEER, EMOTE_ONESHOT_CHEER, EMOTE_ONESHOT_LAUGH, EMOTE_ONESHOT_LAUGH, EMOTE_ONESHOT_LAUGH
-};
-
-struct ArenaCylinder
-{
-    float m_fCenterX;
-    float m_fCenterY;
-    float m_fCenterZ;
-    uint32 m_uiRadius;
-    uint32 m_uiHeight;
-};
-
-static const ArenaCylinder aArenaCrowdVolume = { 595.78f, -188.65f, -38.63f, 69, 10 };
-
 enum ArenaNPCs
 {
     // Gladiators
@@ -189,34 +172,6 @@ enum ArenaNPCs
     NPC_HEDRUM              = 9032
 };
 
-static const uint32 aArenaNPCs[] =
-{
-    // Gladiators
-    NPC_LEFTY, NPC_ROTFANG, NPC_SNOKH, NPC_MALGEN, NPC_KORV, NPC_REZZNIK, NPC_VAJASHNI, NPC_VOLIDA, NPC_THELDREN,
-    // Ring mobs
-    NPC_WORM, NPC_STINGER, NPC_SCREECHER, NPC_THUNDERSNOUT, NPC_CREEPER, NPC_BEETLE,
-    // Ring bosses
-    NPC_GOROSH, NPC_GRIZZLE, NPC_EVISCERATOR, NPC_OKTHOR, NPC_ANUBSHIAH, NPC_HEDRUM
-};
-
-// Used to summon Watcher Doomgrip
-static const float aVaultPositions[4] = {821.905f, -338.382f, -50.134f, 3.78736f};
-
-// Used to summon Hurley Blackbreath
-static const float aHurleyPositions[4] = {856.0867f, -149.7469f, -49.6719f, 0.05949629f};
-
-// Used to summon the patrol in Grim Guzzler
-static const float aBarPatrolPositions[2][4] =
-{
-    {872.7059f, -232.5491f, -43.7525f, 2.069044f},
-    {865.5645f, -219.7471f, -43.7033f, 2.033881f}
-};
-
-static const uint32 aBarPatrolId[3] = {NPC_FIREGUARD_DESTROYER, NPC_ANVILRAGE_OFFICER, NPC_ANVILRAGE_OFFICER};
-
-// Tomb of the Seven dwarfs
-static const uint32 aTombDwarfes[MAX_DWARFS] = {NPC_ANGERREL, NPC_SEETHREL, NPC_DOPEREL, NPC_GLOOMREL, NPC_VILEREL, NPC_HATEREL, NPC_DOOMREL};
-
 class instance_blackrock_depths : public ScriptedInstance
 {
     public:
@@ -241,8 +196,7 @@ class instance_blackrock_depths : public ScriptedInstance
 
         // Arena Event
         void SetArenaCenterCoords(float fX, float fY, float fZ) { m_fArenaCenterX = fX; m_fArenaCenterY = fY; m_fArenaCenterZ = fZ; }
-        void GetArenaCenterCoords(float& fX, float& fY, float& fZ) const
-        { fX = m_fArenaCenterX; fY = m_fArenaCenterY; fZ = m_fArenaCenterZ; }
+        G3D::Vector3 GetArenaCenterCoords() const { return {m_fArenaCenterX, m_fArenaCenterY, m_fArenaCenterZ}; }
         void GetArenaCrowdGuid(GuidSet& sCrowdSet) const { sCrowdSet = m_sArenaCrowdNpcGuids; }
 
         // Bar events

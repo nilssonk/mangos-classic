@@ -26,6 +26,11 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "blackwing_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
+#include <G3D/Vector4.h>
+
+namespace bwl {
+
+namespace {
 
 enum
 {
@@ -77,6 +82,12 @@ enum VaelaastraszActions
     VAEL_INTRO,
     VAEL_SPEECH,
 };
+
+// Coords used in intro event for Vaelastrasz to spawn Nefarius at the throne and sort the gobelins
+const Vec4 aNefariusSpawnLoc{ -7466.16f, -1040.80f, 412.053f, 2.14675f};
+const float fVaelXPos = -7483.0f;
+
+} // anonymous namespace
 
 struct boss_vaelastraszAI : public CombatAI
 {
@@ -183,7 +194,7 @@ struct boss_vaelastraszAI : public CombatAI
             case 0:
             {
                 // Summon Lord Victor Nefarius in front of the Throne
-                m_creature->SummonCreature(NPC_LORD_VICTOR_NEFARIUS, aNefariusSpawnLoc[0], aNefariusSpawnLoc[1], aNefariusSpawnLoc[2], aNefariusSpawnLoc[3], TEMPSPAWN_TIMED_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_LORD_VICTOR_NEFARIUS, aNefariusSpawnLoc, TempSpawnType::TIMED_DESPAWN, 25000);
 
                 bool bHasYelled = false;
                 CreatureList lTechniciansList;
@@ -404,3 +415,5 @@ void AddSC_boss_vaelastrasz()
     pNewScript->pAreaTrigger = &AreaTrigger_at_vaelastrasz;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

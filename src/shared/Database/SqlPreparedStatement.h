@@ -22,6 +22,7 @@
 #include "Common.h"
 
 #include <vector>
+#include <sstream>
 #include <stdexcept>
 
 class Database;

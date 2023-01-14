@@ -26,6 +26,8 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "naxxramas.h"
 
+namespace {
+
 enum
 {
     // ***** Yells *****
@@ -89,35 +91,34 @@ enum
 };
 
 // Texts used during the encounter: they are ordered so we can easily use them in a parent class
-static int32 const aggroSayList[4] = { SAY_BLAU_AGGRO, 0, SAY_KORT_AGGRO, SAY_ZELI_AGGRO };
-static int32 const deathSayList[4] = { SAY_BLAU_DEATH, SAY_MORG_DEATH, SAY_KORT_DEATH, SAY_ZELI_DEATH };
-static int32 const killSayList[4] = { SAY_BLAU_SLAY, 0, SAY_KORT_SLAY, SAY_ZELI_SLAY };
+int32 const aggroSayList[4] = { SAY_BLAU_AGGRO, 0, SAY_KORT_AGGRO, SAY_ZELI_AGGRO };
+int32 const deathSayList[4] = { SAY_BLAU_DEATH, SAY_MORG_DEATH, SAY_KORT_DEATH, SAY_ZELI_DEATH };
+int32 const killSayList[4] = { SAY_BLAU_SLAY, 0, SAY_KORT_SLAY, SAY_ZELI_SLAY };
 
 // Spells used during the encounter: they are ordered so we can easily use them in a parent class
-static uint32 const spiritSpellList[4] = { SPELL_SPIRIT_BLAUMEUX, SPELL_SPIRIT_MOGRAINE, SPELL_SPIRIT_KORTHAZZ, SPELL_SPIRIT_ZELIEK };
-static uint32 const markSpellList[4] = { SPELL_MARK_OF_BLAUMEUX, SPELL_MARK_OF_MOGRAINE, SPELL_MARK_OF_KORTHAZZ, SPELL_MARK_OF_ZELIEK };
-
-struct Location2DPoint
-{
-    float x, y;
-};
+uint32 const spiritSpellList[4] = { SPELL_SPIRIT_BLAUMEUX, SPELL_SPIRIT_MOGRAINE, SPELL_SPIRIT_KORTHAZZ, SPELL_SPIRIT_ZELIEK };
+uint32 const markSpellList[4] = { SPELL_MARK_OF_BLAUMEUX, SPELL_MARK_OF_MOGRAINE, SPELL_MARK_OF_KORTHAZZ, SPELL_MARK_OF_ZELIEK };
 
 // Coordinates at the entrance of the Four Horsemen room. Beyond these, the Horsemen reset (leashing)
-static const Location2DPoint resetCoords[3] = {
+Vec2 const resetCoords[] = {
         {2577.3f, -3024.0f},
         {2585.9f, -3015.1f},
         {2594.6f, -3006.7f}
 };
+
+} // namespace
+
 struct boss_horsmenAI : public ScriptedAI
 {
     boss_horsmenAI(Creature* creature) : ScriptedAI(creature)
     {
         m_instance = (ScriptedInstance*)creature->GetInstanceData();
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit*, float x, float y, float /*z*/)
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const& u)
         {
-            return (x > resetCoords[0].x && y < resetCoords[0].y) ||
-                   (x > resetCoords[1].x && y < resetCoords[1].y) ||
-                   (x > resetCoords[2].x && y < resetCoords[2].y);
+            auto const pos = u.GetPosition().xy();
+            return std::any_of(std::begin(resetCoords), std::end(resetCoords),
+                [&pos](auto const& rc)
+                { return  rc.x < pos.x && pos.y < rc.y; });
         });
         Reset();
     }

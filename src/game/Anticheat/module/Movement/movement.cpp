@@ -750,7 +750,7 @@ bool Movement::ExtrapolateMovement(MovementInfo const& mi, uint32 diffMs, Positi
 
     pos = mi.pos;
 
-    float o = pos.o;
+    float o = pos.w;
 
     // Not allowed to move
     /*if (mi.moveFlags & MOVE_ROOT)
@@ -759,7 +759,9 @@ bool Movement::ExtrapolateMovement(MovementInfo const& mi, uint32 diffMs, Positi
     auto const speed = clientSpeeds[GetMoveType(mi.moveFlags)];
 
     if (mi.moveFlags & MOVEFLAG_BACKWARD)
+    {
         o += M_PI_F;
+    }
     else if (mi.moveFlags & MOVEFLAG_STRAFE_LEFT)
     {
         if (mi.moveFlags & MOVEFLAG_FORWARD)
@@ -801,14 +803,14 @@ bool Movement::ExtrapolateMovement(MovementInfo const& mi, uint32 diffMs, Positi
             {
                 pos.x += R * cos(o + M_PI / 2);
                 pos.y += R * sin(o + M_PI / 2);
-                pos.o += T;
+                pos.w += T;
                 T = T - M_PI / 2.0f;
             }
             else
             {
                 pos.x += R * cos(o - M_PI / 2);
                 pos.y += R * sin(o - M_PI / 2);
-                pos.o -= T;
+                pos.w -= T;
                 T = -T + M_PI / 2.0f;
             }
             pos.x += R * cos(o + T);
@@ -818,9 +820,9 @@ bool Movement::ExtrapolateMovement(MovementInfo const& mi, uint32 diffMs, Positi
         {
             float diffO = clientSpeeds[MOVE_TURN_RATE] * diffMs / 1000.f;
             if (mi.moveFlags & MOVEFLAG_TURN_LEFT)
-                pos.o += diffO;
+                pos.w += diffO;
             else
-                pos.o -= diffO;
+                pos.w -= diffO;
             return true;
         }
     }
@@ -835,13 +837,13 @@ bool Movement::ExtrapolateMovement(MovementInfo const& mi, uint32 diffMs, Positi
     else // If we reach here, we did not move
         return true;
 
-    if (!MaNGOS::IsValidMapCoord(pos.x, pos.y, pos.z, pos.o))
+    if (!MaNGOS::IsValidMapCoord(pos))
         return false;
 
     if (!(mi.moveFlags & (MOVEFLAG_JUMPING | MOVEFLAG_FALLINGFAR | MOVEFLAG_SWIMMING | MOVEFLAG_WATERWALKING)))
-        pos.z = _me->GetMap()->GetHeight(pos.x, pos.y, pos.z);
+        pos.z = _me->GetMap()->GetHeight(pos.xyz());
 
-    return _me->GetMap()->IsInLineOfSight(mi.pos.x, mi.pos.y, mi.pos.z + 0.5f, pos.x, pos.y, pos.z + 0.5f, false);
+    return _me->GetMap()->IsInLineOfSight(Vec3{mi.pos.xy(), mi.pos.z + 0.5f}, Vec3{pos.xy(), pos.z + 0.5f}, false);
 }
 
 bool Movement::GetMaxAllowedDist(MovementInfo const& mi, uint32 diffMs, float &dxy, float &dz) const
@@ -935,7 +937,7 @@ bool Movement::IsTeleportAllowed(MovementInfo const& movementInfo, float& distan
     uint32 destZoneId = 0;
     uint32 destAreaId = 0;
 
-    _me->GetTerrain()->GetZoneAndAreaId(destZoneId, destAreaId, movementInfo.pos.x, movementInfo.pos.y, movementInfo.pos.z);
+    _me->GetTerrain()->GetZoneAndAreaId(destZoneId, destAreaId, movementInfo.pos.xyz());
 
     // checks far teleports
     if (destZoneId == _me->GetZoneId() && destAreaId == _me->GetAreaId())
@@ -949,15 +951,8 @@ bool Movement::IsTeleportAllowed(MovementInfo const& movementInfo, float& distan
             return true;
     }
 
-    float deltaX = _me->GetPositionX() - movementInfo.pos.x;
-    float deltaY = _me->GetPositionY() - movementInfo.pos.y;
-    float deltaZ = _me->GetPositionZ() - movementInfo.pos.z;
-    distance = sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
-
-    if (distance < 40.0f)
-        return true;
-
-    return false;
+    auto const dx = _me->GetPosition().xyz() - movementInfo.pos.xyz();
+    return dx.squaredLength() < 40.0f*40.0f;
 }
 
 bool Movement::CheckTeleport(uint16 opcode, MovementInfo& movementInfo)
@@ -977,10 +972,7 @@ bool Movement::CheckTeleport(uint16 opcode, MovementInfo& movementInfo)
             uint32 destZoneId = 0;
             uint32 destAreaId = 0;
 
-            mover->GetTerrain()->GetZoneAndAreaId(destZoneId, destAreaId,
-                movementInfo.pos.x,
-                movementInfo.pos.y,
-                movementInfo.pos.z);
+            mover->GetTerrain()->GetZoneAndAreaId(destZoneId, destAreaId, movementInfo.pos.xyz());
 
             // get zone and area info
             MapEntry const* mapEntry = sMapStore.LookupEntry(mover->GetMapId());
@@ -1016,11 +1008,8 @@ bool Movement::CheckTeleport(uint16 opcode, MovementInfo& movementInfo)
                 _anticheat->RecordCheatInternal(CHEAT_TYPE_FORBIDDEN, "Player is on GM Island");
 
             // save prevoius point
-            Player::SavePositionInDB(mover->GetObjectGuid(), mover->GetMapId(),
-                mover->m_movementInfo.pos.x,
-                mover->m_movementInfo.pos.y,
-                mover->m_movementInfo.pos.z,
-                mover->m_movementInfo.pos.o, mover->GetZoneId());
+            Player::SaveLocationInDB(mover->GetObjectGuid(),
+                {mover->GetMapId(), mover->m_movementInfo.pos}, mover->GetZoneId());
 
             return false;
         }

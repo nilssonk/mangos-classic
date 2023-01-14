@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _OBJECT_H
-#define _OBJECT_H
+#ifndef OBJECT_H
+#define OBJECT_H
 
 #include "Common.h"
 #include "ObjectDefines.h"
@@ -26,6 +26,7 @@
 #include "Entities/UpdateData.h"
 #include "Entities/ObjectGuid.h"
 #include "Entities/EntitiesMgr.h"
+#include "Entities/TempSpawnEnums.h"
 #include "Globals/SharedDefines.h"
 #include "Globals/Locales.h"
 #include "Entities/Camera.h"
@@ -34,27 +35,7 @@
 #include "Grids/Cell.h"
 #include "Utilities/EventProcessor.h"
 
-#include <set>
-
-enum TempSpawnType
-{
-    TEMPSPAWN_MANUAL_DESPAWN              = 0,             // despawns when UnSummon() is called
-    TEMPSPAWN_DEAD_DESPAWN                = 1,             // despawns when the creature disappears
-    TEMPSPAWN_CORPSE_DESPAWN              = 2,             // despawns instantly after death
-    TEMPSPAWN_CORPSE_TIMED_DESPAWN        = 3,             // despawns after a specified time after death (or when the creature disappears)
-    TEMPSPAWN_TIMED_DESPAWN               = 4,             // despawns after a specified time
-    TEMPSPAWN_TIMED_OOC_DESPAWN           = 5,             // despawns after a specified time after the creature is out of combat
-    TEMPSPAWN_TIMED_OR_DEAD_DESPAWN       = 6,             // despawns after a specified time OR when the creature disappears
-    TEMPSPAWN_TIMED_OR_CORPSE_DESPAWN     = 7,             // despawns after a specified time OR when the creature dies
-    TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN   = 8,             // despawns after a specified time (OOC) OR when the creature disappears
-    TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN = 9,             // despawns after a specified time (OOC) OR when the creature dies
-};
-
-enum TempSpawnLinkedAura
-{
-    TEMPSPAWN_LINKED_AURA_OWNER_CHECK = 0x00000001,
-    TEMPSPAWN_LINKED_AURA_REMOVE_OWNER = 0x00000002
-};
+#include <unordered_set>
 
 enum PlayPacketSettings
 {
@@ -91,6 +72,19 @@ struct PlayPacketParameters
             uint32 id;
         } areaOrZone;
     };
+};
+
+struct SummonFlags {
+    bool as_active_object{false};
+    bool set_run{false};
+    bool spawn_counting{false};
+    bool forced_on_top{false};
+};
+
+struct SummonIds {
+    uint32_t path{0};
+    uint32_t faction{0};
+    uint32_t model{0};
 };
 
 class WorldPacket;
@@ -304,37 +298,13 @@ class CooldownContainer
         categoryMap m_categoryMap;
 };
 
-struct Position
-{
-    Position() : x(0.0f), y(0.0f), z(0.0f), o(0.0f) {}
-    Position(float _x, float _y, float _z, float _o) : x(_x), y(_y), z(_z), o(_o) {}
-    Position(float _x, float _y, float _z) : x(_x), y(_y), z(_z), o(0.f) {}
-    float x, y, z, o;
-    float GetPositionX() const { return x; }
-    float GetPositionY() const { return y; }
-    float GetPositionZ() const { return z; }
-    float GetPositionO() const { return o; }
-    bool IsEmpty() const { return x == 0.f && y == 0.f && z == 0.f; }
-    float GetAngle(const float x, const float y) const;
-    float GetDistance(Position const& other) const; // WARNING: Returns squared distance for performance reasons
-    std::string to_string() const;
-};
-
 bool operator!=(const Position& left, const Position& right);
 
 struct WorldLocation
 {
+    Position pos;
     uint32 mapid;
-    float coord_x;
-    float coord_y;
-    float coord_z;
-    float orientation;
-    explicit WorldLocation(uint32 _mapid = 0, float _x = 0, float _y = 0, float _z = 0, float _o = 0)
-        : mapid(_mapid), coord_x(_x), coord_y(_y), coord_z(_z), orientation(_o) {}
-    WorldLocation(WorldLocation const& loc)
-        : mapid(loc.mapid), coord_x(loc.coord_x), coord_y(loc.coord_y), coord_z(loc.coord_z), orientation(loc.orientation) {}
-    WorldLocation(uint32 mapId, Position const& pos) : mapid(mapId), coord_x(pos.x), coord_y(pos.y), coord_z(pos.z), orientation(pos.o) {}
-    void GetPosition(float& x, float& y, float& z) { x = coord_x; y = coord_y; z = coord_z; }
+    WorldLocation(uint32 p_mapid = 0, Position const& p_pos = {}) : mapid(p_mapid), pos{p_pos} {}
 };
 
 
@@ -668,42 +638,7 @@ class Object
 };
 
 struct WorldObjectChangeAccumulator;
-
-struct TempSpawnSettings
-{
-    WorldObject* spawner = nullptr;
-    uint32 entry;
-    float x, y, z, ori;
-    TempSpawnType spawnType;
-    uint32 despawnTime = 0;
-    uint32 corpseDespawnTime = 0;
-    bool activeObject = false;
-    bool setRun = false;
-    uint32 pathId = 0;
-    uint32 faction = 0;
-    uint32 modelId = 0;
-    bool spawnCounting = false;
-    bool forcedOnTop = false;
-    uint32 spellId = 0;
-    ObjectGuid ownerGuid;
-    uint32 spawnDataEntry = 0;
-    int32 movegen = -1;
-    WorldObject* dbscriptTarget = nullptr;
-    uint32 level = 0;
-
-    // TemporarySpawnWaypoint subsystem
-    bool tempSpawnMovegen = false;
-    uint32 waypointId = 0;
-    int32 spawnPathId = 0;
-    uint32 pathOrigin = 0;
-
-    TempSpawnSettings() {}
-    TempSpawnSettings(WorldObject* spawner, uint32 entry, float x, float y, float z, float ori, TempSpawnType spawnType, uint32 despawnTime, bool activeObject = false, bool setRun = false, uint32 pathId = 0, uint32 faction = 0,
-        uint32 modelId = 0, bool spawnCounting = false, bool forcedOnTop = false, uint32 spellId = 0, int32 movegen = -1, uint32 level = 0) :
-        spawner(spawner), entry(entry), x(x), y(y), z(z), ori(ori), spawnType(spawnType), despawnTime(despawnTime), activeObject(activeObject), setRun(setRun), pathId(pathId), faction(faction), modelId(modelId), spawnCounting(spawnCounting),
-        forcedOnTop(forcedOnTop), spellId(spellId), movegen(movegen), level(level)
-    {}
-};
+struct TempSpawnSettings;
 
 enum UnitMoveType
 {
@@ -803,31 +738,25 @@ class MovementInfo
 
         // Position manipulations
         Position const& GetPos() const { return pos; }
-        void SetTransportData(ObjectGuid guid, float x, float y, float z, float o, uint32 time)
+        void SetTransportData(ObjectGuid guid, Position const& tpos, uint32 time)
         {
             t_guid = guid;
-            t_pos.x = x;
-            t_pos.y = y;
-            t_pos.z = z;
-            t_pos.o = o;
+            t_pos = tpos;
             t_time = time;
         }
-        void UpdateTransportData(Position pos) { t_pos = pos; }
+        void UpdateTransportData(Position const& tpos) { t_pos = tpos; }
         void ClearTransportData()
         {
             t_guid = ObjectGuid();
-            t_pos.x = 0.0f;
-            t_pos.y = 0.0f;
-            t_pos.z = 0.0f;
-            t_pos.o = 0.0f;
+            t_pos = {};
             t_time = 0;
         }
         ObjectGuid const& GetTransportGuid() const { return t_guid; }
         Position const& GetTransportPos() const { return t_pos; }
         uint32 GetTransportTime() const { return t_time; }
         uint32 GetFallTime() const { return fallTime; }
-        void ChangeOrientation(float o) { pos.o = o; }
-        void ChangePosition(float x, float y, float z, float o) { pos.x = x; pos.y = y; pos.z = z; pos.o = o; }
+        void ChangeOrientation(float o) { pos.w = o; }
+        void ChangePosition(Position const& p_pos) { pos = p_pos; }
 
         struct JumpInfo
         {
@@ -883,60 +812,57 @@ class WorldObject : public Object
 
         void _Create(uint32 guidlow, HighGuid guidhigh);
 
-        void Relocate(float x, float y, float z, float orientation);
-        void Relocate(float x, float y, float z);
+        void Relocate(Vec3 const& pos);
+        void Relocate(Position const& pos);
 
         void SetOrientation(float orientation);
 
         float GetPositionX() const { return m_position.x; }
         float GetPositionY() const { return m_position.y; }
         float GetPositionZ() const { return m_position.z; }
-        void GetPosition(float& x, float& y, float& z, GenericTransport* transport = nullptr) const;
         
-        void GetPosition(WorldLocation& loc) const
-        { loc.mapid = m_mapId; GetPosition(loc.coord_x, loc.coord_y, loc.coord_z); loc.orientation = GetOrientation(); }
+        WorldLocation GetWorldPosition() const { return {m_mapId, GetPosition()}; }
         Position const& GetPosition(GenericTransport* transport = nullptr) const { if (transport) return m_movementInfo.GetTransportPos(); return m_position; }
-        float GetOrientation() const { return m_position.o; }
+        float GetOrientation() const { return m_position.w; }
 
         /// Gives a 2d-point in distance distance2d in direction absAngle around the current position (point-to-point)
-        inline void GetNearPoint2d(float& x, float& y, float distance2d, float absAngle) const
+        inline Vec2 GetNearPoint2d(float distance2d, float absAngle) const
         {
-            return GetNearPoint2dAt(GetPositionX(), GetPositionY(), x, y, distance2d, absAngle);
+            return GetNearPoint2dAt(m_position.xy(), distance2d, absAngle);
         }
-        static void GetNearPoint2dAt(const float posX, const float posY, float& x, float& y, float distance2d, float absAngle);
+        static Vec2 GetNearPoint2dAt(Vec2 const& pos, float distance2d, float absAngle);
         /** Gives a "free" spot for searcher in distance distance2d in direction absAngle on "good" height
          * @param searcher          -           for whom a spot is searched for
-         * @param x, y, z           -           position for the found spot of the searcher
          * @param searcher_bounding_radius  -   how much space the searcher will require
          * @param distance2d        -           distance between the middle-points
          * @param absAngle          -           angle in which the spot is preferred
          */
-        inline void GetNearPoint(WorldObject const* searcher, float& x, float& y, float& z, float searcher_bounding_radius, float distance2d, float absAngle, bool isInWater = false) const
+        inline Vec3 GetNearPoint(WorldObject const* searcher, float searcher_bounding_radius, float distance2d, float absAngle, bool isInWater = false) const
         {
-            return GetNearPointAt(GetPositionX(), GetPositionY(), GetPositionZ(), searcher, x, y, z, searcher_bounding_radius, distance2d, absAngle, isInWater);
+            return GetNearPointAt(m_position.xyz(), searcher, searcher_bounding_radius, distance2d, absAngle, isInWater);
         }
-        void GetNearPointAt(const float posX, const float posY, const float posZ, WorldObject const* searcher, float& x, float& y, float& z, float searcher_bounding_radius, float distance2d, float absAngle, bool isInWater = false) const;
+        
+        Vec3 GetNearPointAt(Vec3 const& pos, WorldObject const* searcher, float searcher_bounding_radius, float distance2d, float absAngle, bool isInWater = false) const;
         /** Gives a "free" spot for a searcher on the distance (including bounding-radius calculation)
-         * @param x, y, z           -           position for the found spot
          * @param bounding_radius   -           radius for the searcher
          * @param distance2d        -           range in which to find a free spot. Default = 0.0f (which usually means the units will have contact)
          * @param angle             -           direction in which to look for a free spot. Default = 0.0f (direction in which 'this' is looking
          * @param obj               -           for whom to look for a spot. Default = nullptr
          */
-        inline void GetClosePoint(float& x, float& y, float& z, float bounding_radius, float distance2d = 0.0f, float angle = 0.0f, const WorldObject* obj = nullptr) const
+        inline Vec3 GetClosePoint(float bounding_radius, float distance2d = 0.0f, float angle = 0.0f, const WorldObject* obj = nullptr) const
         {
             // angle calculated from current orientation
-            GetNearPoint(obj, x, y, z, bounding_radius, distance2d + GetObjectBoundingRadius() + bounding_radius, GetOrientation() + angle);
+            return GetNearPoint(obj, bounding_radius, distance2d + GetObjectBoundingRadius() + bounding_radius, GetOrientation() + angle);
         }
         /** Gives a "free" spot for a searcher in contact-range of "this" (including bounding-radius calculation)
          * @param x, y, z           -           position for the found spot
          * @param obj               -           for whom to find a contact position. The position will be searched in direction from 'this' towards 'obj'
          * @param distance2d        -           distance which 'obj' and 'this' should have beetween their bounding radiuses. Default = CONTACT_DISTANCE
          */
-        inline void GetContactPoint(const WorldObject* obj, float& x, float& y, float& z, float distance2d = CONTACT_DISTANCE) const
+        inline Vec3 GetContactPoint(const WorldObject* obj, float distance2d = CONTACT_DISTANCE) const
         {
             // angle to face `obj` to `this` using distance includes size of `obj`
-            GetNearPoint(obj, x, y, z, obj->GetObjectBoundingRadius(), distance2d + GetObjectBoundingRadius() + obj->GetObjectBoundingRadius(), GetAngle(obj));
+            return GetNearPoint(obj, obj->GetObjectBoundingRadius(), distance2d + GetObjectBoundingRadius() + obj->GetObjectBoundingRadius(), GetAngle(obj));
         }
 
         bool GetFanningPoint(const Unit* mover, float& x, float& y, float& z, float dist, float angle) const;
@@ -949,18 +875,17 @@ class WorldObject : public Object
         float GetCombinedCombatReach(bool forMeleeRange = true, float flat_mod = 0.0f) const;
 
         bool IsPositionValid() const;
-        void UpdateGroundPositionZ(float x, float y, float& z) const;
-        virtual void UpdateAllowedPositionZ(float x, float y, float& z, Map* atMap = nullptr) const;
+        Vec3 UpdateGroundPositionZ(Vec3 const& pos) const;
+        virtual Vec3 UpdateAllowedPositionZ(Vec3 const& pos, Map* atMap = nullptr) const;
 
-        void MovePositionToFirstCollision(Position &pos, float dist, float angle);
-        void GetFirstCollisionPosition(Position&pos, float dist, float angle)
+        Position MovePositionToFirstCollision(Position const& pos, float dist, float angle);
+        Position GetFirstCollisionPosition(float dist, float angle)
         {
-            pos = GetPosition();
-            MovePositionToFirstCollision(pos, dist, angle);
+            return MovePositionToFirstCollision(GetPosition(), dist, angle);
         }
         // function attempts to preserve at least 80% of distance - observed on fear and random spell point picking behaviour
         Position GetFirstRandomAngleCollisionPosition(float dist, float angle);
-        void GetRandomPoint(float x, float y, float z, float distance, float& rand_x, float& rand_y, float& rand_z, float minDist = 0.0f, float const* ori = nullptr) const;
+        G3D::Vector3 GetRandomPoint(G3D::Vector3 const& pos, float distance, float minDist = 0.0f, float const* ori = nullptr) const;
 
         uint32 GetMapId() const { return m_mapId; }
         uint32 GetInstanceId() const { return m_InstanceId; }
@@ -983,8 +908,8 @@ class WorldObject : public Object
         virtual ObjectGuid const GetSpawnerGuid() const { return ObjectGuid(); }
 
         float GetDistance(const WorldObject* obj, bool is3D = true, DistanceCalculation distcalc = DIST_CALC_BOUNDING_RADIUS) const;
-        float GetDistance(float x, float y, float z, DistanceCalculation distcalc = DIST_CALC_BOUNDING_RADIUS, bool transport = false) const;
-        float GetDistance2d(float x, float y, DistanceCalculation distcalc = DIST_CALC_BOUNDING_RADIUS) const;
+        float GetDistance(Vec3 const& target, DistanceCalculation distcalc = DIST_CALC_BOUNDING_RADIUS, bool transport = false) const;
+        float GetDistance(Vec2 const& target, DistanceCalculation distcalc = DIST_CALC_BOUNDING_RADIUS) const;
         float GetDistanceZ(const WorldObject* obj) const;
         bool IsInMap(const WorldObject* obj) const
         {
@@ -998,8 +923,8 @@ class WorldObject : public Object
         {
             return obj && IsInMap(obj) && _IsWithinCombatDist(obj, dist2compare, is3D);
         }
-        bool IsWithinDist3d(float x, float y, float z, float dist2compare) const;
-        bool IsWithinDist2d(float x, float y, float dist2compare) const;
+        bool IsWithinDist(Vec2 const& pos, float dist2compare) const;
+        bool IsWithinDist(Vec3 const& pos, float dist2compare) const;
         bool _IsWithinDist(WorldObject const* obj, float dist2compare, bool is3D) const;
         bool _IsWithinCombatDist(WorldObject const* obj, float dist2compare, bool is3D) const;
 
@@ -1013,18 +938,18 @@ class WorldObject : public Object
         {
             return obj && IsInMap(obj) && _IsWithinDist(obj, dist2compare, is3D);
         }
-        bool IsWithinLOS(float ox, float oy, float oz, bool ignoreM2Model = false) const;
+        bool IsWithinLOS(Vec3 const& target_pos, bool ignoreM2Model = false) const;
         bool IsWithinLOSInMap(const WorldObject* obj, bool ignoreM2Model = false) const;
         bool GetDistanceOrder(WorldObject const* obj1, WorldObject const* obj2, bool is3D = true, DistanceCalculation distcalc = DIST_CALC_NONE) const;
         bool IsInRange(WorldObject const* obj, float minRange, float maxRange, bool is3D = true, bool combat = false) const;
-        bool IsInRange2d(float x, float y, float minRange, float maxRange, bool combat = false) const;
-        bool IsInRange3d(float x, float y, float z, float minRange, float maxRange, bool combat = false) const;
+        bool IsInRange2d(Vec2 const& pos, float minRange, float maxRange, bool combat = false) const;
+        bool IsInRange3d(Vec3 const& pos, float minRange, float maxRange, bool combat = false) const;
 
-        static float GetAngleAt(float x, float y, float ox, float oy);
-        float GetAngle(float x, float y) const;
-        float GetAngleAt(float x, float y, const WorldObject* obj) const;
+        static float GetAngleAt(Vec2 const& pos, Vec2 const& target);
+        float GetAngle(Vec2 const& pos) const;
+        float GetAngleAt(Vec2 const& pos, const WorldObject* obj) const;
         float GetAngle(const WorldObject* obj) const;
-        bool HasInArcAt(float x, float y, float o, const WorldObject* target, float arc = M_PI_F) const;
+        bool HasInArcAt(Vec2 const& pos, float o, const WorldObject* target, float arc = M_PI_F) const;
         bool HasInArc(const WorldObject* target, float arc = M_PI_F) const;
         bool isInFrontInMap(WorldObject const* target, float distance, float arc = M_PI_F) const;
         bool isInBackInMap(WorldObject const* target, float distance, float arc = M_PI_F) const;
@@ -1089,8 +1014,8 @@ class WorldObject : public Object
         void RemoveFromClientUpdateList() override;
         void BuildUpdateData(UpdateDataMapType&) override;
         
-        static Creature* SummonCreature(TempSpawnSettings settings, Map* map);
-        Creature* SummonCreature(uint32 id, float x, float y, float z, float ang, TempSpawnType spwtype, uint32 despwtime, bool asActiveObject = false, bool setRun = false, uint32 pathId = 0, uint32 faction = 0, uint32 modelId = 0, bool spawnCounting = false, bool forcedOnTop = false);
+        static Creature* SummonCreature(TempSpawnSettings const& settings, Map* map);
+        Creature* SummonCreature(uint32 id, Position const& pos, TempSpawnType spwtype, uint32 despwtime, SummonFlags const& flags = {}, SummonIds const& ids = {});
 
         static GameObject* SpawnGameObject(uint32 dbGuid, Map* map, uint32 forcedEntry = 0);
         static Creature* SpawnCreature(uint32 dbGuid, Map* map, uint32 forcedEntry = 0);
@@ -1101,7 +1026,7 @@ class WorldObject : public Object
         ViewPoint& GetViewPoint() { return m_viewPoint; }
 
         // ASSERT print helper
-        bool PrintCoordinatesError(float x, float y, float z, char const* descr) const;
+        bool PrintCoordinatesError(Vec3 const& pos, char const* descr) const;
 
         // Game Event Notification system
         virtual bool IsNotifyOnEventObject() { return m_isOnEventNotified; }

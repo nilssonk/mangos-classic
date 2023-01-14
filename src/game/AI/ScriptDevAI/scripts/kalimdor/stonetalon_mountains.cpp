@@ -32,6 +32,8 @@ EndScriptData
 ## npc_kaya
 ######*/
 
+namespace {
+
 enum
 {
     NPC_GRIMTOTEM_RUFFIAN       = 11910,
@@ -44,6 +46,19 @@ enum
 
     QUEST_PROTECT_KAYA          = 6523
 };
+
+struct SpawnLocation {
+    uint32 ui_entry;
+    Position pos;
+};
+
+const SpawnLocation aAmbushSpawns[] = {
+    {NPC_GRIMTOTEM_RUFFIAN, {-50.75f, -500.77f, -46.13f, 0.4f}},
+    {NPC_GRIMTOTEM_BRUTE, {-40.05f, -510.89f, -46.05f, 1.7f}},
+    {NPC_GRIMTOTEM_SORCERER, {-32.21f, -499.20f, -45.35f, 2.8f}},
+};
+
+} // namespace
 
 struct npc_kayaAI : public npc_escortAI
 {
@@ -66,9 +81,9 @@ struct npc_kayaAI : public npc_escortAI
                 // apparently NPC say _after_ the ambush is over, and is most likely a bug at you-know-where.
                 // we simplify this, and make say when the ambush actually start.
                 DoScriptText(SAY_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_GRIMTOTEM_RUFFIAN, -50.75f, -500.77f, -46.13f, 0.4f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_GRIMTOTEM_BRUTE, -40.05f, -510.89f, -46.05f, 1.7f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
-                m_creature->SummonCreature(NPC_GRIMTOTEM_SORCERER, -32.21f, -499.20f, -45.35f, 2.8f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 30000);
+                for (auto const& ambush : aAmbushSpawns) {
+                    m_creature->SummonCreature(ambush.ui_entry, ambush.pos, TempSpawnType::CORPSE_TIMED_DESPAWN, 30000);
+                }
                 break;
             // Award quest credit
             case 19:
@@ -173,11 +188,10 @@ struct go_covertopsAI : public GameObjectAI
                     {
                         if (!ventureNpc || !ventureNpc->IsAlive() || ventureNpc->IsInCombat())
                             continue;
-                        float x, y, z;
-                        m_go->GetContactPoint(ventureNpc, x, y, z, 10.0f);
+                        auto const contact_point = m_go->GetContactPoint(ventureNpc, 10.0f);
                         ventureNpc->SetWalk(false);
                         ventureNpc->GetMotionMaster()->MoveIdle();
-                        ventureNpc->GetMotionMaster()->MovePoint(1, x, y, z);
+                        ventureNpc->GetMotionMaster()->MovePoint(1, contact_point);
                     }
                     m_callTimer = 0;
                     m_phase = PHASE_HOMING;

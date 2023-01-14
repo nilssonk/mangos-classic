@@ -52,10 +52,10 @@ bool ProcessEventId_event_spells_warlock_dreadsteed(uint32 uiEventId, Object* pS
                 if (pInstance->GetData(TYPE_DREADSTEED) == NOT_STARTED || pInstance->GetData(TYPE_DREADSTEED) == FAIL)
                 {
                     // start event: summon the dummy infernal controller and set in progress
-                    ((Player*)pSource)->SummonCreature(NPC_WARLOCK_DUMMY_INFERNAL, -37.9392f, 812.805f, -29.4525f, 4.81711f, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    ((Player*)pSource)->SummonCreature(NPC_WARLOCK_DUMMY_INFERNAL, {-37.9392f, 812.805f, -29.4525f, 4.81711f}, TempSpawnType::DEAD_DESPAWN, 0);
 
                     // J'eevee starts on path 1 here. Path 0 is for Scholomance event
-                    if (Creature* pImp = ((Player*)pSource)->SummonCreature(NPC_JEEVEE, -37.9392f, 812.805f, -29.4525f, 4.81711f, TEMPSPAWN_DEAD_DESPAWN, 0, true, true))
+                    if (Creature* pImp = ((Player*)pSource)->SummonCreature(NPC_JEEVEE, {-37.9392f, 812.805f, -29.4525f, 4.81711f}, TempSpawnType::DEAD_DESPAWN, 0, SummonFlags{true, true}))
                         pImp->GetMotionMaster()->MoveWaypoint(1);
 
                     pInstance->SetData(TYPE_DREADSTEED, IN_PROGRESS);

@@ -5,6 +5,8 @@
 #ifndef DEF_DM_H
 #define DEF_DM_H
 
+
+
 enum
 {
     MAX_ENCOUNTER               = 19,
@@ -120,8 +122,6 @@ enum
     SPELL_ICE_LOCK              = 22856,
     SPELL_GUARD_SLIPKIK_TRIGGER = 31770,
 };
-
-static const float afMizzleSpawnLoc[4] = {683.296f, 484.384f, 29.544f, 0.0174f};
 
 class instance_dire_maul : public ScriptedInstance
 {

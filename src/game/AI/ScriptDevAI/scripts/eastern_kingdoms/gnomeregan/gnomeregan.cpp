@@ -37,6 +37,8 @@ EndContentData */
 ## npc_blastmaster_emi_shortfuse
 ######*/
 
+namespace {
+
 enum
 {
     SAY_START                   = -1090000,
@@ -84,51 +86,53 @@ enum
 struct sSummonInformation
 {
     uint32 uiPosition, uiEntry;
-    float fX, fY, fZ, fO;
+    Vec4 pos;
 };
 
-static const sSummonInformation asSummonInfo[MAX_SUMMON_POSITIONS] =
+const sSummonInformation asSummonInfo[MAX_SUMMON_POSITIONS] =
 {
     // Entries must be sorted by pack
     // First Cave-In
-    {1, NPC_CAVERNDEEP_AMBUSHER, -566.8114f, -111.7036f, -151.1891f, 5.986479f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -568.5875f, -113.7559f, -151.1869f, 0.06981317f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -570.2333f, -116.8126f, -151.2272f, 0.296706f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -550.6331f, -108.7592f, -153.965f, 0.8901179f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -558.9717f, -115.0669f, -151.8799f, 0.5235988f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -556.6719f, -112.0526f, -152.8255f, 0.4886922f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -552.6419f, -113.4385f, -153.0727f, 0.8028514f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -549.1248f, -112.1469f, -153.7987f, 0.7504916f},
-    {1, NPC_CAVERNDEEP_AMBUSHER, -546.7435f, -112.3051f, -154.2225f, 0.9250245f},
-    {2, NPC_CAVERNDEEP_AMBUSHER, -571.4071f, -108.7721f, -150.6547f, 5.480334f},
-    {2, NPC_CAVERNDEEP_AMBUSHER, -573.797f, -106.5265f, -150.4106f, 5.550147f},
-    {2, NPC_CAVERNDEEP_AMBUSHER, -576.3784f, -108.0483f, -150.4227f, 5.585053f},
-    {2, NPC_CAVERNDEEP_AMBUSHER, -576.697f, -111.7413f, -150.6484f, 5.759586f},
-    {3, NPC_CAVERNDEEP_AMBUSHER, -571.3161f, -114.4412f, -151.0931f, 6.021386f},
-    {3, NPC_CAVERNDEEP_AMBUSHER, -570.3127f, -111.7964f, -151.04f, 2.042035f},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-566.8114f, -111.7036f, -151.1891f, 5.986479f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-568.5875f, -113.7559f, -151.1869f, 0.06981317f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-570.2333f, -116.8126f, -151.2272f, 0.296706f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-550.6331f, -108.7592f, -153.965f, 0.8901179f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-558.9717f, -115.0669f, -151.8799f, 0.5235988f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-556.6719f, -112.0526f, -152.8255f, 0.4886922f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-552.6419f, -113.4385f, -153.0727f, 0.8028514f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-549.1248f, -112.1469f, -153.7987f, 0.7504916f}},
+    {1, NPC_CAVERNDEEP_AMBUSHER, {-546.7435f, -112.3051f, -154.2225f, 0.9250245f}},
+    {2, NPC_CAVERNDEEP_AMBUSHER, {-571.4071f, -108.7721f, -150.6547f, 5.480334f}},
+    {2, NPC_CAVERNDEEP_AMBUSHER, {-573.797f, -106.5265f, -150.4106f, 5.550147f}},
+    {2, NPC_CAVERNDEEP_AMBUSHER, {-576.3784f, -108.0483f, -150.4227f, 5.585053f}},
+    {2, NPC_CAVERNDEEP_AMBUSHER, {-576.697f, -111.7413f, -150.6484f, 5.759586f}},
+    {3, NPC_CAVERNDEEP_AMBUSHER, {-571.3161f, -114.4412f, -151.0931f, 6.021386f}},
+    {3, NPC_CAVERNDEEP_AMBUSHER, {-570.3127f, -111.7964f, -151.04f, 2.042035f}},
 
     // Second Cave-In
-    {4, NPC_CAVERNDEEP_AMBUSHER, -474.5954f, -104.074f, -146.0483f, 2.338741f},
-    {4, NPC_CAVERNDEEP_AMBUSHER, -477.9396f, -108.6563f, -145.7394f, 1.553343f},
-    {4, NPC_CAVERNDEEP_AMBUSHER, -475.6625f, -97.12168f, -146.5959f, 1.291544f},
-    {4, NPC_CAVERNDEEP_AMBUSHER, -480.5233f, -88.40702f, -146.3772f, 3.001966f},
-    {5, NPC_CAVERNDEEP_AMBUSHER, -474.2943f, -105.2212f, -145.9747f, 2.251475f},
-    {5, NPC_CAVERNDEEP_AMBUSHER, -481.1831f, -101.4225f, -146.377f, 2.146755f},
-    {5, NPC_CAVERNDEEP_BURROWER, -475.0871f, -100.016f, -146.4382f, 2.303835f},
-    {5, NPC_CAVERNDEEP_AMBUSHER, -478.8562f, -106.9321f, -145.8533f, 1.658063f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -473.8762f, -107.4022f, -145.838f, 2.024582f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -490.5134f, -92.72843f, -148.0954f, 3.054326f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -491.401f, -88.25341f, -148.0358f, 3.560472f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -479.1431f, -106.227f, -145.9097f, 1.727876f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -475.3185f, -101.4804f, -146.2717f, 2.234021f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -485.1559f, -89.57419f, -146.9299f, 3.071779f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -482.2516f, -96.80614f, -146.6596f, 2.303835f},
-    {6, NPC_CAVERNDEEP_AMBUSHER, -477.9874f, -92.82047f, -146.6944f, 3.124139f},
+    {4, NPC_CAVERNDEEP_AMBUSHER, {-474.5954f, -104.074f, -146.0483f, 2.338741f}},
+    {4, NPC_CAVERNDEEP_AMBUSHER, {-477.9396f, -108.6563f, -145.7394f, 1.553343f}},
+    {4, NPC_CAVERNDEEP_AMBUSHER, {-475.6625f, -97.12168f, -146.5959f, 1.291544f}},
+    {4, NPC_CAVERNDEEP_AMBUSHER, {-480.5233f, -88.40702f, -146.3772f, 3.001966f}},
+    {5, NPC_CAVERNDEEP_AMBUSHER, {-474.2943f, -105.2212f, -145.9747f, 2.251475f}},
+    {5, NPC_CAVERNDEEP_AMBUSHER, {-481.1831f, -101.4225f, -146.377f, 2.146755f}},
+    {5, NPC_CAVERNDEEP_BURROWER, {-475.0871f, -100.016f, -146.4382f, 2.303835f}},
+    {5, NPC_CAVERNDEEP_AMBUSHER, {-478.8562f, -106.9321f, -145.8533f, 1.658063f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-473.8762f, -107.4022f, -145.838f, 2.024582f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-490.5134f, -92.72843f, -148.0954f, 3.054326f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-491.401f, -88.25341f, -148.0358f, 3.560472f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-479.1431f, -106.227f, -145.9097f, 1.727876f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-475.3185f, -101.4804f, -146.2717f, 2.234021f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-485.1559f, -89.57419f, -146.9299f, 3.071779f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-482.2516f, -96.80614f, -146.6596f, 2.303835f}},
+    {6, NPC_CAVERNDEEP_AMBUSHER, {-477.9874f, -92.82047f, -146.6944f, 3.124139f}},
 
     // Grubbis and add
-    {7, NPC_GRUBBIS, -476.3761f, -108.1901f, -145.7763f, 1.919862f},
-    {7, NPC_CHOMPER, -473.1326f, -103.0901f, -146.1155f, 2.042035f}
+    {7, NPC_GRUBBIS, {-476.3761f, -108.1901f, -145.7763f, 1.919862f}},
+    {7, NPC_CHOMPER, {-473.1326f, -103.0901f, -146.1155f, 2.042035f}}
 };
+
+} // anonymous namespace
 
 struct npc_blastmaster_emi_shortfuseAI : public npc_escortAI
 {
@@ -164,13 +168,13 @@ struct npc_blastmaster_emi_shortfuseAI : public npc_escortAI
 
     void DoSummonPack(uint8 uiIndex)
     {
-        for (const auto& i : asSummonInfo)
+        for (const auto& info : asSummonInfo)
         {
             // This requires order of the array
-            if (i.uiPosition > uiIndex)
+            if (info.uiPosition > uiIndex)
                 break;
-            if (i.uiPosition == uiIndex)
-                m_creature->SummonCreature(i.uiEntry, i.fX, i.fY, i.fZ, i.fO, TEMPSPAWN_DEAD_DESPAWN, 0);
+            if (info.uiPosition == uiIndex)
+                m_creature->SummonCreature(info.uiEntry, info.pos, TempSpawnType::DEAD_DESPAWN, 0);
         }
     }
 
@@ -183,9 +187,8 @@ struct npc_blastmaster_emi_shortfuseAI : public npc_escortAI
             {
                 if (GameObject* pDoor = m_pInstance->GetSingleGameObjectFromStorage(m_uiPhase > 20 ? GO_CAVE_IN_NORTH : GO_CAVE_IN_SOUTH))
                 {
-                    float fX, fY, fZ;
-                    pDoor->GetNearPoint(pDoor, fX, fY, fZ, 0.0f, 2.0f, frand(0.0f, 2 * M_PI_F));
-                    pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    auto const near_point = pDoor->GetNearPoint(pDoor, 0.0f, 2.0f, frand(0.0f, 2 * M_PI_F));
+                    pSummoned->GetMotionMaster()->MovePoint(1, near_point);
                 }
                 break;
             }
@@ -634,17 +637,21 @@ bool GossipSelect_npc_blastmaster_emi_shortfuse(Player* pPlayer, Creature* pCrea
 ## TODO: It appears there are some things missing, including his? alarm-bot
 ######*/
 
+namespace {
+
 enum
 {
     QUEST_A_FINE_MESS           = 2904,
     TRIGGER_GNOME_EXIT          = 324,                      // Add scriptlib support for it, atm simply use hardcoded values
 };
 
-static const float aKernobeePositions[2][3] =
+const Vec3 aKernobeePositions[2] =
 {
     { -330.92f, -3.03f, -152.85f},                          // End position
     { -297.32f, -7.32f, -152.85f}                           // Walk out of the door
 };
+
+} // anonymous namespace
 
 struct npc_kernobeeAI : public FollowerAI
 {
@@ -678,12 +685,12 @@ struct npc_kernobeeAI : public FollowerAI
         if (m_uiCheckEndposTimer < uiDiff)
         {
             m_uiCheckEndposTimer = 500;
-            if (m_creature->IsWithinDist3d(aKernobeePositions[0][0], aKernobeePositions[0][1], aKernobeePositions[0][2], 2 * INTERACTION_DISTANCE))
+            if (m_creature->IsWithinDist(aKernobeePositions[0], 2 * INTERACTION_DISTANCE))
             {
                 SetFollowComplete(true);
                 if (Player* pPlayer = GetLeaderForFollower())
                     pPlayer->RewardPlayerAndGroupAtEventExplored(QUEST_A_FINE_MESS, m_creature);
-                m_creature->GetMotionMaster()->MovePoint(1, aKernobeePositions[1][0], aKernobeePositions[1][1], aKernobeePositions[1][2]);
+                m_creature->GetMotionMaster()->MovePoint(1, aKernobeePositions[1]);
                 m_creature->ForcedDespawn(2000);
             }
         }

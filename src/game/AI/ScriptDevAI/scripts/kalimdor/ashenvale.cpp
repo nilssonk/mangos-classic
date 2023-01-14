@@ -37,6 +37,8 @@ EndContentData */
 # npc_muglash
 ####*/
 
+namespace {
+
 enum
 {
     SAY_MUG_START1          = -1000501,
@@ -66,21 +68,23 @@ enum
     NPC_VORSHA              = 12940
 };
 
-static float m_afFirstNagaCoord[3][3] =
+const Vec3 m_afFirstNagaCoord[3] =
 {
     {3603.504150f, 1122.631104f, 1.635f},                   // rider
     {3589.293945f, 1148.664063f, 5.565f},                   // sorceress
     {3609.925537f, 1168.759521f, -1.168f}                   // razortail
 };
 
-static float m_afSecondNagaCoord[3][3] =
+const Vec3 m_afSecondNagaCoord[3] =
 {
     {3609.925537f, 1168.759521f, -1.168f},                  // witch
     {3645.652100f, 1139.425415f, 1.322f},                   // priest
     {3583.602051f, 1128.405762f, 2.347f}                    // myrmidon
 };
 
-static float m_fVorshaCoord[] = {3633.056885f, 1172.924072f, -5.388f};
+const Vec3 m_fVorshaCoord{3633.056885f, 1172.924072f, -5.388f};
+
+} // anonymous namespace
 
 struct npc_muglashAI : public npc_escortAI
 {
@@ -158,17 +162,17 @@ struct npc_muglashAI : public npc_escortAI
         switch (m_uiWaveId)
         {
             case 1:
-                m_creature->SummonCreature(NPC_WRATH_RIDER,     m_afFirstNagaCoord[0][0], m_afFirstNagaCoord[0][1], m_afFirstNagaCoord[0][2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
-                m_creature->SummonCreature(NPC_WRATH_SORCERESS, m_afFirstNagaCoord[1][0], m_afFirstNagaCoord[1][1], m_afFirstNagaCoord[1][2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
-                m_creature->SummonCreature(NPC_WRATH_RAZORTAIL, m_afFirstNagaCoord[2][0], m_afFirstNagaCoord[2][1], m_afFirstNagaCoord[2][2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_WRATH_RIDER,     {m_afFirstNagaCoord[0], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_WRATH_SORCERESS, {m_afFirstNagaCoord[1], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_WRATH_RAZORTAIL, {m_afFirstNagaCoord[2], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
                 break;
             case 2:
-                m_creature->SummonCreature(NPC_WRATH_PRIESTESS, m_afSecondNagaCoord[0][0], m_afSecondNagaCoord[0][1], m_afSecondNagaCoord[0][2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
-                m_creature->SummonCreature(NPC_WRATH_MYRMIDON,  m_afSecondNagaCoord[1][0], m_afSecondNagaCoord[1][1], m_afSecondNagaCoord[1][2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
-                m_creature->SummonCreature(NPC_WRATH_SEAWITCH,  m_afSecondNagaCoord[2][0], m_afSecondNagaCoord[2][1], m_afSecondNagaCoord[2][2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_WRATH_PRIESTESS, {m_afSecondNagaCoord[0], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_WRATH_MYRMIDON,  {m_afSecondNagaCoord[1], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_WRATH_SEAWITCH,  {m_afSecondNagaCoord[2], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
                 break;
             case 3:
-                m_creature->SummonCreature(NPC_VORSHA, m_fVorshaCoord[0], m_fVorshaCoord[1], m_fVorshaCoord[2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 60000);
+                m_creature->SummonCreature(NPC_VORSHA, {m_fVorshaCoord, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 60000);
                 break;
             case 4:
                 SetEscortPaused(false);
@@ -246,6 +250,8 @@ bool GOUse_go_naga_brazier(Player* /*pPlayer*/, GameObject* pGo)
 # npc_ruul_snowhoof
 ####*/
 
+namespace {
+
 enum
 {
     QUEST_FREEDOM_TO_RUUL   = 6482,
@@ -256,13 +262,15 @@ enum
     SAY_RUUL_COMPLETE       = -1010022
 };
 
-static uint32 m_ruulAmbushers[3] = { NPC_T_AVENGER, NPC_T_SHAMAN, NPC_T_PATHFINDER};
+const uint32 m_ruulAmbushers[3] = { NPC_T_AVENGER, NPC_T_SHAMAN, NPC_T_PATHFINDER};
 
-static float m_ruulAmbushCoords[2][3] =
-        {
-                {3425.33f, -595.93f, 178.31f},    // First ambush
-                {3245.34f, -506.66f, 150.05f},    // Second ambush
-        };
+const Vec3 m_ruulAmbushCoords[2] =
+{
+    {3425.33f, -595.93f, 178.31f},    // First ambush
+    {3245.34f, -506.66f, 150.05f},    // Second ambush
+};
+
+} // anonymous namespace
 
 struct npc_ruul_snowhoofAI : public npc_escortAI
 {
@@ -277,12 +285,11 @@ struct npc_ruul_snowhoofAI : public npc_escortAI
     {
         for (auto ambusherEntry : m_ruulAmbushers)
         {
-            float fx, fy, fz;
-            m_creature->GetRandomPoint(m_ruulAmbushCoords[index][0], m_ruulAmbushCoords[index][1], m_ruulAmbushCoords[index][2], 7.0f, fx, fy, fz);
-            if (Creature* ambusher = m_creature->SummonCreature(ambusherEntry, fx, fy, fz, 0, TEMPSPAWN_DEAD_DESPAWN, 60 * IN_MILLISECONDS))
+            auto const rand_pos = m_creature->GetRandomPoint(m_ruulAmbushCoords[index], 7.0f);
+            if (Creature* ambusher = m_creature->SummonCreature(ambusherEntry, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 60 * IN_MILLISECONDS))
             {
                 ambusher->SetWalk(false);
-                ambusher->GetMotionMaster()->MovePoint(0, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ());
+                ambusher->GetMotionMaster()->MovePoint(0, m_creature->GetPosition().xyz());
             }
         }
     }
@@ -397,9 +404,9 @@ struct npc_torekAI : public npc_escortAI
                 break;
             case 20:
                 // TODO: verify location and creatures amount.
-                m_creature->SummonCreature(NPC_DURIEL, 1776.73f, -2049.06f, 109.83f, 1.54f, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
-                m_creature->SummonCreature(NPC_SILVERWING_SENTINEL, 1774.64f, -2049.41f, 109.83f, 1.40f, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
-                m_creature->SummonCreature(NPC_SILVERWING_WARRIOR, 1778.73f, -2049.50f, 109.83f, 1.67f, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_DURIEL, {1776.73f, -2049.06f, 109.83f, 1.54f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_SILVERWING_SENTINEL, {1774.64f, -2049.41f, 109.83f, 1.40f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_SILVERWING_WARRIOR, {1778.73f, -2049.50f, 109.83f, 1.67f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
                 break;
             case 21:
                 DoScriptText(SAY_WIN, m_creature, pPlayer);
@@ -492,20 +499,24 @@ enum
  * The summon coords and event sequence are guesswork based on the comments from wowhead and wowwiki
  */
 
+namespace {
+
 // Distance, Angle or Offset
-static const float aSummonPositions[2][2] =
+const Vec2 aSummonPositions[2] =
 {
     {30.0f, 1.25f},
     {30.0f, 0.95f}
 };
 
 // Hardcoded positions for the last 3 mobs
-static const float aEliteSummonPositions[3][4] =
+const Position aEliteSummonPositions[3] =
 {
     {4243.12f, 108.22f, 38.12f, 3.62f},
     {4240.95f, 114.04f, 38.35f, 3.56f},
     {4235.78f, 118.09f, 38.08f, 4.12f}
 };
+
+} // anonymous namespace
 
 struct npc_feero_ironhandAI : public npc_escortAI
 {
@@ -534,20 +545,20 @@ struct npc_feero_ironhandAI : public npc_escortAI
                 // Prepare the first ambush
                 DoScriptText(SAY_FIRST_AMBUSH_START, m_creature);
                 for (uint8 i = 0; i < 4; ++i)
-                    DoSpawnMob(NPC_DARK_STRAND_ASSASSIN, aSummonPositions[0][0], aSummonPositions[0][1] - M_PI_F / 4 * i);
+                    DoSpawnMob(NPC_DARK_STRAND_ASSASSIN, aSummonPositions[0] - Vec2{0.0f, M_PI_F / 4 * i});
                 break;
             case 21:
                 // Prepare the second ambush
                 DoScriptText(SAY_SECOND_AMBUSH_START, m_creature);
                 for (uint8 i = 0; i < 3; ++i)
-                    DoSpawnMob(NPC_FORSAKEN_SCOUT, aSummonPositions[1][0], aSummonPositions[1][1] - M_PI_F / 3 * i);
+                    DoSpawnMob(NPC_FORSAKEN_SCOUT, aSummonPositions[1] - Vec2{0.0f, M_PI_F / 3 * i});
                 break;
             case 30:
                 // Final ambush
                 DoScriptText(SAY_FINAL_AMBUSH_START, m_creature);
-                m_creature->SummonCreature(NPC_BALIZAR_THE_UMBRAGE, aEliteSummonPositions[0][0], aEliteSummonPositions[0][1], aEliteSummonPositions[0][2], aEliteSummonPositions[0][3], TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
-                m_creature->SummonCreature(NPC_ALIGAR_THE_TORMENTOR, aEliteSummonPositions[1][0], aEliteSummonPositions[1][1], aEliteSummonPositions[1][2], aEliteSummonPositions[1][3], TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
-                m_creature->SummonCreature(NPC_CAEDAKAR_THE_VICIOUS, aEliteSummonPositions[2][0], aEliteSummonPositions[2][1], aEliteSummonPositions[2][2], aEliteSummonPositions[2][3], TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_BALIZAR_THE_UMBRAGE, aEliteSummonPositions[0], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_ALIGAR_THE_TORMENTOR, aEliteSummonPositions[1], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
+                m_creature->SummonCreature(NPC_CAEDAKAR_THE_VICIOUS, aEliteSummonPositions[2], TempSpawnType::TIMED_OOC_DESPAWN, 20000);
                 break;
             case 31:
                 // Complete the quest
@@ -571,12 +582,11 @@ struct npc_feero_ironhandAI : public npc_escortAI
     }
 
     // Summon mobs at calculated points
-    void DoSpawnMob(uint32 uiEntry, float fDistance, float fAngle)
+    void DoSpawnMob(uint32 uiEntry, Vec2 const& dist_ori)
     {
-        float fX, fY, fZ;
-        m_creature->GetNearPoint(m_creature, fX, fY, fZ, 0, fDistance, fAngle);
+        auto const near_point = m_creature->GetNearPoint(m_creature, 0, dist_ori.x, dist_ori.y);
 
-        m_creature->SummonCreature(uiEntry, fX, fY, fZ, 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 20000);
+        m_creature->SummonCreature(uiEntry, {near_point, 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 20000);
     }
 
     void SummonedCreatureJustDied(Creature* pSummoned) override

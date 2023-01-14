@@ -82,7 +82,9 @@ enum
 3726 UBRS, entrance to BWL
 */
 
-static const DialogueEntry aStadiumDialogue[] =
+namespace {
+
+const DialogueEntry aStadiumDialogue[] =
 {
     {NPC_LORD_VICTOR_NEFARIUS,  0,                          1000},
     {SAY_NEFARIUS_INTRO_1,      NPC_LORD_VICTOR_NEFARIUS,   7000},
@@ -96,7 +98,79 @@ static const DialogueEntry aStadiumDialogue[] =
     {0, 0, 0},
 };
 
-static const float rookeryEventSpawnPos[3] = {51.11098f, -266.0549f, 92.87846f};
+const Vec3 rookeryEventSpawnPos{51.11098f, -266.0549f, 92.87846f};
+
+
+
+const Position aStadiumLocs[7] =
+{
+    {210.00f, -420.30f, 110.94f, 3.14f},                    // dragons summon location
+    {210.14f, -397.54f, 111.1f,  0.f},                      // Gyth summon location
+    {163.62f, -420.33f, 110.47f, 0.f},                      // center of the stadium location (for movement)
+    {164.63f, -444.04f, 121.97f, 3.22f},                    // Lord Nefarius summon position
+    {161.01f, -443.73f, 121.97f, 6.26f},                    // Rend summon position
+    {164.64f, -443.30f, 121.97f, 1.61f},                    // Nefarius move position
+    {165.74f, -466.46f, 116.80f, 0.f},                      // Rend move position
+};
+
+const Position aBeastLocs[3] =
+{
+    {98.09f, -563.45f, 109.86f, 2.37f},                     // Summon points
+    {99.81f, -561.47f, 109.24f, 2.43f},
+    {96.92f, -560.98f, 110.18f, 2.43f},
+};
+
+const uint32 aStadiumSpectators[12] =
+{
+    NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_ELITE, NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_VETERAN,
+    NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_ELITE, NPC_BLACKHAND_VETERAN, NPC_BLACKHAND_VETERAN
+};
+
+const Position aSpectatorsSpawnLocs[12] =
+{
+    {163.3209f, -340.9818f, 111.0216f, 4.818223f},
+    {164.2471f, -339.0313f, 111.0368f, 1.413717f},
+    {161.124f, -339.5178f, 111.0381f, 3.001966f},
+    {162.5045f, -337.8101f, 111.0367f, 4.13643f},
+    {160.9896f, -337.7715f, 111.0368f, 1.117011f},
+    {161.8347f, -335.7923f, 111.0352f, 2.286381f},
+    {113.9726f, -366.0805f, 116.9195f, 6.252025f},
+    {112.7245f, -368.9635f, 116.9307f, 4.677482f},
+    {110.5757f, -368.2123f, 116.9278f, 4.310963f},
+    {109.3343f, -366.4785f, 116.9261f, 2.740167f},
+    {110.1331f, -363.9824f, 116.9272f, 0.5235988f},
+    {111.9971f, -363.0948f, 116.929f, 5.951573f},
+};
+
+const Position aSpectatorsTargetLocs[12] =
+{
+    {160.619f, -395.826f, 121.9752f, -1.502597f},
+    {162.1428f, -395.1175f, 121.9751f, -1.67753f},
+    {158.6822f, -395.7097f, 121.9753f, -1.787977f},
+    {164.384f, -395.3787f, 121.9751f, -1.502597f},
+    {156.9669f, -395.2188f, 121.9752f, -1.678662f},
+    {166.2515f, -395.0366f, 121.975f, -1.791467f},
+    {143.814f, -396.7092f, 121.9753f, -1.40136f},
+    {145.3893f, -396.1959f, 121.9752f, -1.419479f},
+    {142.1598f, -396.0284f, 121.9752f, -1.661444f},
+    {147.7274f, -396.3042f, 121.9753f, -1.40136f},
+    {139.9446f, -396.7277f, 121.9753f, -1.428414f},
+    {149.3754f, -395.7497f, 121.9753f, -1.714769f},
+};
+
+// Stadium event description
+const uint32 aStadiumEventNpcs[MAX_STADIUM_WAVES][5] =
+{
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, 0},
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, 0},
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, NPC_BLACKHAND_HANDLER, 0},
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, NPC_BLACKHAND_HANDLER, 0},
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, NPC_BLACKHAND_HANDLER},
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, NPC_CHROMATIC_DRAGON, NPC_BLACKHAND_HANDLER},
+    {NPC_CHROMATIC_WHELP, NPC_CHROMATIC_WHELP, NPC_CHROMATIC_DRAGON, NPC_CHROMATIC_DRAGON, NPC_BLACKHAND_HANDLER},
+};
+
+}
 
 instance_blackrock_spire::instance_blackrock_spire(Map* pMap) : ScriptedInstance(pMap), DialogueHelper(aStadiumDialogue),
     m_bUpperDoorOpened(false),
@@ -566,19 +640,19 @@ void instance_blackrock_spire::JustDidDialogueStep(int32 iEntry)
             m_uiStadiumEventTimer = 1000;
             // Move the two near the balcony
             if (Creature* pRend = GetSingleCreatureFromStorage(NPC_REND_BLACKHAND))
-                pRend->SetFacingTo(aStadiumLocs[5].o);
+                pRend->SetFacingTo(aStadiumLocs[5].w);
             if (Creature* pNefarius = GetSingleCreatureFromStorage(NPC_LORD_VICTOR_NEFARIUS))
             {
-                pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[5].x, aStadiumLocs[5].y, aStadiumLocs[5].z);
+                pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[5].xyz());
                 // Summon the spectators and move them to the western balcony
                 for (uint8 i = 0; i < 12; i++)
                 {
-                    Creature* pSpectator = pNefarius->SummonCreature(aStadiumSpectators[i], aSpectatorsSpawnLocs[i].x, aSpectatorsSpawnLocs[i].y, aSpectatorsSpawnLocs[i].z, aSpectatorsSpawnLocs[i].o, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    Creature* pSpectator = pNefarius->SummonCreature(aStadiumSpectators[i], aSpectatorsSpawnLocs[i], TempSpawnType::DEAD_DESPAWN, 0);
                     if (pSpectator)
                     {
-                        pSpectator->SetFacingTo(aSpectatorsTargetLocs[i].o);
+                        pSpectator->SetFacingTo(aSpectatorsTargetLocs[i].w);
                         pSpectator->SetWalk(false);
-                        pSpectator->GetMotionMaster()->MovePoint(0, aSpectatorsTargetLocs[i].x, aSpectatorsTargetLocs[i].y, aSpectatorsTargetLocs[i].z);
+                        pSpectator->GetMotionMaster()->MovePoint(0, aSpectatorsTargetLocs[i].xyz());
                         pSpectator->AI()->SetReactState(REACT_DEFENSIVE);
                         m_lStadiumSpectatorsGUIDList.push_back(pSpectator->GetObjectGuid());
                     }
@@ -591,7 +665,7 @@ void instance_blackrock_spire::JustDidDialogueStep(int32 iEntry)
             {
                 pRend->ForcedDespawn(5000);
                 pRend->SetWalk(false);
-                pRend->GetMotionMaster()->MovePoint(0, aStadiumLocs[6].x, aStadiumLocs[6].y, aStadiumLocs[6].z);
+                pRend->GetMotionMaster()->MovePoint(0, aStadiumLocs[6].xyz());
             }
             // Make Lord Nefarius walk back and forth while Rend is preparing Glyth
             if (Creature* pNefarius = GetSingleCreatureFromStorage(NPC_LORD_VICTOR_NEFARIUS))
@@ -606,7 +680,7 @@ void instance_blackrock_spire::JustDidDialogueStep(int32 iEntry)
             if (Creature* pNefarius = GetSingleCreatureFromStorage(NPC_LORD_VICTOR_NEFARIUS))
             {
                 pNefarius->ForcedDespawn(5000);
-                pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[6].x, aStadiumLocs[6].y, aStadiumLocs[6].z);
+                pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[6].xyz());
             }
             break;
     }
@@ -625,15 +699,15 @@ void instance_blackrock_spire::DoSendNextStadiumWave()
                 if (aStadiumEventNpcs[m_uiStadiumWaves][i] == 0)
                     continue;
 
-                pNefarius->GetRandomPoint(aStadiumLocs[0].x, aStadiumLocs[0].y, aStadiumLocs[0].z, 7.0f, fX, fY, fZ);
+                auto const rand_pos = pNefarius->GetRandomPoint(aStadiumLocs[0].xyz(), 7.0f);
                 fX = std::min(aStadiumLocs[0].x, fX);    // Halfcircle - suits better the rectangular form
-                if (Creature* pTemp = pNefarius->SummonCreature(aStadiumEventNpcs[m_uiStadiumWaves][i], fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0))
+                if (Creature* pTemp = pNefarius->SummonCreature(aStadiumEventNpcs[m_uiStadiumWaves][i], {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0))
                 {
                     // Get some point in the center of the stadium
-                    pTemp->GetRandomPoint(aStadiumLocs[2].x, aStadiumLocs[2].y, aStadiumLocs[2].z, 5.0f, fX, fY, fZ);
+                    auto const rand_dst = pTemp->GetRandomPoint(aStadiumLocs[2].xyz(), 5.0f);
                     fX = std::min(aStadiumLocs[2].x, fX);// Halfcircle - suits better the rectangular form
 
-                    pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pTemp->GetMotionMaster()->MovePoint(0, rand_dst);
                     ++m_uiStadiumMobsAlive;
                 }
             }
@@ -651,10 +725,10 @@ void instance_blackrock_spire::DoSendNextStadiumWave()
         {
             // Stop Lord Nefarius from moving and put him back in place
             pNefarius->GetMotionMaster()->MoveIdle();
-            pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[5].x, aStadiumLocs[5].y, aStadiumLocs[5].z);
+            pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[5].xyz());
 
-            if (Creature* pTemp = pNefarius->SummonCreature(NPC_GYTH, aStadiumLocs[1].x, aStadiumLocs[1].y, aStadiumLocs[1].z, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0))
-                pTemp->GetMotionMaster()->MovePoint(0, aStadiumLocs[2].x, aStadiumLocs[2].y, aStadiumLocs[2].z);
+            if (Creature* pTemp = pNefarius->SummonCreature(NPC_GYTH, {aStadiumLocs[1].xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0))
+                pTemp->GetMotionMaster()->MovePoint(0, aStadiumLocs[2].xyz());
         }
 
         // Set this to 2, because Rend will be summoned later during the fight
@@ -685,10 +759,10 @@ void instance_blackrock_spire::DoSendNextFlamewreathWave()
         Creature* pSummoned = nullptr;
         for (uint8 i = 0; i < 2; ++i)
         {
-            float fX, fY, fZ;
-            pSummoner->GetRandomPoint(rookeryEventSpawnPos[0], rookeryEventSpawnPos[1], rookeryEventSpawnPos[2], 2.5f, fX, fY, fZ);
+            auto const rand_pos = pSummoner->GetRandomPoint(rookeryEventSpawnPos, 2.5f);
             // Summon Rookery Hatchers in first wave, else random
-            pSummoned = pSummoner->SummonCreature(urand(0, 1) && m_uiFlamewreathWaveCount ? NPC_ROOKERY_GUARDIAN : NPC_ROOKERY_HATCHER, fX, fY, fZ, 0.0, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 300000);
+            auto const id = urand(0, 1) && m_uiFlamewreathWaveCount ? NPC_ROOKERY_GUARDIAN : NPC_ROOKERY_HATCHER;
+            pSummoned = pSummoner->SummonCreature(id, {rand_pos, 0.0}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 300000);
             if (pSummoned)
             {
                 //pSummoner->GetContactPoint(pSummoned, fX, fY, fZ);
@@ -709,7 +783,7 @@ void instance_blackrock_spire::DoSendNextFlamewreathWave()
     }
     else                                                    // Send Flamewreath
     {
-        if (Creature* pSolakar = pSummoner->SummonCreature(NPC_SOLAKAR_FLAMEWREATH, rookeryEventSpawnPos[0], rookeryEventSpawnPos[1], rookeryEventSpawnPos[2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, HOUR * IN_MILLISECONDS))
+        if (Creature* pSolakar = pSummoner->SummonCreature(NPC_SOLAKAR_FLAMEWREATH, {rookeryEventSpawnPos, 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, HOUR * IN_MILLISECONDS))
             //pSolakar->GetMotionMaster()->MovePoint(1, pSummoner->GetPositionX(), pSummoner->GetPositionY(), pSummoner->GetPositionZ());
         SetData(TYPE_FLAMEWREATH, SPECIAL);
         m_uiFlamewreathEventTimer = 0;
@@ -813,9 +887,9 @@ bool AreaTrigger_at_blackrock_spire(Player* pPlayer, AreaTriggerEntry const* pAt
 
                 // Summon Nefarius and Rend for the dialogue event
                 // Note: Nefarius and Rend need to be hostile and not attackable
-                if (Creature* pNefarius = pPlayer->SummonCreature(NPC_LORD_VICTOR_NEFARIUS, aStadiumLocs[3].x, aStadiumLocs[3].y, aStadiumLocs[3].z, aStadiumLocs[3].o, TEMPSPAWN_CORPSE_DESPAWN, 0))
+                if (Creature* pNefarius = pPlayer->SummonCreature(NPC_LORD_VICTOR_NEFARIUS, aStadiumLocs[3], TempSpawnType::CORPSE_DESPAWN, 0))
                     pNefarius->SetFactionTemporary(FACTION_BLACK_DRAGON, TEMPFACTION_NONE);
-                if (Creature* pRend = pPlayer->SummonCreature(NPC_REND_BLACKHAND, aStadiumLocs[4].x, aStadiumLocs[4].y, aStadiumLocs[4].z, aStadiumLocs[4].o, TEMPSPAWN_CORPSE_DESPAWN, 0))
+                if (Creature* pRend = pPlayer->SummonCreature(NPC_REND_BLACKHAND, aStadiumLocs[4], TempSpawnType::CORPSE_DESPAWN, 0))
                     pRend->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_IMMUNE_TO_PLAYER);
 
                 pInstance->SetData(TYPE_STADIUM, IN_PROGRESS);
@@ -834,7 +908,7 @@ bool AreaTrigger_at_blackrock_spire(Player* pPlayer, AreaTriggerEntry const* pAt
                 {
                     for (uint8 i = 0; i < 3; i++)
                     {
-                        if (Creature* pTemp = pBeast->SummonCreature(NPC_BLACKHAND_ELITE, aBeastLocs[i].x, aBeastLocs[i].y, aBeastLocs[i].z, aBeastLocs[i].o, TEMPSPAWN_DEAD_DESPAWN, 0))
+                        if (Creature* pTemp = pBeast->SummonCreature(NPC_BLACKHAND_ELITE, aBeastLocs[i], TempSpawnType::DEAD_DESPAWN, 0))
                             pTemp->GetMotionMaster()->MoveWaypoint(i);
                     }
                     pInstance->m_bBeastIntroDone = true;
@@ -859,7 +933,7 @@ bool AreaTrigger_at_blackrock_spire(Player* pPlayer, AreaTriggerEntry const* pAt
                     {
                         for (uint8 i = 0; i < 3; i++)
                         {
-                            if (Creature* pTemp = pBeast->SummonCreature(NPC_BLACKHAND_ELITE, aBeastLocs[i].x, aBeastLocs[i].y, aBeastLocs[i].z, aBeastLocs[i].o, TEMPSPAWN_DEAD_DESPAWN, 0))
+                            if (Creature* pTemp = pBeast->SummonCreature(NPC_BLACKHAND_ELITE, aBeastLocs[i], TempSpawnType::DEAD_DESPAWN, 0))
                                 pTemp->GetMotionMaster()->MoveWaypoint(i);
                         }
                         pInstance->m_bBeastIntroDone = true;
@@ -964,10 +1038,9 @@ struct npc_rookery_hatcherAI : public ScriptedAI
         if (!pNearestEgg)
             return;
 
-        float fX, fY, fZ;
-        pNearestEgg->GetContactPoint(m_creature, fX, fY, fZ, 1.0f);
+        auto const contact_point = pNearestEgg->GetContactPoint(m_creature, 1.0f);
         m_creature->SetWalk(false);
-        m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+        m_creature->GetMotionMaster()->MovePoint(1, contact_point);
         m_bIsMovementActive = true;
     }
 

@@ -237,6 +237,8 @@ void npc_escortAI::SetRun(bool run)
 // TODO: get rid of this many variables passed in function.
 void npc_escortAI::Start(bool run, const Player* player, const Quest* quest, bool instantRespawn, bool canLoopPath, uint32 waypointPath)
 {
+    using WPO = WaypointPathOrigin;
+
     if (m_creature->GetVictim())
     {
         script_error_log("EscortAI attempt to Start while in combat for %s.", m_creature->GetScriptName().data());
@@ -249,12 +251,13 @@ void npc_escortAI::Start(bool run, const Player* player, const Quest* quest, boo
         return;
     }
 
+
     uint32 pathId = m_waypointPathID;
-    WaypointPathOrigin origin = PATH_FROM_EXTERNAL;
+    WPO origin = WPO::FROM_EXTERNAL;
     if (waypointPath)
     {
         pathId = waypointPath;
-        origin = PATH_FROM_WAYPOINT_PATH;
+        origin = WPO::FROM_WAYPOINT_PATH;
     }
 
     if (!sWaypointMgr.GetPathFromOrigin(m_creature->GetEntry(), m_creature->GetGUIDLow(), pathId, origin))
@@ -263,7 +266,7 @@ void npc_escortAI::Start(bool run, const Player* player, const Quest* quest, boo
         return;
     }
 
-    if (origin == PATH_FROM_WAYPOINT_PATH)
+    if (origin == WPO::FROM_WAYPOINT_PATH)
         m_currentEscortWaypointPath = pathId;
 
     // set variables

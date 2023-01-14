@@ -104,18 +104,18 @@ struct Cell
             uint32 All;
         } data;
 
-        template<class T, class CONTAINER> void Visit(const CellPair& cellPair, TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, float x, float y, float radius) const;
+        template<class T, class CONTAINER> void Visit(const CellPair& cellPair, TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, Vec2 const& pos, float radius) const;
         template<class T, class CONTAINER> void Visit(const CellPair& cellPair, TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, const WorldObject& obj, float radius) const;
 
-        static CellArea CalculateCellArea(float x, float y, float radius);
+        static CellArea CalculateCellArea(Vec2 const& pos, float radius);
 
         template<class T> static void VisitGridObjects(const WorldObject* obj, T& visitor, float radius, bool dont_load = true);
         template<class T> static void VisitWorldObjects(const WorldObject* obj, T& visitor, float radius, bool dont_load = true);
         template<class T> static void VisitAllObjects(const WorldObject* obj, T& visitor, float radius, bool dont_load = true);
 
-        template<class T> static void VisitGridObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load = true);
-        template<class T> static void VisitWorldObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load = true);
-        template<class T> static void VisitAllObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load = true);
+        template<class T> static void VisitGridObjects(Vec2 const& pos, Map* map, T& visitor, float radius, bool dont_load = true);
+        template<class T> static void VisitWorldObjects(Vec2 const& pos, Map* map, T& visitor, float radius, bool dont_load = true);
+        template<class T> static void VisitAllObjects(Vec2 const& pos, Map* map, T& visitor, float radius, bool dont_load = true);
 
     private:
         template<class T, class CONTAINER> void VisitCircle(TypeContainerVisitor<T, CONTAINER>&, Map&, const CellPair&, const CellPair&) const;

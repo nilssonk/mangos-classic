@@ -16,12 +16,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _COMBATMANAGER
-#define _COMBATMANAGER
+#ifndef COMBATMANAGER_H
+#define COMBATMANAGER_H
 
 #include "Common.h"
-#include <functional>
 #include "Entities/Object.h"
+
+#include <functional>
 
 enum EvadeState
 {
@@ -35,6 +36,9 @@ class Unit;
 class CombatManager
 {
     public:
+        using LeashingCheck = std::function<bool(Unit const&)>;
+        using EvadeEffect = std::function<void(Unit&)>;
+    
         CombatManager(Unit* owner);
 
         void Update(const uint32 diff);
@@ -57,7 +61,10 @@ class CombatManager
         void StopCombatTimer() { m_combatTimer = 0; }
         bool IsLeashingDisabled() { return m_leashingDisabled; }
         void SetLeashingDisable(bool apply) { m_leashingDisabled = apply; }
-        void SetLeashingCheck(std::function<bool(Unit*, float x, float y, float z)> check) { m_leashingCheck = check; } // if check evals as true - evade
+        void SetLeashingCheck(LeashingCheck&& leashingCheck, EvadeEffect&& evadeEffect = {}) {
+            m_leashingCheck = std::move(leashingCheck);
+            m_evadeEffect = std::move(evadeEffect);
+        } // if check evals as true - evade and trigger effect
         void SetForcedCombat(bool state) { m_forcedCombat = state; }
     private:
         Unit* m_owner;
@@ -71,7 +78,8 @@ class CombatManager
         uint32 m_combatTimer;
         Position m_lastRefreshPos;
         bool m_leashingDisabled;                            // disables leashing timer for script mobs
-        std::function<bool(Unit*, float x, float y, float z)> m_leashingCheck;
+        LeashingCheck m_leashingCheck;
+        EvadeEffect m_evadeEffect;
 
         // vanilla bloodrage
         bool m_forcedCombat;

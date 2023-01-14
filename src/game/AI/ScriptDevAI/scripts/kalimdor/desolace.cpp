@@ -232,6 +232,8 @@ bool QuestAccept_npc_dalinda_malem(Player* pPlayer, Creature* pCreature, const Q
 ## npc_melizza_brimbuzzle
 ######*/
 
+namespace {
+
 enum
 {
     QUEST_GET_ME_OUT_OF_HERE    = 6132,
@@ -261,7 +263,7 @@ enum
     MAX_WRANGLERS               = 3,
 };
 
-static const DialogueEntry aIntroDialogue[] =
+const DialogueEntry aIntroDialogue[] =
 {
     {POINT_ID_QUEST_COMPLETE,   0,              1000},
     {QUEST_GET_ME_OUT_OF_HERE,  NPC_MELIZZA,    0},
@@ -275,18 +277,15 @@ static const DialogueEntry aIntroDialogue[] =
     {0, 0, 0},
 };
 
-struct SummonLocation
-{
-    float m_fX, m_fY, m_fZ;
-};
-
-static const SummonLocation aMarauderSpawn[] =
+const Vec3 aMarauderSpawn[] =
 {
     { -1291.492f, 2644.650f, 111.556f},
     { -1306.730f, 2675.163f, 111.561f},
 };
 
-static const SummonLocation wranglerSpawn = { -1393.194f, 2429.465f, 88.689f };
+const Vec3 wranglerSpawn{ -1393.194f, 2429.465f, 88.689f };
+
+} // namespace
 
 struct npc_melizza_brimbuzzleAI : public npc_escortAI, private DialogueHelper
 {
@@ -327,26 +326,24 @@ struct npc_melizza_brimbuzzleAI : public npc_escortAI, private DialogueHelper
                 m_creature->SetFactionTemporary(FACTION_ESCORT_N_NEUTRAL_PASSIVE, TEMPFACTION_RESTORE_RESPAWN);
                 break;
             case 4:
-                for (auto i : aMarauderSpawn)
+                for (auto const& spawn_pos : aMarauderSpawn)
                 {
                     for (uint8 j = 0; j < MAX_MARAUDERS; ++j)
                     {
                         // Summon 2 Marauders on each point
-                        float fX, fY, fZ;
-                        m_creature->GetRandomPoint(i.m_fX, i.m_fY, i.m_fZ, 7.0f, fX, fY, fZ);
-                        m_creature->SummonCreature(NPC_MARAUDINE_MARAUDER, fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0);
+                        auto const rand_pos = m_creature->GetRandomPoint(spawn_pos, 7.0f);
+                        m_creature->SummonCreature(NPC_MARAUDINE_MARAUDER, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                     }
                 }
                 break;
             case 9:
                 for (uint8 i = 0; i < MAX_WRANGLERS; ++i)
                 {
-                    float fX, fY, fZ;
-                    m_creature->GetRandomPoint(wranglerSpawn.m_fX, wranglerSpawn.m_fY, wranglerSpawn.m_fZ, 10.0f, fX, fY, fZ);
-                    m_creature->SummonCreature(NPC_MARAUDINE_BONEPAW, fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    auto const rand_pos_bonepaw = m_creature->GetRandomPoint(wranglerSpawn, 10.0f);
+                    m_creature->SummonCreature(NPC_MARAUDINE_BONEPAW, {rand_pos_bonepaw, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
 
-                    m_creature->GetRandomPoint(wranglerSpawn.m_fX, wranglerSpawn.m_fY, wranglerSpawn.m_fZ, 10.0f, fX, fY, fZ);
-                    m_creature->SummonCreature(NPC_MARAUDINE_WRANGLER, fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    auto const rand_pos_wrangler = m_creature->GetRandomPoint(wranglerSpawn, 10.0f);
+                    m_creature->SummonCreature(NPC_MARAUDINE_WRANGLER, {rand_pos_wrangler, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                 }
                 break;
             case 12:
@@ -417,6 +414,8 @@ bool QuestAccept_npc_melizza_brimbuzzle(Player* pPlayer, Creature* pCreature, co
 ## npc_cork_gizelton
 ######*/
 
+namespace {
+
 enum
 {
     SAY_CORK_AMBUSH1        = -1001191,
@@ -443,39 +442,57 @@ enum
     QUEST_GIZELTON_CARAVAN  = 5943,
 };
 
-static const SummonLocation aAmbushLocsBodyGuard[12] =
+struct AmbushInfo {
+    uint32_t id;
+    Vec3 pos;
+};
+
+const AmbushInfo aAmbushBodyGuard[3][4] =
 {
     // Quest QUEST_BODYGUARD_TO_HIRE
-    {-969.05f, 1174.91f, 90.39f},       // First ambush
-    {-985.71f, 1173.95f, 91.02f},
-    {-983.01f, 1192.88f, 90.01f},
-    {-965.51f, 1193.58f, 92.15f},
-    {-1147.83f, 1180.87f, 91.38f},      // Second ambush
-    {-1163.96f, 1183.72f, 93.79f},
-    {-1160.97f, 1201.36f, 93.15f},
-    {-1146.20f, 1199.75f, 91.37f},
-    {-1277.78f, 1218.56f, 109.30f},     // Third ambush
-    {-1292.65f, 1221.28f, 109.99f},
-    {-1289.25f, 1239.20f, 108.79f},
-    {-1272.91f, 1234.39f, 108.14f},
+    {   // First ambush
+        {NPC_KOLKAR_WAYLAYER, {-969.05f, 1174.91f, 90.39f}},
+        {NPC_KOLKAR_AMBUSHER, {-985.71f, 1173.95f, 91.02f}},
+        {NPC_KOLKAR_WAYLAYER, {-983.01f, 1192.88f, 90.01f}},
+        {NPC_KOLKAR_AMBUSHER, {-965.51f, 1193.58f, 92.15f}},
+    },
+    {    // Second ambush
+        {NPC_KOLKAR_WAYLAYER, {-1147.83f, 1180.87f, 91.38f}},
+        {NPC_KOLKAR_AMBUSHER, {-1163.96f, 1183.72f, 93.79f}},
+        {NPC_KOLKAR_WAYLAYER, {-1160.97f, 1201.36f, 93.15f}},
+        {NPC_KOLKAR_AMBUSHER, {-1146.20f, 1199.75f, 91.37f}},
+    },
+    {
+        // Third ambush
+        {NPC_KOLKAR_WAYLAYER, {-1277.78f, 1218.56f, 109.30f}},
+        {NPC_KOLKAR_AMBUSHER, {-1292.65f, 1221.28f, 109.99f}},
+        {NPC_KOLKAR_WAYLAYER, {-1289.25f, 1239.20f, 108.79f}},
+        {NPC_KOLKAR_AMBUSHER, {-1272.91f, 1234.39f, 108.14f}},
+    }
 };
 
-static const SummonLocation aAmbushLocsGizelton[9] =
+const AmbushInfo aAmbushGizelton[3][3] =
 {
     // Quest QUEST_GIZELTON_CARAVAN
-    {-1823.7f, 2060.88f, 62.0925f},     // First ambush
-    {-1814.46f, 2060.13f, 62.4916f},
-    {-1814.87f, 2080.6f, 63.6323f},
-    {-1782.92f, 1942.55f, 60.2205f},    // Second ambush
-    {-1786.5f, 1926.05f, 59.7502f},
-    {-1805.74f, 1942.77f, 60.791f},
-    {-1677.56f, 1835.67f, 58.9269f},    // Third ambush
-    {-1675.66f, 1863.0f, 59.0008f},
-    {-1692.31f, 1862.69f, 58.9553f},
+    {
+        {NPC_NETHER_SORCERESS, {-1823.7f, 2060.88f, 62.0925f}},     // First ambush
+        {NPC_LESSER_INFERNAL, {-1814.46f, 2060.13f, 62.4916f}},
+        {NPC_DOOMWARDER, {-1814.87f, 2080.6f, 63.6323f}},
+    },
+    {
+        {NPC_NETHER_SORCERESS, {-1782.92f, 1942.55f, 60.2205f}},    // Second ambush
+        {NPC_LESSER_INFERNAL, {-1786.5f, 1926.05f, 59.7502f}},
+        {NPC_DOOMWARDER, {-1805.74f, 1942.77f, 60.791f}},
+    },
+    {
+        {NPC_NETHER_SORCERESS, {-1677.56f, 1835.67f, 58.9269f}},    // Third ambush
+        {NPC_LESSER_INFERNAL, {-1675.66f, 1863.0f, 59.0008f}},
+        {NPC_DOOMWARDER, {-1692.31f, 1862.69f, 58.9553f}},
+    }
 };
 
-static const uint32 AmbushersBodyguard[4] = { NPC_KOLKAR_WAYLAYER, NPC_KOLKAR_AMBUSHER, NPC_KOLKAR_WAYLAYER, NPC_KOLKAR_AMBUSHER };
-static const uint32 AmbushersGizleton[3] = { NPC_NETHER_SORCERESS, NPC_LESSER_INFERNAL, NPC_DOOMWARDER };
+
+} // namespace
 
 struct npc_cork_gizeltonAI : public ScriptedAI
 {
@@ -498,27 +515,27 @@ struct npc_cork_gizeltonAI : public ScriptedAI
     // Custom function to handle event ambushes
     void DoAmbush(uint32 uiQuestId, uint8 uiAmbushPoint)
     {
+        MANGOS_ASSERT(1 <= uiAmbushPoint && uiAmbushPoint <= 3);
+
         uiAmbushPoint--;
         switch (uiQuestId)
         {
-            case QUEST_BODYGUARD_TO_HIRE:
+            case QUEST_BODYGUARD_TO_HIRE: {
                 // Summon 2 NPC_KOLKAR_WAYLAYER and 2 NPC_KOLKAR_AMBUSHER
-                for (uint8 i = 0; i < 4; ++i)
+                for (auto const& ambush_info : aAmbushBodyGuard[uiAmbushPoint])
                 {
-                    float fX, fY, fZ;
-                    m_creature->GetRandomPoint(aAmbushLocsBodyGuard[i + 4 * uiAmbushPoint].m_fX, aAmbushLocsBodyGuard[i + 4 * uiAmbushPoint].m_fY, aAmbushLocsBodyGuard[i + 4 * uiAmbushPoint].m_fZ, 7.0f, fX, fY, fZ);
-                    m_creature->SummonCreature(AmbushersBodyguard[i], fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    auto const rand_pos = m_creature->GetRandomPoint(ambush_info.pos, 7.0f);
+                    m_creature->SummonCreature(ambush_info.id, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                 }
-                break;
-            case QUEST_GIZELTON_CARAVAN:
+            } break;
+            case QUEST_GIZELTON_CARAVAN: {
                 // Summon 1 NPC_NETHER_SORCERESS, 1 NPC_LESSER_INFERNAL and 1 NPC_DOOMWARDER
-                for (uint8 i = 0; i < 3; ++i)
+                for (auto const& ambush_info : aAmbushGizelton[uiAmbushPoint])
                 {
-                    float fX, fY, fZ;
-                    m_creature->GetRandomPoint(aAmbushLocsGizelton[i + 3 * uiAmbushPoint].m_fX, aAmbushLocsGizelton[i + 3 * uiAmbushPoint].m_fY, aAmbushLocsGizelton[i + 3 * uiAmbushPoint].m_fZ, 7.0f, fX, fY, fZ);
-                    m_creature->SummonCreature(AmbushersGizleton[i], fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    auto const rand_pos = m_creature->GetRandomPoint(ambush_info.pos , 7.0f);
+                    m_creature->SummonCreature(ambush_info.id, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                 }
-                break;
+            } break;
         }
     }
 
@@ -746,9 +763,7 @@ struct npc_magrami_spectre : public ScriptedAI
         {
             if (uiData == 1)
             {
-                float x, y, z;
-                m_creature->GetPosition(x, y, z);
-                m_creature->GetMotionMaster()->MoveRandomAroundPoint(x, y, z, 5.f);
+                m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->GetPosition().xyz(), 5.f);
                 m_creature->RemoveAurasDueToSpell(SPELL_BLUE_AURA);
                 m_creature->CastSpell(m_creature, SPELL_GREEN_AURA, TRIGGERED_NONE);
                 m_creature->SetFactionTemporary(FACTION_HOSTILE, TEMPFACTION_NONE);

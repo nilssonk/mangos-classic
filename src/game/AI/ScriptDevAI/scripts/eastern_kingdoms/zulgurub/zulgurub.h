@@ -42,8 +42,8 @@ enum
     SPELL_HAKKAR_POWER_DOWN = 24693,
 };
 
-static const float aMandokirDownstairsPos[3] = { -12196.30f, -1948.37f, 130.31f};
-static const float aArlokkWallShieldPos[3] = { -11494.76f, -1627.56f, 41.30f};
+static const Vec3 aMandokirDownstairsPos{ -12196.30f, -1948.37f, 130.31f};
+static const Vec3 aArlokkWallShieldPos{ -11494.76f, -1627.56f, 41.30f};
 
 class instance_zulgurub : public ScriptedInstance
 {

@@ -2047,7 +2047,7 @@ bool ChatHandler::HandleListObjectCommand(char* args)
         ExtractOptUInt32(&args, count, MaxResult);
 
     if (player)
-        player->GetTerrain()->GetZoneAndAreaId(playerZoneId, playerAreaId, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
+        player->GetTerrain()->GetZoneAndAreaId(playerZoneId, playerAreaId, player->GetPosition().xyz());
 
     static const std::string QueryTablesName[] = {
         "gameobject",
@@ -2059,9 +2059,7 @@ bool ChatHandler::HandleListObjectCommand(char* args)
     struct TempGobData
     {
         uint32 guid;
-        float x;
-        float y;
-        float z;
+        Vec3 pos;
         int mapid;
         float dist;
         uint32 originTable;
@@ -2086,16 +2084,15 @@ bool ChatHandler::HandleListObjectCommand(char* args)
             Field* fields = result->Fetch();
             TempGobData data;
             data.guid = fields[0].GetUInt32();
-            data.x = fields[1].GetFloat();
-            data.y = fields[2].GetFloat();
-            data.z = fields[3].GetFloat();
+            data.pos = Vec3{fields[1].GetFloat(), fields[2].GetFloat(), fields[3].GetFloat()};
             data.mapid = fields[4].GetUInt16();
             data.originTable = queryTableNameIndex;
-            data.dist = std::pow(data.x - player->GetPositionX(), 2) + std::pow(data.y - player->GetPositionY(), 2) + std::pow(data.z - player->GetPositionZ(), 2);
+            auto const dx = data.pos - player->GetPosition().xyz();
+            data.dist = dx.squaredLength();
 
             uint32 objZoneId = 0;
             uint32 objAreaId = 0;
-            player->GetTerrain()->GetZoneAndAreaId(objZoneId, objAreaId, data.x, data.y, data.z);
+            player->GetTerrain()->GetZoneAndAreaId(objZoneId, objAreaId, data.pos);
             if (player->GetMapId() == data.mapid)
             {
                 if (objZoneId == playerZoneId)
@@ -2133,9 +2130,11 @@ bool ChatHandler::HandleListObjectCommand(char* args)
             Field* fields = result->Fetch();
             TempGobData data;
             data.guid = fields[0].GetUInt32();
-            data.x = fields[1].GetFloat();
-            data.y = fields[2].GetFloat();
-            data.z = fields[3].GetFloat();
+            data.pos = Vec3{
+                fields[1].GetFloat(),
+                fields[2].GetFloat(),
+                fields[3].GetFloat()
+            };
             data.mapid = fields[4].GetUInt16();
             data.originTable = queryTableNameIndex;
             data.dist = counter++;
@@ -2186,15 +2185,17 @@ bool ChatHandler::HandleListObjectCommand(char* args)
         uint32 counter = 0;
         for (auto const& gob : tempData)
         {
+            auto const& pos = gob.pos;
+
             std::string info = " - From `" + QueryTablesName[gob.originTable];
             info += "`";
             info += PrepareStringNpcOrGoSpawnInformation<GameObject>(gob.guid);
             if (player)
                 PSendSysMessage(LANG_GO_LIST_CHAT, gob.guid, info.c_str(),
-                    gob.guid, gInfo->name, gob.x, gob.y, gob.z, gob.mapid);
+                    gob.guid, gInfo->name, pos.x, pos.y, pos.z, gob.mapid);
             else
                 PSendSysMessage(LANG_GO_LIST_CONSOLE, gob.guid, info.c_str(),
-                    gInfo->name, gob.x, gob.y, gob.z, gob.mapid);
+                    gInfo->name, pos.x, pos.y, pos.z, gob.mapid);
             ++counter;
             if (counter >= count)
                 break;
@@ -2277,7 +2278,7 @@ bool ChatHandler::HandleListCreatureCommand(char* args)
         ExtractOptUInt32(&args, count, MaxResult);
 
     if (player)
-        player->GetTerrain()->GetZoneAndAreaId(playerZoneId, playerAreaId, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
+        player->GetTerrain()->GetZoneAndAreaId(playerZoneId, playerAreaId, player->GetPosition().xyz());
 
     static const std::string QueryTablesName[] = {
         "creature",
@@ -2289,9 +2290,7 @@ bool ChatHandler::HandleListCreatureCommand(char* args)
     struct TempCreatureData
     {
         uint32 guid;
-        float x;
-        float y;
-        float z;
+        Vec3 pos;
         int mapid;
         float dist;
         uint32 originTable;
@@ -2316,16 +2315,20 @@ bool ChatHandler::HandleListCreatureCommand(char* args)
             Field* fields = result->Fetch();
             TempCreatureData data;
             data.guid = fields[0].GetUInt32();
-            data.x = fields[1].GetFloat();
-            data.y = fields[2].GetFloat();
-            data.z = fields[3].GetFloat();
+            data.pos = Vec3{
+                fields[1].GetFloat(),
+                fields[2].GetFloat(),
+                fields[3].GetFloat()
+            };
             data.mapid = fields[4].GetUInt16();
             data.originTable = queryTableNameIndex;
-            data.dist = std::pow(data.x - player->GetPositionX(), 2) + std::pow(data.y - player->GetPositionY(), 2) + std::pow(data.z - player->GetPositionZ(), 2);
+
+            auto const dx = data.pos - player->GetPosition().xyz();
+            data.dist = dx.squaredLength();
 
             uint32 objZoneId = 0;
             uint32 objAreaId = 0;
-            player->GetTerrain()->GetZoneAndAreaId(objZoneId, objAreaId, data.x, data.y, data.z);
+            player->GetTerrain()->GetZoneAndAreaId(objZoneId, objAreaId, data.pos);
             if (player->GetMapId() == data.mapid)
             {
                 if (objZoneId == playerZoneId)
@@ -2363,9 +2366,11 @@ bool ChatHandler::HandleListCreatureCommand(char* args)
             Field* fields = result->Fetch();
             TempCreatureData data;
             data.guid = fields[0].GetUInt32();
-            data.x = fields[1].GetFloat();
-            data.y = fields[2].GetFloat();
-            data.z = fields[3].GetFloat();
+            data.pos = Vec3{
+                fields[1].GetFloat(),
+                fields[2].GetFloat(),
+                fields[3].GetFloat()
+            };
             data.mapid = fields[4].GetUInt16();
             data.originTable = queryTableNameIndex;
             data.dist = counter++;
@@ -2416,15 +2421,17 @@ bool ChatHandler::HandleListCreatureCommand(char* args)
         uint32 counter = 0;
         for (auto const& crData : tempData)
         {
+            auto const& pos = crData.pos;
+
             std::string info = " - From `" + QueryTablesName[crData.originTable];
             info += "`";
             info += PrepareStringNpcOrGoSpawnInformation<GameObject>(crData.guid);
             if (player)
                 PSendSysMessage(LANG_CREATURE_LIST_CHAT, crData.guid, info.c_str(),
-                    crData.guid, cInfo->Name, crData.x, crData.y, crData.z, crData.mapid);
+                    crData.guid, cInfo->Name, pos.x, pos.y, pos.z, crData.mapid);
             else
                 PSendSysMessage(LANG_CREATURE_LIST_CONSOLE, crData.guid, info.c_str(),
-                    cInfo->Name, crData.x, crData.y, crData.z, crData.mapid);
+                    cInfo->Name, pos.x, pos.y, pos.z, crData.mapid);
             ++counter;
             if (counter >= count)
                 break;
@@ -3212,11 +3219,9 @@ bool ChatHandler::HandleGetLosCommand(char* /*args*/)
         return false;
     }
 
-    float x, y, z;
-    target->GetPosition(x, y, z);
-    z += target->GetCollisionHeight();
-    bool normalLos = player->IsWithinLOS(x, y, z, false);
-    bool m2Los = player->IsWithinLOS(x, y, z, true);
+    auto pos = target->GetPosition().xyz();
+    bool normalLos = player->IsWithinLOS(pos, false);
+    bool m2Los = player->IsWithinLOS(pos, true);
     PSendSysMessage("Los check: Normal: %s M2: %s", normalLos ? "true" : "false", m2Los ? "true" : "false");
     return true;
 }
@@ -4230,13 +4235,11 @@ bool ChatHandler::HandleTeleAddCommand(char* args)
         return false;
     }
 
-    GameTele tele;
-    tele.position_x  = player->GetPositionX();
-    tele.position_y  = player->GetPositionY();
-    tele.position_z  = player->GetPositionZ();
-    tele.orientation = player->GetOrientation();
-    tele.mapId       = player->GetMapId();
-    tele.name        = name;
+    GameTele tele{
+        WorldLocation{player->GetMapId(), player->GetPosition()},
+        name,
+        {}
+    };
 
     if (sObjectMgr.AddGameTele(tele))
     {
@@ -4295,7 +4298,7 @@ bool ChatHandler::HandleListAreaTriggerCommand(char* args)
             if (atEntry->mapid != playerMap)
                 continue;
 
-            uint32 areaTriggerArea = player->GetTerrain()->GetAreaId(atEntry->x, atEntry->y, atEntry->z);
+            uint32 areaTriggerArea = player->GetTerrain()->GetAreaId(Vec3{atEntry->x, atEntry->y, atEntry->z});
             if (areaTriggerArea != playerArea)
                 continue;
 
@@ -5958,10 +5961,9 @@ bool ChatHandler::HandleCastDistCommand(char* args)
     if (!triggered && *args)                                // can be fail also at syntax error
         return false;
 
-    float x, y, z;
-    m_session->GetPlayer()->GetClosePoint(x, y, z, dist);
+    auto const close_point = m_session->GetPlayer()->GetClosePoint(dist);
 
-    SpellCastResult result = m_session->GetPlayer()->CastSpell(x, y, z, spell, triggered ? TRIGGERED_OLD_TRIGGERED : TRIGGERED_NONE);
+    SpellCastResult result = m_session->GetPlayer()->CastSpell(close_point, spell, triggered ? TRIGGERED_OLD_TRIGGERED : TRIGGERED_NONE);
     if (result != SPELL_CAST_OK)
         PSendSysMessage("Spell resulted in fail %u", uint32(result));
     return true;
@@ -6021,7 +6023,7 @@ bool ChatHandler::HandleComeToMeCommand(char* /*args*/)
 
     Player* pl = m_session->GetPlayer();
 
-    caster->GetMotionMaster()->MovePoint(0, pl->GetPositionX(), pl->GetPositionY(), pl->GetPositionZ());
+    caster->GetMotionMaster()->MovePoint(0, pl->GetPosition().xyz());
     return true;
 }
 
@@ -6737,12 +6739,11 @@ bool ChatHandler::HandleMmapTestArea(char* args)
         uint32 paths = 0;
         uint32 uStartTime = WorldTimer::getMSTime();
 
-        float gx, gy, gz;
-        m_session->GetPlayer()->GetPosition(gx, gy, gz);
+        auto const& pos = m_session->GetPlayer()->GetPosition();
         for (auto& itr : creatureList)
         {
             PathFinder path(itr);
-            path.calculate(gx, gy, gz);
+            path.calculate(pos.xyz());
             ++paths;
         }
 
@@ -6791,20 +6792,21 @@ bool ChatHandler::HandleMmapTestHeight(char* args)
         radius = 5.0f;
     }
 
-    float gx, gy, gz;
-    unit->GetPosition(gx, gy, gz);
+    auto unit_pos = unit->GetPosition().xyz();
+    unit_pos.z += 0.5f;
 
-    Creature* summoned = unit->SummonCreature(VISUAL_WAYPOINT, gx, gy, gz + 0.5f, 0, TEMPSPAWN_TIMED_DESPAWN, 20000);
+    Creature* summoned = unit->SummonCreature(VISUAL_WAYPOINT, Position{unit_pos, 0.0f}, TempSpawnType::TIMED_DESPAWN, 20000);
     summoned->CastSpell(summoned, 8599, TRIGGERED_NONE);
     uint32 tries = 1;
     uint32 successes = 0;
     uint32 startTime = WorldTimer::getMSTime();
     for (; tries < 500; ++tries)
     {
-        unit->GetPosition(gx, gy, gz);
-        if (unit->GetMap()->GetReachableRandomPosition(unit, gx, gy, gz, radius))
+        auto const pos = unit->GetPosition().xyz();
+        auto const maybe_rand_pos = unit->GetMap()->GetReachableRandomPosition(unit, pos, radius);
+        if (maybe_rand_pos)
         {
-            unit->SummonCreature(VISUAL_WAYPOINT, gx, gy, gz, 0, TEMPSPAWN_TIMED_DESPAWN, 15000);
+            unit->SummonCreature(VISUAL_WAYPOINT, Position{*maybe_rand_pos, 0.0f}, TempSpawnType::TIMED_DESPAWN, 15000);
             ++successes;
             if (successes >= 100)
                 break;

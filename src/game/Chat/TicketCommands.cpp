@@ -102,7 +102,7 @@ bool ChatHandler::HandleTicketGoCommand(char* args)
 
     float z = ticket->GetPositionZ();
     float o = ticket->GetPositionO();
-    return HandleGoHelper(m_session->GetPlayer(), ticket->GetMapId(), ticket->GetPositionX(), ticket->GetPositionY(), &z, &o);
+    return HandleGoHelper(m_session->GetPlayer(), ticket->GetMapId(), ticket->GetPosition());
 }
 
 bool ChatHandler::HandleTicketGoNameCommand(char* args)

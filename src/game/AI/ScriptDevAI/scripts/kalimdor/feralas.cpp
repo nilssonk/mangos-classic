@@ -73,24 +73,24 @@ struct npc_oox22feAI : public npc_escortAI
             // First Ambush(3 Yetis)
             case 12:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_YETI, -4841.01f, 1593.91f, 73.42f, 3.98f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_YETI, -4837.61f, 1568.58f, 78.21f, 3.13f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_YETI, -4841.89f, 1569.95f, 76.53f, 0.68f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_YETI, {-4841.01f, 1593.91f, 73.42f, 3.98f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_YETI, {-4837.61f, 1568.58f, 78.21f, 3.13f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_YETI, {-4841.89f, 1569.95f, 76.53f, 0.68f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
                 break;
             // Second Ambush(3 Gorillas)
             case 22:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_GORILLA, -4595.81f, 2005.99f, 53.08f, 3.74f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_GORILLA, -4597.53f, 2008.31f, 52.70f, 3.78f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_GORILLA, -4599.37f, 2010.59f, 52.77f, 3.84f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_GORILLA, {-4595.81f, 2005.99f, 53.08f, 3.74f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_GORILLA, {-4597.53f, 2008.31f, 52.70f, 3.78f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_GORILLA, {-4599.37f, 2010.59f, 52.77f, 3.84f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
                 break;
             // Third Ambush(4 Gnolls)
             case 31:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_WOODPAW_REAVER, -4425.14f, 2075.87f, 47.77f, 3.77f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_WOODPAW_BRUTE, -4426.68f, 2077.98f, 47.57f, 3.77f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_WOODPAW_MYSTIC, -4428.33f, 2080.24f, 47.43f, 3.87f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
-                m_creature->SummonCreature(NPC_WOODPAW_ALPHA, -4430.04f, 2075.54f, 46.83f, 3.81f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_WOODPAW_REAVER, {-4425.14f, 2075.87f, 47.77f, 3.77f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_WOODPAW_BRUTE, {-4426.68f, 2077.98f, 47.57f, 3.77f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_WOODPAW_MYSTIC, {-4428.33f, 2080.24f, 47.43f, 3.87f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_WOODPAW_ALPHA, {-4430.04f, 2075.54f, 46.83f, 3.81f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 10000);
                 break;
             case 38:
                 DoScriptText(SAY_OOX_END, m_creature);
@@ -217,9 +217,8 @@ struct npc_shay_leafrunnerAI : public FollowerAI
             m_uiWanderTimer = 0;
 
             // move to Rockbiter
-            float fX, fY, fZ;
-            pWho->GetContactPoint(m_creature, fX, fY, fZ, INTERACTION_DISTANCE);
-            m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+            auto const contact_point = pWho->GetContactPoint(m_creature, INTERACTION_DISTANCE);
+            m_creature->GetMotionMaster()->MovePoint(0, contact_point);
         }
         else if (m_bIsRecalled && pWho->GetTypeId() == TYPEID_PLAYER && pWho->IsWithinDistInMap(pWho, INTERACTION_DISTANCE))
         {
@@ -273,9 +272,8 @@ struct npc_shay_leafrunnerAI : public FollowerAI
                         case 3: DoScriptText(SAY_WANDER_4, m_creature); break;
                     }
 
-                    float fX, fY, fZ;
-                    m_creature->GetNearPoint(m_creature, fX, fY, fZ, 0, frand(25.0f, 40.0f), frand(0, 2 * M_PI_F));
-                    m_creature->GetMotionMaster()->MoveRandomAroundPoint(fX, fY, fZ, 20.0f);
+                    auto const near_point = m_creature->GetNearPoint(m_creature, 0, frand(25.0f, 40.0f), frand(0, 2 * M_PI_F));
+                    m_creature->GetMotionMaster()->MoveRandomAroundPoint(near_point, 20.0f);
                 }
                 else
                     m_uiWanderTimer -= uiDiff;
@@ -321,6 +319,8 @@ bool EffectDummyCreature_npc_shay_leafrunner(Unit* pCaster, uint32 uiSpellId, Sp
 ## Quest Freedom for all creatures
 ######*/
 
+namespace {
+
 enum {
     SAY_KINDAL_QUEST_START      = -1010023,
     SAY_KINDAL_INITIAL_AGGRO    = -1010024,
@@ -338,7 +338,9 @@ enum {
     SPELL_MULTI_SHOT            = 6660
 };
 
-static const float raiderSpawnPos[4] = { -4515.35f, 811.36f, 62.99f, 3.60244f };
+const Position raiderSpawnPos{ -4515.35f, 811.36f, 62.99f, 3.60244f };
+
+} // namespace
 
 /*######
 ## npc_captured_sprite_darter
@@ -425,7 +427,7 @@ bool GOUse_go_cage_door(Player* player, GameObject* go)
             escortAI->Start(true, player, nullptr);
     }
     // Spawn a Grimtotem Raider
-    if (Creature* grimtotemRaider = player->SummonCreature(NPC_GRIMTOTEM_RAIDER, raiderSpawnPos[0], raiderSpawnPos[1], raiderSpawnPos[2], raiderSpawnPos[3],TEMPSPAWN_DEAD_DESPAWN, 10 * MINUTE * IN_MILLISECONDS))
+    if (Creature* grimtotemRaider = player->SummonCreature(NPC_GRIMTOTEM_RAIDER, raiderSpawnPos,TempSpawnType::DEAD_DESPAWN, 10 * MINUTE * IN_MILLISECONDS))
     {
         grimtotemRaider->AI()->AttackStart(player);
         if (Creature* kindal = GetClosestCreatureWithEntry(player, NPC_KINDAL_MOONWEAVER, 20.0f))

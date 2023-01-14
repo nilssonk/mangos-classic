@@ -27,6 +27,8 @@ EndScriptData
 #include "blackwing_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace bwl {
+
 enum
 {
     SPELL_SHADOW_FLAME          = 22539,
@@ -119,3 +121,5 @@ void AddSC_boss_firemaw()
     pNewScript->GetAI = &GetNewAIInstance<boss_firemawAI>;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

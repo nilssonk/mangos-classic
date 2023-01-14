@@ -63,7 +63,7 @@ struct boss_ambassador_flamelashAI : public ScriptedAI
             return;
 
         if (GameObject* pRune = m_pInstance->GetSingleGameObjectFromStorage(GO_DWARFRUNE_A01 + uiIndex))
-            m_creature->SummonCreature(NPC_BURNING_SPIRIT, pRune->GetPositionX(), pRune->GetPositionY(), pRune->GetPositionZ(), pRune->GetAngle(m_creature), TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 60000);
+            m_creature->SummonCreature(NPC_BURNING_SPIRIT, {pRune->GetPosition().xyz(), pRune->GetAngle(m_creature)}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 60000);
     }
 
     void MoveInLineOfSight(Unit* pWho) override
@@ -85,10 +85,10 @@ struct boss_ambassador_flamelashAI : public ScriptedAI
         if (m_pInstance)
             m_pInstance->SetData(TYPE_FLAMELASH, IN_PROGRESS);
 
-        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, 919.21f, -231.029f, -50.1755f, 5.65487f, TEMPSPAWN_TIMED_OOC_DESPAWN, 300000);
-        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, 913.883f, -236.914f, -49.8527f, 6.03884f, TEMPSPAWN_TIMED_OOC_DESPAWN, 300000);
-        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, 924.225f, -256.302f, -49.8526f, 1.16937f, TEMPSPAWN_TIMED_OOC_DESPAWN, 300000);
-        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, 932.524f, -252.475f, -49.8526f, 1.71042f, TEMPSPAWN_TIMED_OOC_DESPAWN, 300000);
+        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, {919.21f, -231.029f, -50.1755f, 5.65487f}, TempSpawnType::TIMED_OOC_DESPAWN, 300000);
+        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, {913.883f, -236.914f, -49.8527f, 6.03884f}, TempSpawnType::TIMED_OOC_DESPAWN, 300000);
+        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, {924.225f, -256.302f, -49.8526f, 1.16937f}, TempSpawnType::TIMED_OOC_DESPAWN, 300000);
+        m_creature->SummonCreature(NPC_FIREGUARD_DESTROYER, {932.524f, -252.475f, -49.8526f, 1.71042f}, TempSpawnType::TIMED_OOC_DESPAWN, 300000);
     }
 
     void JustDied(Unit* /*pKiller*/) override

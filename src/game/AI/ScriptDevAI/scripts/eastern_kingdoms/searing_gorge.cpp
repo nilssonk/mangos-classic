@@ -73,11 +73,10 @@ struct npc_dorius_stonetenderAI : public npc_escortAI
         {
             case 21:
                 // ToDo: research if there is any text here!
-                float fX, fY, fZ;
                 for (uint8 i = 0; i < MAX_STEELSHIFTERS; ++i)
                 {
-                    m_creature->GetNearPoint(m_creature, fX, fY, fZ, 0, 15.0f, i * M_PI_F / 2);
-                    m_creature->SummonCreature(NPC_DARK_IRON_STEELSHIFTER, fX, fY, fZ, 0, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 60000);
+                    auto const near_point = m_creature->GetNearPoint(m_creature, 0, 15.0f, i * M_PI_F / 2);
+                    m_creature->SummonCreature(NPC_DARK_IRON_STEELSHIFTER, {near_point, 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 60000);
                 }
                 break;
             case 34:

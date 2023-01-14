@@ -1,4 +1,4 @@
-/*
+/*c
  * This file is part of the CMaNGOS Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,42 +20,24 @@
 #define MANGOSSERVER_COMMON_H
 
 #include "Platform/Define.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <cmath>
-#include <errno.h>
-#include <signal.h>
-#include <assert.h>
-
-#if defined(__sun__)
-#include <ieeefp.h> // finite() on Solaris
-#endif
-
-#include <set>
-#include <vector>
-#include <list>
-#include <string>
-#include <map>
-#include <queue>
-#include <sstream>
-#include <algorithm>
-#include <unordered_map>
-#include <unordered_set>
-#include <chrono>
-
 #include "Platform/Filesystem.h"
 
 #include "Util/Errors.h"
 #include "Multithreading/Threading.h"
 
-// included to use sleep_for()
-#include <thread>
+#include <G3D/Vector2.h>
+#include <G3D/Vector3.h>
+#include <G3D/Vector4.h>
 
-typedef std::chrono::system_clock Clock;
-typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> TimePoint;
+using Vec2 = G3D::Vector2;
+using Vec3 = G3D::Vector3;
+using Vec4 = G3D::Vector4;
+using Position = Vec4;
+
+#if defined(__sun__)
+#include <ieeefp.h> // finite() on Solaris
+#endif
+
 
 #if COMPILER == COMPILER_MICROSOFT
 
@@ -91,6 +73,14 @@ typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::millisec
 #else
 #  define SIZEFMTD "%zu"
 #endif
+
+#include <cstdint>
+#include <chrono>
+#include <string>
+
+typedef std::chrono::system_clock Clock;
+typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds> TimePoint;
+
 
 inline float finiteAlways(float f) { return std::isfinite(f) ? f : 0.0f; }
 

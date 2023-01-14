@@ -144,33 +144,35 @@ typedef CoordPair<TOTAL_NUMBER_OF_CELLS_PER_MAP> CellPair;
 namespace MaNGOS
 {
     template<class RET_TYPE, int CENTER_VAL>
-    inline RET_TYPE Compute(float x, float y, float center_offset, float size)
+    inline RET_TYPE Compute(Vec2 const& pos, float center_offset, float size)
     {
         // calculate and store temporary values in double format for having same result as same mySQL calculations
-        double x_offset = (double(x) - center_offset) / size;
-        double y_offset = (double(y) - center_offset) / size;
+        double x_offset = (double(pos.x) - center_offset) / size;
+        double y_offset = (double(pos.y) - center_offset) / size;
 
         int x_val = int(x_offset + CENTER_VAL + 0.5);
         int y_val = int(y_offset + CENTER_VAL + 0.5);
         return RET_TYPE(x_val, y_val);
     }
 
-    inline GridPair ComputeGridPair(float x, float y)
+    inline GridPair ComputeGridPair(Vec2 const& pos)
     {
-        return Compute<GridPair, CENTER_GRID_ID>(x, y, CENTER_GRID_OFFSET, SIZE_OF_GRIDS);
+        return Compute<GridPair, CENTER_GRID_ID>(pos, CENTER_GRID_OFFSET, SIZE_OF_GRIDS);
     }
 
-    inline CellPair ComputeCellPair(float x, float y)
+    inline CellPair ComputeCellPair(Vec2 const& pos)
     {
-        return Compute<CellPair, CENTER_GRID_CELL_ID>(x, y, CENTER_GRID_CELL_OFFSET, SIZE_OF_GRID_CELL);
+        return Compute<CellPair, CENTER_GRID_CELL_ID>(pos, CENTER_GRID_CELL_OFFSET, SIZE_OF_GRID_CELL);
     }
 
-    inline void NormalizeMapCoord(float& c)
+    inline float NormalizeMapCoord(float c)
     {
         if (c > MAP_HALFSIZE - 0.5)
             c = MAP_HALFSIZE - 0.5;
         else if (c < -(MAP_HALFSIZE - 0.5))
             c = -(MAP_HALFSIZE - 0.5);
+
+        return c;
     }
 
     inline bool IsValidMapCoord(float c)
@@ -178,19 +180,19 @@ namespace MaNGOS
         return std::isfinite(c) && (std::fabs(c) <= MAP_HALFSIZE - 0.5);
     }
 
-    inline bool IsValidMapCoord(float x, float y)
+    inline bool IsValidMapCoord(Vec2 const& pos)
     {
-        return IsValidMapCoord(x) && IsValidMapCoord(y);
+        return IsValidMapCoord(pos.x) && IsValidMapCoord(pos.y);
     }
 
-    inline bool IsValidMapCoord(float x, float y, float z)
+    inline bool IsValidMapCoord(Vec3 const& pos)
     {
-        return IsValidMapCoord(x, y) && std::isfinite(z);
+        return std::isfinite(pos.z) && IsValidMapCoord(pos.xy());
     }
 
-    inline bool IsValidMapCoord(float x, float y, float z, float o)
+    inline bool IsValidMapCoord(Vec4 const& pos)
     {
-        return IsValidMapCoord(x, y, z) && std::isfinite(o);
+        return std::isfinite(pos.w) && IsValidMapCoord(pos.xyz());
     }
 }
 #endif

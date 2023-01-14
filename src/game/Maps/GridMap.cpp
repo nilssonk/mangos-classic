@@ -37,8 +37,16 @@ char const* MAP_AREA_MAGIC    = "AREA";
 char const* MAP_HEIGHT_MAGIC  = "MHGT";
 char const* MAP_LIQUID_MAGIC  = "MLIQ";
 
-static uint16 holetab_h[4] = { 0x1111, 0x2222, 0x4444, 0x8888 };
-static uint16 holetab_v[4] = { 0x000F, 0x00F0, 0x0F00, 0xF000 };
+namespace {
+
+const uint16 holetab_h[4] = { 0x1111, 0x2222, 0x4444, 0x8888 };
+const uint16 holetab_v[4] = { 0x000F, 0x00F0, 0x0F00, 0xF000 };
+
+constexpr int to_map(float x) {
+    return MAP_RESOLUTION * (32 - x / SIZE_OF_GRIDS);
+}
+
+} // anonymous namespace
 
 GridMap::GridMap(): m_gridIntHeightMultiplier(0)
 {
@@ -258,20 +266,21 @@ bool GridMap::loadGridMapLiquidData(FILE* in, uint32 offset, uint32 /*size*/)
     return true;
 }
 
-uint16 GridMap::getArea(float x, float y) const
+uint16 GridMap::getArea(Vec2 const& pos) const
 {
     if (!m_area_map)
         return m_gridArea;
 
-    x = 16 * (32 - x / SIZE_OF_GRIDS);
-    y = 16 * (32 - y / SIZE_OF_GRIDS);
+    float x = to_map(pos.x);
+    float y = to_map(pos.y); 
     int lx = (int)x & 15;
     int ly = (int)y & 15;
     return m_area_map[lx * 16 + ly];
 }
 
-float GridMap::getHeightFromFlat(float /*x*/, float /*y*/) const
+float GridMap::getHeightFromFlat(Vec2 const& pos) const
 {
+    (void)pos;
     return m_gridHeight;
 }
 
@@ -287,13 +296,13 @@ bool GridMap::isHole(int row, int col) const
     return (hole & holetab_h[holeCol] & holetab_v[holeRow]) != 0;
 }
 
-float GridMap::getHeightFromFloat(float x, float y) const
+float GridMap::getHeightFromFloat(Vec2 const& pos) const
 {
     if (!m_V8 || !m_V9)
         return INVALID_HEIGHT_VALUE;
 
-    x = MAP_RESOLUTION * (32 - x / SIZE_OF_GRIDS);
-    y = MAP_RESOLUTION * (32 - y / SIZE_OF_GRIDS);
+    float x = to_map(pos.x);
+    float y = to_map(pos.y); 
 
     int x_int = (int)x;
     int y_int = (int)y;
@@ -372,13 +381,13 @@ float GridMap::getHeightFromFloat(float x, float y) const
     return a * x + b * y + c;
 }
 
-float GridMap::getHeightFromUint8(float x, float y) const
+float GridMap::getHeightFromUint8(Vec2 const& pos) const
 {
     if (!m_uint8_V8 || !m_uint8_V9)
         return m_gridHeight;
 
-    x = MAP_RESOLUTION * (32 - x / SIZE_OF_GRIDS);
-    y = MAP_RESOLUTION * (32 - y / SIZE_OF_GRIDS);
+    float x = to_map(pos.x);
+    float y = to_map(pos.y); 
 
     int x_int = (int)x;
     int y_int = (int)y;
@@ -440,13 +449,13 @@ float GridMap::getHeightFromUint8(float x, float y) const
     return (float)((a * x) + (b * y) + c) * m_gridIntHeightMultiplier + m_gridHeight;
 }
 
-float GridMap::getHeightFromUint16(float x, float y) const
+float GridMap::getHeightFromUint16(Vec2 const& pos) const
 {
     if (!m_uint16_V8 || !m_uint16_V9)
         return m_gridHeight;
 
-    x = MAP_RESOLUTION * (32 - x / SIZE_OF_GRIDS);
-    y = MAP_RESOLUTION * (32 - y / SIZE_OF_GRIDS);
+    float x = to_map(pos.x);
+    float y = to_map(pos.y); 
 
     int x_int = (int)x;
     int y_int = (int)y;
@@ -508,13 +517,13 @@ float GridMap::getHeightFromUint16(float x, float y) const
     return (float)((a * x) + (b * y) + c) * m_gridIntHeightMultiplier + m_gridHeight;
 }
 
-float GridMap::getLiquidLevel(float x, float y) const
+float GridMap::getLiquidLevel(Vec2 const& pos) const
 {
     if (!m_liquid_map)
         return m_liquidLevel;
 
-    x = MAP_RESOLUTION * (32 - x / SIZE_OF_GRIDS);
-    y = MAP_RESOLUTION * (32 - y / SIZE_OF_GRIDS);
+    float x = to_map(pos.x);
+    float y = to_map(pos.y); 
 
     int cx_int = ((int)x & (MAP_RESOLUTION - 1)) - m_liquid_offY;
     int cy_int = ((int)y & (MAP_RESOLUTION - 1)) - m_liquid_offX;
@@ -528,20 +537,20 @@ float GridMap::getLiquidLevel(float x, float y) const
     return m_liquid_map[cx_int * m_liquid_width + cy_int];
 }
 
-uint8 GridMap::getTerrainType(float x, float y) const
+uint8 GridMap::getTerrainType(Vec2 const& pos) const
 {
     if (!m_liquidFlags)
         return (uint8)m_liquidGlobalFlags;
 
-    x = 16 * (32 - x / SIZE_OF_GRIDS);
-    y = 16 * (32 - y / SIZE_OF_GRIDS);
+    float const x = 16 * (32 - pos.x / SIZE_OF_GRIDS);
+    float const y = 16 * (32 - pos.y / SIZE_OF_GRIDS);
     int lx = (int)x & 15;
     int ly = (int)y & 15;
     return m_liquidFlags[lx * 16 + ly];
 }
 
 // Get water state on map
-GridMapLiquidStatus GridMap::getLiquidStatus(float x, float y, float z, uint8 ReqLiquidType, GridMapLiquidData* data, float collisionHeight)
+GridMapLiquidStatus GridMap::getLiquidStatus(Vec3 const& pos, uint8 ReqLiquidType, GridMapLiquidData* data, float collisionHeight)
 {
     // Check water type (if no water return)
     if (!m_liquidFlags && !m_liquidGlobalFlags)
@@ -794,7 +803,7 @@ void TerrainInfo::CleanUpGrids(const uint32 diff)
     i_timer.Reset();
 }
 
-bool TerrainInfo::CanCheckLiquidLevel(float x, float y) const
+bool TerrainInfo::CanCheckLiquidLevel(Vec2 const& pos) const
 {
     if (m_vmgr->isHeightCalcEnabled())
         return true;
@@ -825,20 +834,21 @@ int TerrainInfo::UnrefGrid(const uint32& x, const uint32& y)
     return 0;
 }
 
-float TerrainInfo::GetHeightStatic(float x, float y, float z, bool useVmaps/*=true*/, float maxSearchDist/*=DEFAULT_HEIGHT_SEARCH*/) const
+float TerrainInfo::GetHeightStatic(Vec3 const& pos, bool useVmaps/*=true*/, float maxSearchDist/*=DEFAULT_HEIGHT_SEARCH*/) const
 {
     float mapHeight = VMAP_INVALID_HEIGHT_VALUE;            // Store Height obtained by maps
     float vmapHeight = VMAP_INVALID_HEIGHT_VALUE;           // Store Height obtained by vmaps (in "corridor" of z (or slightly above z)
 
     // find raw .map surface under Z coordinates (or well-defined above)
-    if (GridMap* gmap = const_cast<TerrainInfo*>(this)->GetGrid(x, y))
-        mapHeight = gmap->getHeight(x, y);
+    if (GridMap* gmap = const_cast<TerrainInfo*>(this)->GetGrid(pos.xy())
+        mapHeight = gmap->getHeight(pos);
 
     if (useVmaps)
     {
         if (m_vmgr->isHeightCalcEnabled())
         {
-            float z2 = z + 2.f;
+            float z2 = pos.z + 2.f;
+            Vec3 const new_pos{pos.xy(), z2};
 
             // if mapHeight has been found search vmap height at least until mapHeight point
             // this prevent case when original Z "too high above ground and vmap height search fail"
@@ -847,19 +857,19 @@ float TerrainInfo::GetHeightStatic(float x, float y, float z, bool useVmaps/*=tr
                 maxSearchDist = z2 - mapHeight + 1.0f;      // 1.0 make sure that we not fail for case when map height near but above for vamp height
 
             // look from a bit higher pos to find the floor
-            vmapHeight = m_vmgr->getHeight(GetMapId(), x, y, z2, maxSearchDist);
+            vmapHeight = m_vmgr->getHeight(GetMapId(), new_pos, maxSearchDist);
 
             // if not found in expected range, look for infinity range (case of far above floor, but below terrain-height)
             if (vmapHeight <= INVALID_HEIGHT)
-                vmapHeight = m_vmgr->getHeight(GetMapId(), x, y, z2, 10000.0f);
+                vmapHeight = m_vmgr->getHeight(GetMapId(), new_pos, 10000.0f);
 
             // look upwards
             if (vmapHeight <= INVALID_HEIGHT && mapHeight > z2 && std::abs(z2 - mapHeight) > 30.f)
-                vmapHeight = m_vmgr->getHeight(GetMapId(), x, y, z2, -maxSearchDist);
+                vmapHeight = m_vmgr->getHeight(GetMapId(), new_pos, -maxSearchDist);
 
             // still not found, look near terrain height
             if (vmapHeight <= INVALID_HEIGHT && mapHeight > INVALID_HEIGHT && z2 < mapHeight)
-                vmapHeight = m_vmgr->getHeight(GetMapId(), x, y, mapHeight + 2.0f, DEFAULT_HEIGHT_SEARCH);
+                vmapHeight = m_vmgr->getHeight(GetMapId(), {pos.xy(), mapHeight + 2.0f}, DEFAULT_HEIGHT_SEARCH);
         }
     }
 
@@ -889,7 +899,7 @@ inline bool IsOutdoorWMO(uint32 mogpFlags)
     return (mogpFlags & 0x8000) != 0;
 }
 
-bool TerrainInfo::IsOutdoors(float x, float y, float z) const
+bool TerrainInfo::IsOutdoors(Vec3 const& pos) const
 {
     uint32 mogpFlags;
     int32 adtId, rootId, groupId;
@@ -901,7 +911,7 @@ bool TerrainInfo::IsOutdoors(float x, float y, float z) const
     return IsOutdoorWMO(mogpFlags);
 }
 
-bool TerrainInfo::GetAreaInfo(float x, float y, float z, uint32& flags, int32& adtId, int32& rootId, int32& groupId) const
+bool TerrainInfo::GetAreaInfo(Vec3 const& pos, uint32& flags, int32& adtId, int32& rootId, int32& groupId) const
 {
     float vmap_z = z;
     if (m_vmgr->getAreaInfo(GetMapId(), x, y, vmap_z, flags, adtId, rootId, groupId))
@@ -923,7 +933,7 @@ bool TerrainInfo::GetAreaInfo(float x, float y, float z, uint32& flags, int32& a
 // Return:    char const* (name of area or uknown if it fail to get one)
 // Parameter: float x, y, z (object position)
 // Parameter: uint32 langIndex (language index for specific locale)
-char const* TerrainInfo::GetAreaName(float x, float y, float z, uint32 langIndex) const
+char const* TerrainInfo::GetAreaName(Vec3 const& pos, uint32 langIndex) const
 {
     static const char* fallbackName = "<unknown>";
     const char* areaName = fallbackName;
@@ -965,7 +975,7 @@ char const* TerrainInfo::GetAreaName(float x, float y, float z, uint32 langIndex
     return areaName;
 }
 
-uint16 TerrainInfo::GetAreaFlag(float x, float y, float z, bool* isOutdoors) const
+uint16 TerrainInfo::GetAreaFlag(Vec3 const& pos, bool* isOutdoors) const
 {
     uint32 mogpFlags = 0;
     int32 adtId, rootId, groupId;
@@ -1008,29 +1018,29 @@ uint16 TerrainInfo::GetAreaFlag(float x, float y, float z, bool* isOutdoors) con
     return areaflag;
 }
 
-uint8 TerrainInfo::GetTerrainType(float x, float y) const
+uint8 TerrainInfo::GetTerrainType(Vec2 const& pos) const
 {
     if (GridMap* gmap = const_cast<TerrainInfo*>(this)->GetGrid(x, y))
         return gmap->getTerrainType(x, y);
     return 0;
 }
 
-uint32 TerrainInfo::GetAreaId(float x, float y, float z) const
+uint32 TerrainInfo::GetAreaId(Vec3 const& pos) const
 {
     return TerrainManager::GetAreaIdByAreaFlag(GetAreaFlag(x, y, z), m_mapId);
 }
 
-uint32 TerrainInfo::GetZoneId(float x, float y, float z) const
+uint32 TerrainInfo::GetZoneId(Vec3 const& pos) const
 {
     return TerrainManager::GetZoneIdByAreaFlag(GetAreaFlag(x, y, z), m_mapId);
 }
 
-void TerrainInfo::GetZoneAndAreaId(uint32& zoneid, uint32& areaid, float x, float y, float z) const
+void TerrainInfo::GetZoneAndAreaId(uint32& zoneid, uint32& areaid, Vec3 const& pos) const
 {
     TerrainManager::GetZoneAndAreaIdByAreaFlag(zoneid, areaid, GetAreaFlag(x, y, z), m_mapId);
 }
 
-GridMapLiquidStatus TerrainInfo::getLiquidStatus(float x, float y, float z, uint8 ReqLiquidType, GridMapLiquidData* data, float collisionHeight) const
+GridMapLiquidStatus TerrainInfo::getLiquidStatus(Vec3 const& pos, uint8 ReqLiquidType, GridMapLiquidData* data, float collisionHeight) const
 {
     GridMapLiquidStatus result = LIQUID_MAP_NO_WATER;
     uint32 liquid_type = 0;
@@ -1106,7 +1116,7 @@ GridMapLiquidStatus TerrainInfo::getLiquidStatus(float x, float y, float z, uint
     return result;
 }
 
-bool TerrainInfo::IsInWater(float x, float y, float z, GridMapLiquidData* data) const
+bool TerrainInfo::IsInWater(Vec3 const& pos, GridMapLiquidData* data) const
 {
     // Check surface in x, y point for liquid
     if (CanCheckLiquidLevel(x, y))
@@ -1123,7 +1133,7 @@ bool TerrainInfo::IsInWater(float x, float y, float z, GridMapLiquidData* data) 
 }
 
 // check if creature is in water and have enough space to swim
-bool TerrainInfo::IsSwimmable(float x, float y, float z, float radius /*= 1.5f*/, GridMapLiquidData* data /*= 0*/) const
+bool TerrainInfo::IsSwimmable(Vec3 const& pos, float radius /*= 1.5f*/, GridMapLiquidData* data /*= 0*/) const
 {
     // Check surface in x, y point for liquid
     if (CanCheckLiquidLevel(x, y))
@@ -1139,7 +1149,7 @@ bool TerrainInfo::IsSwimmable(float x, float y, float z, float radius /*= 1.5f*/
     return false;
 }
 
-bool TerrainInfo::IsUnderWater(float x, float y, float z, float* pWaterZ/*= nullptr*/) const
+bool TerrainInfo::IsUnderWater(Vec3 const& pos, float* pWaterZ/*= nullptr*/) const
 {
     if (CanCheckLiquidLevel(x, y))
     {
@@ -1159,7 +1169,7 @@ bool TerrainInfo::IsUnderWater(float x, float y, float z, float* pWaterZ/*= null
 /**
  * Function find higher form water or ground height for current floor
  *
- * @param x, y, z    Coordinates original point at floor level
+ * @param x, y       Coordinates original point
  *
  * @param groundZ    precalculated Z through getHeight
  *
@@ -1170,32 +1180,28 @@ bool TerrainInfo::IsUnderWater(float x, float y, float z, float* pWaterZ/*= null
  *
  * @return           calculated z coordinate
  */
-float TerrainInfo::GetWaterOrGroundLevel(float x, float y, float z, float& groundZ, bool swim /*= false*/, float minWaterDeep /*= DEFAULT_COLLISION_HEIGHT*/) const
+float TerrainInfo::GetWaterOrGroundLevel(Vec3 const& ground_pos, bool swim, float minWaterDeep) const
 {
-    if (CanCheckLiquidLevel(x, y))
+    if (!CanCheckLiquidLevel(ground_pos.xy()))
+        return VMAP_INVALID_HEIGHT_VALUE;
+
+    GridMapLiquidData liquid_status;
+
+    GridMapLiquidStatus res = getLiquidStatus(ground_pos, MAP_ALL_LIQUIDS, &liquid_status);
+
+    if (!res)
+        return ground_pos.z;
+
+    if (swim)
     {
-        GridMapLiquidData liquid_status;
+        if (liquid_status.level - ground_pos.z > minWaterDeep)  // check if its shallow water
+            return liquid_status.level - minWaterDeep;
 
-        GridMapLiquidStatus res = getLiquidStatus(x, y, groundZ, MAP_ALL_LIQUIDS, &liquid_status);
-
-        if (res)
-        {
-            if (swim)
-            {
-                if (liquid_status.level - groundZ > minWaterDeep)  // check if its shallow water
-                    return liquid_status.level - minWaterDeep;
-
-                // its shallow water so return ground under it
-                return groundZ;
-            }
-
-            return liquid_status.level;
-        }
-
-        return groundZ;
+        // its shallow water so return ground under it
+        return ground_pos.z;
     }
 
-    return VMAP_INVALID_HEIGHT_VALUE;
+    return liquid_status.level;
 }
 
 GridMap* TerrainInfo::GetGrid(const float x, const float y, bool loadOnlyMap /*= false*/)
@@ -1287,7 +1293,7 @@ GridMap* TerrainInfo::LoadMapAndVMap(const uint32 x, const uint32 y, bool mapOnl
     return  m_GridMaps[x][y];
 }
 
-float TerrainInfo::GetWaterLevel(float x, float y, float z, float* pGround /*= nullptr*/) const
+float TerrainInfo::GetWaterLevel(Vec3 const& pos, float* pGround /*= nullptr*/) const
 {
     if (CanCheckLiquidLevel(x, y))
     {

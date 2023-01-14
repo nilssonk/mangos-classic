@@ -863,10 +863,26 @@ class GameObject : public WorldObject
         void RemoveModelFromMap();
         void UpdateModelPosition();
 
-        float GetStationaryX() const { if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT) return m_stationaryPosition.GetPositionX(); return 0.f; }
-        float GetStationaryY() const { if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT) return m_stationaryPosition.GetPositionY(); return 0.f; }
-        float GetStationaryZ() const { if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT) return m_stationaryPosition.GetPositionZ(); return 0.f; }
-        float GetStationaryO() const { if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT) return m_stationaryPosition.GetPositionO(); return GetOrientation(); }
+        float GetStationaryX() const {
+            if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT)
+                return m_stationaryPosition.x;
+            return 0.f;
+        }
+        float GetStationaryY() const {
+            if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT)
+                return m_stationaryPosition.y;
+            return 0.f;
+        }
+        float GetStationaryZ() const {
+            if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT)
+                return m_stationaryPosition.z;
+            return 0.f;
+        }
+        float GetStationaryO() const {
+            if (GetGOInfo()->type != GAMEOBJECT_TYPE_MO_TRANSPORT)
+                return m_stationaryPosition.w;
+            return GetOrientation();
+        }
 
         SpellCastResult CastSpell(Unit* temporaryCaster, Unit* Victim, uint32 spellId, uint32 triggeredFlags, Item* castItem = nullptr, Aura* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid(), SpellEntry const* triggeredBy = nullptr);
 

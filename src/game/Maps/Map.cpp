@@ -906,18 +906,18 @@ void Map::Remove(T* obj, bool remove)
         delete obj;
 }
 
-void Map::PlayerRelocation(Player* player, float x, float y, float z, float orientation)
+void Map::PlayerRelocation(Player* player, Position const& pos)
 {
     MANGOS_ASSERT(player);
 
-    CellPair old_val = MaNGOS::ComputeCellPair(player->GetPositionX(), player->GetPositionY());
-    CellPair new_val = MaNGOS::ComputeCellPair(x, y);
+    CellPair old_val = MaNGOS::ComputeCellPair(player->GetPosition().xy());
+    CellPair new_val = MaNGOS::ComputeCellPair(pos.xy());
 
     Cell old_cell(old_val);
     Cell new_cell(new_val);
     bool same_cell = (new_cell == old_cell);
 
-    player->Relocate(x, y, z, orientation);
+    player->Relocate(pos);
 
     if (old_cell.DiffGrid(new_cell) || old_cell.DiffCell(new_cell))
     {
@@ -944,15 +944,15 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
     }
 }
 
-void Map::CreatureRelocation(Creature* creature, float x, float y, float z, float ang)
+void Map::CreatureRelocation(Creature* creature, Position const& pos)
 {
-    Cell new_cell(MaNGOS::ComputeCellPair(x, y));
+    Cell const new_cell(MaNGOS::ComputeCellPair(pos.xy()));
 
     // do move or do move to respawn or remove creature if previous all fail
     if (CreatureCellRelocation(creature, new_cell))
     {
         // update pos
-        creature->Relocate(x, y, z, ang);
+        creature->Relocate(pos);
         creature->OnRelocated();
     }
     // if creature can't be move in new cell/grid (not loaded) move it to repawn cell/grid
@@ -964,9 +964,9 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
     }
 }
 
-void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation, bool respawnRelocationOnFail)
+void Map::GameObjectRelocation(GameObject* go, Position const& pos, bool respawnRelocationOnFail)
 {
-    Cell new_cell(MaNGOS::ComputeCellPair(x, y));
+    Cell new_cell(MaNGOS::ComputeCellPair(pos.xy()));
     Cell old_cell = go->GetCurrentCell();
 
     if (!respawnRelocationOnFail && !getNGrid(new_cell.GridX(), new_cell.GridY()))
@@ -992,7 +992,7 @@ void Map::GameObjectRelocation(GameObject* go, float x, float y, float z, float 
         go->GetViewPoint().Event_GridChanged(&(*newGrid)(new_cell.CellX(), new_cell.CellY()));
     }
 
-    go->Relocate(x, y, z, orientation);
+    go->Relocate(pos);
     go->UpdateModelPosition();
     go->UpdateObjectVisibility();
 }
@@ -1024,10 +1024,9 @@ bool Map::CreatureCellRelocation(Creature* c, const Cell& new_cell)
 
 bool Map::CreatureRespawnRelocation(Creature* c)
 {
-    float resp_x, resp_y, resp_z, resp_o;
-    c->GetRespawnCoord(resp_x, resp_y, resp_z, &resp_o);
+    auto const respawn_pos = c->GetRespawnPosition();
 
-    CellPair resp_val = MaNGOS::ComputeCellPair(resp_x, resp_y);
+    CellPair resp_val = MaNGOS::ComputeCellPair(respawn_pos.xy());
     Cell resp_cell(resp_val);
 
     c->CombatStopWithPets();
@@ -1038,7 +1037,7 @@ bool Map::CreatureRespawnRelocation(Creature* c)
     // teleport it to respawn point (like normal respawn if player see)
     if (CreatureCellRelocation(c, resp_cell))
     {
-        c->Relocate(resp_x, resp_y, resp_z, resp_o);
+        c->Relocate(respawn_pos);
         c->GetMotionMaster()->Initialize();                 // prevent possible problems with default move generators
         c->OnRelocated();
         return true;
@@ -1343,7 +1342,7 @@ bool Map::ActiveObjectsNearGrid(uint32 x, uint32 y) const
 void Map::AddToActive(WorldObject* obj)
 {
     m_activeNonPlayers.insert(obj);
-    Cell cell = Cell(MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY()));
+    Cell cell(MaNGOS::ComputeCellPair(obj->GetPosition().xy()));
     EnsureGridLoaded(cell);
 
     // also not allow unloading spawn grid to prevent creating creature clone at load
@@ -1353,14 +1352,13 @@ void Map::AddToActive(WorldObject* obj)
 
         if (!c->IsPet() && c->HasStaticDBSpawnData())
         {
-            float x, y, z;
-            c->GetRespawnCoord(x, y, z);
-            GridPair p = MaNGOS::ComputeGridPair(x, y);
+            auto const respawn_pos = c->GetRespawnPosition();
+            GridPair p = MaNGOS::ComputeGridPair(respawn_pos.xy());
             if (getNGrid(p.x_coord, p.y_coord))
                 getNGrid(p.x_coord, p.y_coord)->incUnloadActiveLock();
             else
             {
-                GridPair p2 = MaNGOS::ComputeGridPair(c->GetPositionX(), c->GetPositionY());
+                GridPair p2 = MaNGOS::ComputeGridPair(c->GetPosition().xy());
                 sLog.outError("Active creature (GUID: %u Entry: %u) added to grid[%u,%u] but spawn grid[%u,%u] not loaded.",
                               c->GetGUIDLow(), c->GetEntry(), p.x_coord, p.y_coord, p2.x_coord, p2.y_coord);
             }
@@ -1388,9 +1386,8 @@ void Map::RemoveFromActive(WorldObject* obj)
 
         if (!c->IsPet() && c->HasStaticDBSpawnData())
         {
-            float x, y, z;
-            c->GetRespawnCoord(x, y, z);
-            GridPair p = MaNGOS::ComputeGridPair(x, y);
+            auto const respawn_pos = c->GetRespawnPosition();
+            GridPair p = MaNGOS::ComputeGridPair(respawn_pos.xy());
             if (getNGrid(p.x_coord, p.y_coord))
                 getNGrid(p.x_coord, p.y_coord)->decUnloadActiveLock();
             else
@@ -2345,32 +2342,29 @@ bool Map::IsInLineOfSight(float srcX, float srcY, float srcZ, float destX, float
  * get the hit position and return true if we hit something (in this case the dest position will hold the hit-position)
  * otherwise the result pos will be the dest pos
  */
-bool Map::GetHitPosition(float srcX, float srcY, float srcZ, float& destX, float& destY, float& destZ, float modifyDist) const
+std::optional<Vec3> Map::GetHitPosition(Vec3 const& src, Vec3 const& dst, float modifyDist) const
 {
     // at first check all static objects
-    float tempX, tempY, tempZ = 0.0f;
-    bool result0 = VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(GetId(), srcX, srcY, srcZ, destX, destY, destZ, tempX, tempY, tempZ, modifyDist);
-    if (result0)
+    auto const maybe_static_hit = VMAP::VMapFactory::createOrGetVMapManager()->getObjectHitPos(GetId(), pos, dst, modifyDist);
+    if (maybe_static_hit)
     {
         //DEBUG_LOG("Map::GetHitPosition vmaps corrects gained with static objects! new dest coords are X:%f Y:%f Z:%f", destX, destY, destZ);
-        destX = tempX;
-        destY = tempY;
-        destZ = tempZ;
+        return maybe_rstatic_hit;
     }
+
     // at second all dynamic objects, if static check has an hit, then we can calculate only to this closer point
-    bool result1 = m_dyn_tree.getObjectHitPos(srcX, srcY, srcZ, destX, destY, destZ, tempX, tempY, tempZ, modifyDist);
-    if (result1)
+    auto const maybe_dynamic_hit = m_dyn_tree.getObjectHitPos(src, dst, modifyDist);
+    if (maybe_dynamic_hit)
     {
         //DEBUG_LOG("Map::GetHitPosition vmaps corrects gained with dynamic objects! new dest coords are X:%f Y:%f Z:%f", destX, destY, destZ);
-        destX = tempX;
-        destY = tempY;
-        destZ = tempZ;
+        return maybe_dynamic_hit;
     }
-    return result0 || result1;
+
+    return {};
 }
 
 // Find an height within a reasonable range of provided Z. This method may fail so we have to handle that case.
-bool Map::GetHeightInRange(float x, float y, float& z, float maxSearchDist /*= 4.0f*/) const
+bool Map::GetHeightInRange(Vec2 const& pos, float& z, float maxSearchDist /*= 4.0f*/) const
 {
     float height;
     float mapHeight = INVALID_HEIGHT_VALUE;
@@ -2421,7 +2415,7 @@ bool Map::GetHeightInRange(float x, float y, float& z, float maxSearchDist /*= 4
             return false;
     }
 
-    z = std::max<float>(height, m_dyn_tree.getHeight(x, y, height + 1.0f, maxSearchDist));
+    z = std::max(height, m_dyn_tree.getHeight(x, y, height + 1.0f, maxSearchDist));
     return true;
 }
 
@@ -2450,83 +2444,92 @@ bool Map::ContainsGameObjectModel(const GameObjectModel& mdl) const
 }
 
 // This will generate a random point to all directions in water for the provided point in radius range.
-bool Map::GetRandomPointUnderWater(float& x, float& y, float& z, float radius, GridMapLiquidData& liquid_status, bool randomRange/* = true*/) const
+std::optional<Vec3> Map::GetRandomPointUnderWater(Vec3 const& pos, float radius, GridMapLiquidData& liquid_status, bool randomRange/* = true*/) const
 {
     const float angle = rand_norm_f() * (M_PI_F * 2.0f);
     const float range = (randomRange ? rand_norm_f() : 1.f) * radius;
 
-    float i_x = x + range * cos(angle);
-    float i_y = y + range * sin(angle);
+    Vec3 result{
+        pos.x + range * cos(angle),
+        pos.y + range * sin(angle),
+        pos.z
+    };
 
     // get real ground of new point
     // the code consider cylinder instead of sphere for possible z
-    float ground = GetHeight(i_x, i_y, z);
-    if (ground > INVALID_HEIGHT) // GetHeight can fail
-    {
-        float min_z = z - 0.7f * radius; // 0.7 to have a bit a "flat" cylinder, TODO which value looks nicest
-        if (min_z < ground)
-            min_z = ground + 0.5f; // Get some space to prevent under map
+    float ground = GetHeight(result);
+    if (ground <= INVALID_HEIGHT)
+        return {};
 
-        float liquidLevel = liquid_status.level - 2.0f; // just to make the generated point is in water and not on surface or a bit above
+    float min_z = z - 0.7f * radius; // 0.7 to have a bit a "flat" cylinder, TODO which value looks nicest
+    if (min_z < ground)
+        min_z = ground + 0.5f; // Get some space to prevent under map
 
-        // if not enough space to fit the creature better is to return from here
-        if (min_z > liquidLevel)
-            return false;
+    float liquidLevel = liquid_status.level - 2.0f; // just to make the generated point is in water and not on surface or a bit above
 
-        // Mobs underwater do not move along Z axis
-        //float max_z = std::max(z + 0.7f * radius, min_z);
-        //max_z = std::min(max_z, liquidLevel);
-        x = i_x;
-        y = i_y;
-        if (min_z > z)
-            z = min_z;
-        return true;
-    }
-    return false;
+    // if not enough space to fit the creature better is to return from here
+    if (min_z > liquidLevel)
+        return {};
+
+    // Mobs underwater do not move along Z axis
+    //float max_z = std::max(z + 0.7f * radius, min_z);
+    //max_z = std::min(max_z, liquidLevel);
+    result.z = std::max(result.z, min_z);
+
+    return result;
 }
 
 // This will generate a random point to all directions in air for the provided point in radius range.
-bool Map::GetRandomPointInTheAir(float& x, float& y, float& z, float radius, bool randomRange/* = true*/) const
+std::optional<Vec3> Map::GetRandomPointInTheAir(Vec3 const& pos, float radius, bool randomRange/* = true*/) const
 {
     const float angle = rand_norm_f() * (M_PI_F * 2.0f);
     const float range = (randomRange ? rand_norm_f() : 1.f) * radius;
 
-    float i_x = x + range * cos(angle);
-    float i_y = y + range * sin(angle);
+    Vec3 result{
+        pos.x, x + range * cos(angle),
+        pos.y, y + range * sin(angle),
+        pos.z
+    };
 
     // get real ground of new point
     // the code consider cylinder instead of sphere for possible z
-    float ground = GetHeight(i_x, i_y, z);
-    if (ground > INVALID_HEIGHT) // GetHeight can fail
-    {
-        float min_z = z - 0.7f * radius; // 0.7 to have a bit a "flat" cylinder, TODO which value looks nicest
-        if (min_z < ground)
-            min_z = ground + 2.5f; // Get some space to prevent landing
-        float max_z = std::max(z + 0.7f * radius, min_z);
-        x = i_x;
-        y = i_y;
-        if (min_z > z)
-            z = min_z;
-        return true;
-    }
-    return false;
+    float const ground = GetHeight(result);
+    if (ground <= INVALID_HEIGHT)
+        return {};
+
+    float min_z = pos.z - 0.7f * radius; // 0.7 to have a bit a "flat" cylinder, TODO which value looks nicest
+    if (min_z < ground)
+        min_z = ground + 2.5f; // Get some space to prevent landing
+    float const max_z = std::max(pos.z + 0.7f * radius, min_z);
+    result.z = std::clamp(result.z, min_z, max_z);
+
+    return result;
 }
 
 // supposed to be used for not big radius, usually less than 20.0f
-bool Map::GetReachableRandomPointOnGround(float& x, float& y, float& z, float radius, bool randomRange/* = true*/) const
+std::optional<Vec3> Map::GetReachableRandomPointOnGround(Vec3 const& pos, float radius, bool randomRange) const
 {
     // Generate a random range and direction for the new point
     const float angle = rand_norm_f() * (M_PI_F * 2.0f);
-    const float range = (randomRange ? rand_norm_f() : 1.f) * radius;
+    const float range = radius * (randomRange ? rand_norm_f() : 1.0f);
 
-    float i_x = x + range * cos(angle);
-    float i_y = y + range * sin(angle);
-    float i_z = z + 1.0f;
+    Vec3 result{
+        pos.x + range * cos(angle),
+        pos.y + range * sin(angle),
+        pos.z
+    };
 
-    GetHitPosition(x, y, z + 1.0f, i_x, i_y, i_z, -0.5f);
-    i_z = z; // reset i_z to z value to avoid too much difference from original point before GetHeightInRange
-    if (!GetHeightInRange(i_x, i_y, i_z)) // GetHeight can fail
-        return false;
+    auto offset_z = [](auto const& v) {
+        return Vec3{v.xy(), v.z + 1.0f};
+    };
+
+    auto const maybe_hit_position = GetHitPosition(offset_z(pos), offset_z(result), -0.5f);
+    if (maybe_hit_position) {
+        result = *maybe_hit_position;
+    }
+
+    if (!GetHeightInRange(result.xy(), result.z)) // GetHeight can fail
+        return {};
 
     // here we have a valid position but the point can have a big Z in some case
     // next code will check angle from 2 points
@@ -2536,8 +2539,8 @@ bool Map::GetReachableRandomPointOnGround(float& x, float& y, float& z, float ra
     //    b/__|a
 
     // project vector to get only positive value
-    float ab = fabs(x - i_x);
-    float ac = fabs(z - i_z);
+    float const ab = fabs(pos.x - result.x);
+    float const  ac = fabs(pos.z - result.z);
 
     // slope represented by c angle (in radian)
     const float MAX_SLOPE_IN_RADIAN = 50.0f / 180.0f * M_PI_F;  // 50(degree) max seem best value for walkable slope
@@ -2549,23 +2552,16 @@ bool Map::GetReachableRandomPointOnGround(float& x, float& y, float& z, float ra
         float slope = atan(ac / ab);
         if (slope < MAX_SLOPE_IN_RADIAN)
         {
-            x = i_x;
-            y = i_y;
-            z = i_z;
-            return true;
+            return result;
         }
     }
 
-    return false;
+    return {};
 }
 
 // Get random point by handling different situation depending of if the unit is flying/swimming/walking
-bool Map::GetReachableRandomPosition(Unit* unit, float& x, float& y, float& z, float radius, bool randomRange/* = true*/) const
+std::optional<Vec3> Map::GetReachableRandomPosition(Unit* unit, Vec3& in_out_pos, float radius, bool randomRange/* = true*/) const
 {
-    float i_x = x;
-    float i_y = y;
-    float i_z = z;
-
     bool isFlying;
     bool isSwimming = true;
     switch (unit->GetTypeId())
@@ -2586,40 +2582,19 @@ bool Map::GetReachableRandomPosition(Unit* unit, float& x, float& y, float& z, f
     if (radius < 1.0f)
         radius = 1.0f;
 
-    bool newDestAssigned;   // used to check if new random destination is found
     if (isFlying)
     {
-        newDestAssigned = GetRandomPointInTheAir(i_x, i_y, i_z, radius, randomRange);
-        /*if (newDestAssigned)
-        sLog.outString("Generating air random point for %s", GetGuidStr().c_str());*/
-    }
-    else
-    {
-        GridMapLiquidData liquid_status;
-        GridMapLiquidStatus res = m_TerrainData->getLiquidStatus(i_x, i_y, i_z, MAP_ALL_LIQUIDS, &liquid_status);
-        if (isSwimming && (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER)))
-        {
-            newDestAssigned = GetRandomPointUnderWater(i_x, i_y, i_z, radius, liquid_status, randomRange);
-            /*if (newDestAssigned)
-            sLog.outString("Generating swim random point for %s", GetGuidStr().c_str());*/
-        }
-        else
-        {
-            newDestAssigned = GetReachableRandomPointOnGround(i_x, i_y, i_z, radius, randomRange);
-            /*if (newDestAssigned)
-            sLog.outString("Generating ground random point for %s", GetGuidStr().c_str());*/
-        }
+        return GetRandomPointInTheAir(pos, radius, randomRange);
     }
 
-    if (newDestAssigned)
+    GridMapLiquidData liquid_status;
+    GridMapLiquidStatus res = m_TerrainData->getLiquidStatus(pos, MAP_ALL_LIQUIDS, &liquid_status);
+    if (isSwimming && (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER)))
     {
-        x = i_x;
-        y = i_y;
-        z = i_z;
-        return true;
+        return GetRandomPointUnderWater(pos, radius, liquid_status, randomRange);
     }
 
-    return false;
+    return GetReachableRandomPointOnGround(pos, radius, randomRange);
 }
 
 bool Map::IsMountAllowed() const

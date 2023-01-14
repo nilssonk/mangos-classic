@@ -339,10 +339,9 @@ struct npc_felhound_trackerAI : public ScriptedPetAI
             m_creature->PlayDirectSound(SOUND_GROWL);
             return;
         }
-        float fX, fY, fZ;
-        pNearestCrystal->GetContactPoint(m_creature, fX, fY, fZ, 3.0f);
+        auto const contact_point = pNearestCrystal->GetContactPoint(m_creature, 3.0f);
         m_creature->SetWalk(false);
-        m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+        m_creature->GetMotionMaster()->MovePoint(1, contact_point);
         m_bIsMovementActive = true;
     }
 
@@ -377,6 +376,8 @@ UnitAI* GetAI_npc_felhound_tracker(Creature* pCreature)
 ## event_arcanite_buoy
 ######*/
 
+namespace {
+
 enum
 {
     EVENT_ARCANITE_BUOY     = 9542,
@@ -384,12 +385,9 @@ enum
     GO_THEATRIC_LIGHTNING   = 183356,
 };
 
-struct SummonLocation
-{
-    float m_fX, m_fY, m_fZ;
-};
+const Position aMawsSpawn{3561.73f, -6647.2f, -7.5f, 1.6f};
 
-static const SummonLocation aMawsSpawn = { 3561.73f, -6647.2f, -7.5f };
+} // anonymous namespace
 
 bool ProcessEventId_arcanite_buoy(uint32 uiEventId, Object* pSource, Object* /*pTarget*/, bool /*bIsStart*/)
 {
@@ -402,7 +400,7 @@ bool ProcessEventId_arcanite_buoy(uint32 uiEventId, Object* pSource, Object* /*p
                 return false;
 
             // Summon Maws
-            if (Creature* maws = ((Player*)pSource)->SummonCreature(NPC_MAWS, aMawsSpawn.m_fX, aMawsSpawn.m_fY, aMawsSpawn.m_fZ, 1.6f, TEMPSPAWN_MANUAL_DESPAWN, 0))
+            if (Creature* maws = ((Player*)pSource)->SummonCreature(NPC_MAWS, aMawsSpawn, TempSpawnType::MANUAL_DESPAWN, 0))
             {
                 maws->SetWalk(false);
                 maws->GetMotionMaster()->MoveWaypoint();

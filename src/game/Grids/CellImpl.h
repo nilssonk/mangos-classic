@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MANGOS_CELLIMPL_H
-#define MANGOS_CELLIMPL_H
+#ifndef CELLIMPL_H
+#define CELLIMPL_H
 
 #include "Common.h"
 #include "Grids/Cell.h"
@@ -34,18 +34,18 @@ inline Cell::Cell(CellPair const& p)
     data.Part.reserved = 0;
 }
 
-inline CellArea Cell::CalculateCellArea(float x, float y, float radius)
+inline CellArea Cell::CalculateCellArea(Vec2 const& pos, float radius)
 {
     if (radius <= 0.0f)
     {
-        CellPair center = MaNGOS::ComputeCellPair(x, y).normalize();
+        CellPair center = MaNGOS::ComputeCellPair(pos).normalize();
         return CellArea(center, center);
     }
 
     return CellArea
            (
-               MaNGOS::ComputeCellPair(x - radius, y - radius).normalize(),
-               MaNGOS::ComputeCellPair(x + radius, y + radius).normalize()
+               MaNGOS::ComputeCellPair({pos.x - radius, pos.y - radius}).normalize(),
+               MaNGOS::ComputeCellPair({pos.x + radius, pos.y + radius}).normalize()
            );
 }
 
@@ -53,13 +53,13 @@ template<class T, class CONTAINER>
 inline void
 Cell::Visit(const CellPair& standing_cell, TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, const WorldObject& obj, float radius) const
 {
-    Cell::Visit(standing_cell, visitor, m, obj.GetPositionX(), obj.GetPositionY(), radius + obj.GetObjectBoundingRadius());
+    Cell::Visit(standing_cell, visitor, m, obj.GetPosition().xy(), radius + obj.GetObjectBoundingRadius());
 }
 
 
 template<class T, class CONTAINER>
 inline void
-Cell::Visit(const CellPair& standing_cell, TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, float x, float y, float radius) const
+Cell::Visit(const CellPair& standing_cell, TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, Vec2 const& pos, float radius) const
 {
     if (standing_cell.x_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP || standing_cell.y_coord >= TOTAL_NUMBER_OF_CELLS_PER_MAP)
         return;
@@ -77,7 +77,7 @@ Cell::Visit(const CellPair& standing_cell, TypeContainerVisitor<T, CONTAINER>& v
         radius = MAX_VISIBILITY_DISTANCE;
 
     // lets calculate object coord offsets from cell borders.
-    CellArea area = Cell::CalculateCellArea(x, y, radius);
+    CellArea area = Cell::CalculateCellArea(pos, radius);
     // if radius fits inside standing cell
     if (!area)
     {
@@ -174,7 +174,7 @@ Cell::VisitCircle(TypeContainerVisitor<T, CONTAINER>& visitor, Map& m, const Cel
 template<class T>
 inline void Cell::VisitGridObjects(const WorldObject* center_obj, T& visitor, float radius, bool dont_load)
 {
-    CellPair p(MaNGOS::ComputeCellPair(center_obj->GetPositionX(), center_obj->GetPositionY()));
+    auto const p = MaNGOS::ComputeCellPair(center_obj->GetPosition().xy());
     Cell cell(p);
     if (dont_load)
         cell.SetNoCreate();
@@ -185,7 +185,7 @@ inline void Cell::VisitGridObjects(const WorldObject* center_obj, T& visitor, fl
 template<class T>
 inline void Cell::VisitWorldObjects(const WorldObject* center_obj, T& visitor, float radius, bool dont_load)
 {
-    CellPair p(MaNGOS::ComputeCellPair(center_obj->GetPositionX(), center_obj->GetPositionY()));
+    auto const p = MaNGOS::ComputeCellPair(center_obj->GetPosition().xy());
     Cell cell(p);
     if (dont_load)
         cell.SetNoCreate();
@@ -199,7 +199,7 @@ inline void Cell::VisitAllObjects(const WorldObject* center_obj, T& visitor, flo
     // The assert below is required for https://github.com/cmangos/mangos-tbc/pull/344 and issue https://github.com/cmangos/issues/issues/2044
     // A nullptr center_obj was passed as parameter leading to a crash. ToDo investigate why a nullptr came here in the first place.
     MANGOS_ASSERT(center_obj != nullptr);
-    CellPair p(MaNGOS::ComputeCellPair(center_obj->GetPositionX(), center_obj->GetPositionY()));
+    auto const p = MaNGOS::ComputeCellPair(center_obj->GetPosition().xy());
     Cell cell(p);
     if (dont_load)
         cell.SetNoCreate();
@@ -210,38 +210,38 @@ inline void Cell::VisitAllObjects(const WorldObject* center_obj, T& visitor, flo
 }
 
 template<class T>
-inline void Cell::VisitGridObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load)
+inline void Cell::VisitGridObjects(Vec2 const& pos, Map* map, T& visitor, float radius, bool dont_load)
 {
-    CellPair p(MaNGOS::ComputeCellPair(x, y));
+    auto const p = MaNGOS::ComputeCellPair(pos);
     Cell cell(p);
     if (dont_load)
         cell.SetNoCreate();
     TypeContainerVisitor<T, GridTypeMapContainer > gnotifier(visitor);
-    cell.Visit(p, gnotifier, *map, x, y, radius);
+    cell.Visit(p, gnotifier, *map, pos, radius);
 }
 
 template<class T>
-inline void Cell::VisitWorldObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load)
+inline void Cell::VisitWorldObjects(Vec2 const& pos, Map* map, T& visitor, float radius, bool dont_load)
 {
-    CellPair p(MaNGOS::ComputeCellPair(x, y));
+    auto const p = MaNGOS::ComputeCellPair(pos);
     Cell cell(p);
     if (dont_load)
         cell.SetNoCreate();
     TypeContainerVisitor<T, WorldTypeMapContainer > gnotifier(visitor);
-    cell.Visit(p, gnotifier, *map, x, y, radius);
+    cell.Visit(p, gnotifier, *map, pos, radius);
 }
 
 template<class T>
-inline void Cell::VisitAllObjects(float x, float y, Map* map, T& visitor, float radius, bool dont_load)
+inline void Cell::VisitAllObjects(Vec2 const& pos, Map* map, T& visitor, float radius, bool dont_load)
 {
-    CellPair p(MaNGOS::ComputeCellPair(x, y));
+    auto const p = MaNGOS::ComputeCellPair(pos);
     Cell cell(p);
     if (dont_load)
         cell.SetNoCreate();
     TypeContainerVisitor<T, GridTypeMapContainer > gnotifier(visitor);
     TypeContainerVisitor<T, WorldTypeMapContainer > wnotifier(visitor);
-    cell.Visit(p, gnotifier, *map, x, y, radius);
-    cell.Visit(p, wnotifier, *map, x, y, radius);
+    cell.Visit(p, gnotifier, *map, pos, radius);
+    cell.Visit(p, wnotifier, *map, pos, radius);
 }
 
 #endif

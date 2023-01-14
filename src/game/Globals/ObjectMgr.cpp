@@ -6149,7 +6149,7 @@ void ObjectMgr::LoadTaxiShortcuts()
     sLog.outString();
 }
 
-uint32 ObjectMgr::GetNearestTaxiNode(float x, float y, float z, uint32 mapid, Team team) const
+uint32 ObjectMgr::GetNearestTaxiNode(Vec3 const& pos, uint32 mapid, Team team) const
 {
     bool found = false;
     float dist = std::numeric_limits<float>::max();
@@ -6168,7 +6168,8 @@ uint32 ObjectMgr::GetNearestTaxiNode(float x, float y, float z, uint32 mapid, Te
         if ((sTaxiNodesMask[field] & submask) == 0)
             continue;
 
-        float dist2 = (node->x - x) * (node->x - x) + (node->y - y) * (node->y - y) + (node->z - z) * (node->z - z);
+        auto const dx = Vec3{node->x, node->y, node->z} - pos;
+        float const dist2 = dx.squaredLength();
         if (found)
         {
             if (dist2 < dist)

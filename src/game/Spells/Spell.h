@@ -131,10 +131,8 @@ class SpellCastTargets
         void setDestination(float x, float y, float z);
         void setDestination(Position position);
         void setSource(float x, float y, float z);
-        void getDestination(float& x, float& y, float& z) const { x = m_destPos.x; y = m_destPos.y; z = m_destPos.z; }
-        Position getDestination() const { return m_destPos; }
-        void getDestination(WorldLocation& loc) { loc.coord_x = m_destPos.x; loc.coord_y = m_destPos.y; loc.coord_z = m_destPos.z; }
-        void getSource(float& x, float& y, float& z) const { x = m_srcPos.x; y = m_srcPos.y; z = m_srcPos.z; }
+        Vec3 const& getDestination() const { return m_destPos; }
+        Vec3 const& getSource() const { return m_srcPos; }
 
         void setGOTarget(GameObject* target);
         ObjectGuid getGOTargetGuid() const { return m_GOTargetGUID; }
@@ -164,8 +162,8 @@ class SpellCastTargets
 
         void Update(WorldObject* caster);
 
-        Position m_srcPos;
-        Position m_destPos;
+        Vec3 m_srcPos;
+        Vec3 m_destPos;
         std::string m_strTarget;
 
         uint16 m_targetMask;
@@ -969,7 +967,7 @@ namespace MaNGOS
                 if (!i_originalCaster->CanAttackSpell(pPlayer, i_spell.m_spellInfo))
                     continue;
 
-                if (pPlayer->IsWithinDist3d(i_spell.m_targets.m_destPos.x, i_spell.m_targets.m_destPos.y, i_spell.m_targets.m_destPos.z, i_radius))
+                if (pPlayer->IsWithinDist(i_spell.m_targets.m_destPos, i_radius))
                     i_data.push_back(pPlayer);
             }
         }
@@ -987,12 +985,7 @@ namespace MaNGOS
         WorldObject* i_originalCaster;
         WorldObject* i_castingObject;
         bool i_playerControlled;
-        float i_centerX;
-        float i_centerY;
-        float i_centerZ;
-
-        float GetCenterX() const { return i_centerX; }
-        float GetCenterY() const { return i_centerY; }
+        Vec3 center;
 
         SpellNotifierCreatureAndPlayer(Spell& spell, UnitList& data, float radius, float cone, SpellNotifyPushType type,
                                        SpellTargets TargetType = SPELL_TARGETS_AOE_ATTACKABLE, WorldObject* originalCaster = nullptr)
@@ -1009,25 +1002,21 @@ namespace MaNGOS
                 case PUSH_SELF_CENTER:
                     if (i_castingObject)
                     {
-                        i_centerX = i_castingObject->GetPositionX();
-                        i_centerY = i_castingObject->GetPositionY();
-                        i_centerZ = i_castingObject->GetPositionZ();
+                        center = i_castingObject->GetPosition().xyz();
                     }
                     break;
                 case PUSH_SRC_CENTER:
                     if (i_spell.m_targets.m_targetMask & TARGET_FLAG_SOURCE_LOCATION)
-                        i_spell.m_targets.getSource(i_centerX, i_centerY, i_centerZ);
+                        center = i_spell.m_targets.getSource();
                     break;
                 case PUSH_DEST_CENTER:
                     if (i_spell.m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION)
-                        i_spell.m_targets.getDestination(i_centerX, i_centerY, i_centerZ);
+                        center = i_spell.m_targets.getDestination();
                     break;
                 case PUSH_TARGET_CENTER:
                     if (Unit* target = i_spell.m_targets.getUnitTarget())
                     {
-                        i_centerX = target->GetPositionX();
-                        i_centerY = target->GetPositionY();
-                        i_centerZ = target->GetPositionZ();
+                        center = target->GetPosition().xyz();
                     }
                     break;
                 default:
@@ -1073,9 +1062,9 @@ namespace MaNGOS
                 {
                     case PUSH_CONE:
                     {
-                        float heightDifference = std::abs(itr->getSource()->GetPositionZ() - i_centerZ);
+                        float heightDifference = std::abs(itr->getSource().z - center.z);
                         float maxHeight = i_radius / 2;
-                        float distance = std::min(sqrtf(itr->getSource()->GetDistance2d(i_centerX, i_centerY, DIST_CALC_NONE)), i_radius);
+                        float distance = std::min(sqrtf(itr->getSource()->GetDistance(center.xy(), DIST_CALC_NONE)), i_radius);
                         float ratio = distance / i_radius;
                         float conalMaxHeight = maxHeight * ratio; // pvp combat uses true cone from roughly model
                         if (!i_originalCaster->IsControlledByPlayer() && itr->getSource()->IsControlledByPlayer())
@@ -1083,13 +1072,13 @@ namespace MaNGOS
                         if (i_cone >= 0.f)
                         {
                             if (i_castingObject->isInFront(itr->getSource(), i_radius, i_cone) &&
-                                std::abs(itr->getSource()->GetPositionZ() - i_centerZ) - itr->getSource()->GetCombatReach() <= conalMaxHeight)
+                                heightDifference - itr->getSource()->GetCombatReach() <= conalMaxHeight)
                                 i_data.push_back(itr->getSource());
                         }
                         else
                         {
                             if (i_castingObject->isInBack(itr->getSource(), i_radius, -i_cone) &&
-                                std::abs(itr->getSource()->GetPositionZ() - i_centerZ) - itr->getSource()->GetCombatReach() <= conalMaxHeight)
+                                heightDifference - itr->getSource()->GetCombatReach() <= conalMaxHeight)
                                 i_data.push_back(itr->getSource());
                         }
                         break;
@@ -1101,7 +1090,7 @@ namespace MaNGOS
                         float radius = i_radius;
                         if (i_originalCaster->IsControlledByPlayer() && !itr->getSource()->IsControlledByPlayer())
                             radius += itr->getSource()->GetCombatReach();
-                        if (itr->getSource()->GetDistance(i_centerX, i_centerY, i_centerZ, DIST_CALC_NONE) <= radius * radius)
+                        if (itr->getSource()->GetDistance(center, DIST_CALC_NONE) <= radius * radius)
                             i_data.push_back(itr->getSource());
                         break;
                 }

@@ -61,7 +61,7 @@ struct npc_lazy_peonAI : public ScriptedAI
     uint32 m_uiKneelTimer;  //Time, delay kneeling to allow sound to finish playing
     uint32 m_uiGetUpTimer;  //Time, npc stays at the pile so kneel animation can finish
     bool m_bIsAtPile;
-    float m_fSpawnO;
+    Position m_spawnPosition;
 
     void RestartWakeTimer()
     {
@@ -105,10 +105,9 @@ struct npc_lazy_peonAI : public ScriptedAI
     {
         if (GameObject* pLumber = GetClosestGameObjectWithEntry(m_creature, GO_LUMBERPILE, 15.0f))
         {
-            float fX, fY, fZ;
-            pLumber->GetContactPoint(m_creature, fX, fY, fZ, CONTACT_DISTANCE);
+            auto const contact_point = pLumber->GetContactPoint(m_creature, CONTACT_DISTANCE);
             m_creature->HandleEmote(EMOTE_STATE_NONE); //cancel chopping
-            m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+            m_creature->GetMotionMaster()->MovePoint(1, contact_point);
             m_uiChopTimer = 0;
             m_uiKneelTimer = 2500; //timer duration guessed, true retail time unknown
         }
@@ -132,7 +131,7 @@ struct npc_lazy_peonAI : public ScriptedAI
                 {
                     m_creature->GetMotionMaster()->MoveIdle();
                     m_creature->HandleEmote(EMOTE_STATE_NONE);
-                    m_creature->SetFacingTo(m_fSpawnO);
+                    m_creature->SetFacingTo(m_spawnPosition.w);
                     DoCastSpellIfCan(m_creature, SPELL_PEON_SLEEP);
                     RestartWakeTimer();
                     break;
@@ -196,10 +195,9 @@ struct npc_lazy_peonAI : public ScriptedAI
         {
             if (m_uiSleepTimer <= uiDiff)
             {
-                float fX, fY, fZ;
-                m_creature->GetRespawnCoord(fX, fY, fZ, &m_fSpawnO);
+                m_spawnPosition = m_creature->GetRespawnPosition();
                 m_uiSleepTimer = 0;
-                m_creature->GetMotionMaster()->MovePoint(2, fX, fY, fZ);
+                m_creature->GetMotionMaster()->MovePoint(2, m_spawnPosition.xyz());
                 m_bIsAtPile = false;
                 m_uiGetUpTimer = 0;
                 m_uiKneelTimer = 0;

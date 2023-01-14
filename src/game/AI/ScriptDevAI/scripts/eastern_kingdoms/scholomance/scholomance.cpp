@@ -27,8 +27,6 @@ EndScriptData
 npc_spectral_tutor
 EndContentData */
 
-
-
 /*######
 ## npc_spectral_tutor
 ######*/

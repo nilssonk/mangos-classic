@@ -145,7 +145,7 @@ struct boss_zumrahAI : public ScriptedAI
                 // Use a nearby grave to spawn zombies
                 if (GameObject* pGrave = SelectNearbyShallowGrave())
                 {
-                    m_creature->CastSpell(pGrave->GetPositionX(), pGrave->GetPositionY(), pGrave->GetPositionZ(), SPELL_SUMMON_ZOMBIES, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, pGrave->GetObjectGuid());
+                    m_creature->CastSpell(pGrave->GetPosition().xyz(), SPELL_SUMMON_ZOMBIES, TRIGGERED_OLD_TRIGGERED, nullptr, nullptr, pGrave->GetObjectGuid());
                     pGrave->SetLootState(GO_JUST_DEACTIVATED);
 
                     if (roll_chance_i(30))

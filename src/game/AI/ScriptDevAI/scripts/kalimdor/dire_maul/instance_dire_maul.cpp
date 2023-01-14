@@ -26,6 +26,13 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "dire_maul.h"
 
+namespace {
+
+const Position afMizzleSpawnLoc{683.296f, 484.384f, 29.544f, 0.0174f};
+
+} // namespace
+
+
 instance_dire_maul::instance_dire_maul(Map* pMap) : ScriptedInstance(pMap),
     m_bWallDestroyed(false),
     m_bDoNorthBeforeWest(false)
@@ -63,7 +70,7 @@ void instance_dire_maul::OnPlayerEnter(Player* pPlayer)
 {
     // figure where to enter to set library doors accordingly
     // Enter DM North first
-    if (pPlayer->IsWithinDist2d(260.0f, -20.0f, 20.0f) && m_auiEncounter[TYPE_WARPWOOD] != DONE)
+    if (pPlayer->IsWithinDist(Vec2{260.0f, -20.0f}, 20.0f) && m_auiEncounter[TYPE_WARPWOOD] != DONE)
         m_bDoNorthBeforeWest = true;
     else
         m_bDoNorthBeforeWest = false;
@@ -344,7 +351,7 @@ void instance_dire_maul::SetData(uint32 uiType, uint32 uiData)
                     }
 
                     // start WP movement for Mizzle; event handled by movement and gossip dbscripts
-                    if (Creature* pMizzle = pOgre->SummonCreature(NPC_MIZZLE_THE_CRAFTY, afMizzleSpawnLoc[0], afMizzleSpawnLoc[1], afMizzleSpawnLoc[2], afMizzleSpawnLoc[3], TEMPSPAWN_DEAD_DESPAWN, 0, true))
+                    if (Creature* pMizzle = pOgre->SummonCreature(NPC_MIZZLE_THE_CRAFTY, afMizzleSpawnLoc, TempSpawnType::DEAD_DESPAWN, 0, SummonFlags{true}))
                     {
                         pMizzle->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
                         pMizzle->SetWalk(false);
@@ -580,7 +587,7 @@ void instance_dire_maul::SortPylonGuards()
                     continue;
                 }
 
-                if (pGuard->IsWithinDist2d(pGenerator->GetPositionX(), pGenerator->GetPositionY(), 20.0f))
+                if (pGuard->IsWithinDist(pGenerator->GetPosition().xy(), 20.0f))
                 {
                     m_sSortedGeneratorGuards[i].insert(pGuard->GetGUIDLow());
                     m_lGeneratorGuardGUIDs.erase(itr++);

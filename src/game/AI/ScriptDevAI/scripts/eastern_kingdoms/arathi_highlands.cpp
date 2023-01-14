@@ -14,6 +14,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <G3D/Vector4.h>
+
 /* ScriptData
 SDName: Arathi Highlands
 SD%Complete: 100
@@ -71,8 +73,8 @@ struct npc_professor_phizzlethorpeAI : public npc_escortAI
             case 6: DoScriptText(SAY_PROGRESS_3, m_creature, pPlayer); break;
             case 9: DoScriptText(EMOTE_PROGRESS_4, m_creature); break;
             case 10:
-                m_creature->SummonCreature(ENTRY_VENGEFUL_SURGE, -2056.41f, -2144.01f, 20.59f, 5.70f, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, 600000);
-                m_creature->SummonCreature(ENTRY_VENGEFUL_SURGE, -2050.17f, -2140.02f, 19.54f, 5.17f, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, 600000);
+                m_creature->SummonCreature(ENTRY_VENGEFUL_SURGE, G3D::Vector4{-2056.41f, -2144.01f, 20.59f, 5.70f}, TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, 600000);
+                m_creature->SummonCreature(ENTRY_VENGEFUL_SURGE, G3D::Vector4{-2050.17f, -2140.02f, 19.54f, 5.17f}, TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, 600000);
                 break;
             case 11: DoScriptText(SAY_PROGRESS_5, m_creature, pPlayer); break;
             case 12:

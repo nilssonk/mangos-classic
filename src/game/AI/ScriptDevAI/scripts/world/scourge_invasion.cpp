@@ -186,12 +186,14 @@ void SummonCultists(Unit* shard)
     {
         for (int i = 0; i < 4; ++i)
         {
-            float angle = (float(i) * (M_PI_F / 2.f)) + gameObject->GetOrientation();
-            float x = gameObject->GetPositionX() + 6.95f * std::cos(angle);
-            float y = gameObject->GetPositionY() + 6.75f * std::sin(angle);
-            float z = gameObject->GetPositionZ() + 5.0f;
-            shard->UpdateGroundPositionZ(x, y, z);
-            if (Creature* cultist = shard->SummonCreature(NPC_CULTIST_ENGINEER, x, y, z, angle - M_PI_F, TEMPSPAWN_TIMED_OR_DEAD_DESPAWN, IN_MILLISECONDS * HOUR, true))
+            float const angle = (float(i) * (M_PI_F / 2.f)) + gameObject->GetOrientation();
+            Vec3 pos{
+                gameObject->GetPositionX() + 6.95f * std::cos(angle),
+                gameObject->GetPositionY() + 6.75f * std::sin(angle),
+                gameObject->GetPositionZ() + 5.0f,
+            };
+            pos = shard->UpdateGroundPositionZ(pos);
+            if (Creature* cultist = shard->SummonCreature(NPC_CULTIST_ENGINEER, {pos, angle - M_PI_F}, TempSpawnType::TIMED_OR_DEAD_DESPAWN, IN_MILLISECONDS * HOUR, SummonFlags{true}))
                 cultist->AI()->SendAIEvent(AI_EVENT_CUSTOM_A, shard, cultist, NPC_CULTIST_ENGINEER);
         }
     }
@@ -365,10 +367,12 @@ struct NecropolisAI : public ScriptedAI
 
     void UpdateAI(uint32 const diff) override
     {
-        if (m_creature && m_creature->IsAlive() && m_creature->GetPositionZ() < (m_creature->GetRespawnPosition().GetPositionZ() - 10))
-        {
-            Position respawn = m_creature->GetRespawnPosition();
-            m_creature->NearTeleportTo(respawn.GetPositionX(),respawn.GetPositionY(),respawn.GetPositionZ(),respawn.GetPositionO());
+        if (m_creature && m_creature->IsAlive()) {
+            auto const pos = m_creature->GetRespawnPosition();
+            if (m_creature->GetPositionZ() < (pos.z - 10))
+            {
+                m_creature->NearTeleportTo(pos);
+            }
         }
     }
 };
@@ -407,12 +411,16 @@ struct NecropolisHealthAI : public ScriptedAI
                 {
                     if (!circles.empty())
                     {
-                        for (ObjectGuid circle : circles)
-                            if (auto* t_circle = m_creature->GetMap()->GetGameObject(circle))
-                                if (t_circle->GetZoneId() == m_creature->GetZoneId())
-                                    if (sqrtf(t_circle->GetPosition().GetDistance(m_creature->GetPosition())) <= 350.f)
-                                        ownedCircles.insert(circle);
-
+                        for (ObjectGuid circle_guid : circles)
+                        {
+                            auto const* circle = m_creature->GetMap()->GetGameObject(circle_guid);
+                            if (circle != nullptr && circle->GetZoneId() == m_creature->GetZoneId())
+                            {
+                                auto const dx = circle->GetPosition().xyz() - m_creature->GetPosition().xyz();
+                                if (dx.squaredLength() <= 350.0f*350.0f)
+                                    ownedCircles.insert(circle_guid);
+                            }
+                        }
                     }
                 }
                 else if (ownedCircles.size() > 3)
@@ -528,10 +536,13 @@ struct NecropolisHealthAI : public ScriptedAI
     void UpdateAI(uint32 const diff) override
     {
         ScriptedAI::UpdateAI(diff);
-        if (m_creature && m_creature->IsAlive() && m_creature->GetPositionZ() < (m_creature->GetRespawnPosition().GetPositionZ() - 10))
+        if (m_creature && m_creature->IsAlive())
         {
-            Position respawn = m_creature->GetRespawnPosition();
-            m_creature->NearTeleportTo(respawn.GetPositionX(),respawn.GetPositionY(),respawn.GetPositionZ(),respawn.GetPositionO());
+            auto const& respawn = m_creature->GetRespawnPosition();
+            if (m_creature->GetPositionZ() < (respawn.z - 10))
+            {
+                m_creature->NearTeleportTo(respawn);
+            }
         }
     }
 };
@@ -576,10 +587,13 @@ struct NecropolisProxyAI : public ScriptedAI
 
     void UpdateAI(uint32 const diff) override
     {
-        if (m_creature && m_creature->IsAlive() && m_creature->GetPositionZ() < (m_creature->GetRespawnPosition().GetPositionZ() - 10))
+        if (m_creature && m_creature->IsAlive())
         {
-            Position respawn = m_creature->GetRespawnPosition();
-            m_creature->NearTeleportTo(respawn.GetPositionX(), respawn.GetPositionY(), respawn.GetPositionZ(), respawn.GetPositionO());
+            auto const& respawn = m_creature->GetRespawnPosition();
+            if (m_creature->GetPositionZ() < (respawn.z - 10))
+            {
+                m_creature->NearTeleportTo(respawn);
+            }
         }
     }
 };
@@ -624,10 +638,13 @@ struct NecropolisRelayAI : public ScriptedAI
 
     void UpdateAI(uint32 const diff) override
     {
-        if (m_creature && m_creature->IsAlive() && m_creature->GetPositionZ() < (m_creature->GetRespawnPosition().GetPositionZ() - 5))
+        if (m_creature && m_creature->IsAlive())
         {
-            Position respawn = m_creature->GetRespawnPosition();
-            m_creature->NearTeleportTo(respawn.GetPositionX(), respawn.GetPositionY(), respawn.GetPositionZ(), respawn.GetPositionO());
+            auto const& respawn = m_creature->GetRespawnPosition();
+            if (m_creature->GetPositionZ() < (respawn.z - 5.0f))
+            {
+                m_creature->NearTeleportTo(respawn);
+            }
         }
     }
 };
@@ -665,11 +682,15 @@ struct NecroticShard : public ScriptedAI
             {
                 int8 t_necroNear = 0;
                 for (ObjectGuid necropolis : necropoli)
-                    if (auto* t_crNecro = m_creature->GetMap()->GetCreature(necropolis))
-                        if (t_crNecro->GetZoneId() == m_creature->GetZoneId())
-                            if (t_crNecro && t_crNecro->IsAlive()
-                            && sqrtf(t_crNecro->GetPosition().GetDistance(m_creature->GetPosition())) <= 350.f)
-                                t_necroNear++;
+                {
+                    auto const* necro = m_creature->GetMap()->GetCreature(necropolis);
+                    if (necro != nullptr && necro->IsAlive() && necro->GetZoneId() == m_creature->GetZoneId())
+                    {
+                        auto const dx = necro->GetPosition().xyz() - m_creature->GetPosition().xyz();
+                        if (dx.squaredLength() <= 350.0f*350.0f)
+                            t_necroNear++;
+                    }
+                }
 
                 if (t_necroNear == 0)
                 {
@@ -817,7 +838,7 @@ struct NecroticShard : public ScriptedAI
         switch (m_creature->GetEntry())
         {
             case NPC_NECROTIC_SHARD:
-                if (Creature* pShard = m_creature->SummonCreature(NPC_DAMAGED_NECROTIC_SHARD, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSPAWN_MANUAL_DESPAWN, 0))
+                if (Creature* pShard = m_creature->SummonCreature(NPC_DAMAGED_NECROTIC_SHARD, m_creature->GetPosition(), TempSpawnType::MANUAL_DESPAWN, 0))
                 {
                     // Get the camp type from the Necrotic Shard.
                     if (m_camptype)
@@ -902,7 +923,7 @@ struct MinionspawnerAI : public ScriptedAI
     {
         AddCustomAction(EVENT_SPAWNER_SUMMON_MINION, 2000, 5000, [&]() // Spawn Minions every 5 seconds.
         {
-            uint32 Entry = NPC_GHOUL_BERSERKER; // just in case.
+            uint32 Entry{};
 
             switch (m_creature->GetEntry())
             {
@@ -915,10 +936,15 @@ struct MinionspawnerAI : public ScriptedAI
                 case NPC_SCOURGE_INVASION_MINION_SPAWNER_GHOUL_SKELETON:
                     Entry = UncommonMinionspawner(m_creature) ? PickRandomValue(NPC_LUMBERING_HORROR, NPC_BONE_WITCH) : PickRandomValue(NPC_GHOUL_BERSERKER, NPC_SKELETAL_SHOCKTROOPER);
                     break;
+                default:
+                    Entry = NPC_GHOUL_BERSERKER; // just in case.
+                    break;
             }
-            if (Creature* pMinion = m_creature->SummonCreature(Entry, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSPAWN_TIMED_OR_DEAD_DESPAWN, IN_MILLISECONDS * HOUR, true))
+        
+            auto * const pMinion = m_creature->SummonCreature(Entry, m_creature->GetPosition(), TempSpawnType::TIMED_OR_DEAD_DESPAWN, IN_MILLISECONDS * HOUR, SummonFlags{true});
+            if (pMinion != nullptr)
             {
-                pMinion->GetMotionMaster()->MoveRandomAroundPoint(pMinion->GetPositionX(), pMinion->GetPositionY(), pMinion->GetPositionZ(), 1.0f); // pMinion->SetWanderDistance(1.0f); // Seems to be very low.
+                pMinion->GetMotionMaster()->MoveRandomAroundPoint(pMinion->GetPosition().xyz(), 1.0f); // pMinion->SetWanderDistance(1.0f); // Seems to be very low.
                 m_creature->CastSpell(nullptr, SPELL_MINION_SPAWN_IN, TRIGGERED_NONE);
             }
         });
@@ -1156,7 +1182,7 @@ struct PallidHorrorAI : public CombatAI
         {
             for (uint32 i = 0; i < amount; ++i)
             {
-                if (Creature* pFlameshocker = m_creature->SummonCreature(NPC_FLAMESHOCKER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), 0.0f, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, HOUR * IN_MILLISECONDS, true))
+                if (Creature* pFlameshocker = m_creature->SummonCreature(NPC_FLAMESHOCKER, {m_creature->GetPosition().xyz(), 0.0f}, TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, HOUR * IN_MILLISECONDS, SummonFlags{true}))
                 {
                     float angle = (float(i) * (M_PI_F / (float(amount) / 2.f))) + m_creature->GetOrientation();
                     //pFlameshocker->JoinCreatureGroup(m_creature, 5.0f, angle - M_PI, OPTION_FORMATION_MOVE); // Perfect Circle around the Pallid.
@@ -1273,9 +1299,8 @@ struct PallidHorrorAI : public CombatAI
                 {
                     if (Unit* target = SelectRandomFlameshockerSpawnTarget(m_creature, nullptr, DEFAULT_VISIBILITY_BG))
                     {
-                        float x, y, z;
-                        target->GetNearPoint(target, x, y, z, 5.0f, 5.0f, 0.0f);
-                        if (Creature* pFlameshocker = m_creature->SummonCreature(NPC_FLAMESHOCKER, x, y, z, target->GetOrientation(), TEMPSPAWN_TIMED_OR_DEAD_DESPAWN, IN_MILLISECONDS * HOUR, true))
+                        auto const near_point = target->GetNearPoint(target, 5.0f, 5.0f, 0.0f);
+                        if (Creature* pFlameshocker = m_creature->SummonCreature(NPC_FLAMESHOCKER, {near_point, target->GetOrientation()}, TempSpawnType::TIMED_OR_DEAD_DESPAWN, IN_MILLISECONDS * HOUR, SummonFlags{true}))
                         {
                             m_flameshockers.insert(pFlameshocker->GetObjectGuid());
                             pFlameshocker->CastSpell(pFlameshocker, SPELL_MINION_SPAWN_IN, TRIGGERED_OLD_TRIGGERED);

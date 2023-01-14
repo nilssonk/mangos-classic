@@ -62,7 +62,7 @@ enum SpawnIndexes
     POS_IDX_MAX
 };
 
-static const float aSpawnLocations[POS_IDX_MAX][4] =
+static const Position aSpawnLocations[POS_IDX_MAX] =
 {
     {4981.031f,    597.955f,   -1.361f, 4.82f},         // Murkdeep spawn, guesswork
     {4988.970f,    547.002f,    5.379f,  0.0f},         // Murkdeep move, guesswork

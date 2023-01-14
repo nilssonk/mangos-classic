@@ -27,6 +27,8 @@ EndScriptData
 #include "zulgurub.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace {
+
 enum
 {
     SAY_AGGRO                   = -1309002,
@@ -82,6 +84,15 @@ enum JeklikActions
     JEKLIK_DELAYED_BAT,
 };
 
+// TODO: check if more positions exist
+const Position jeklikBatpositions[] =
+{
+    {-12298.03f, -1368.506f, 145.3976f, 4.799655f}, // waits 15 sec
+    {-12301.69f, -1371.292f, 145.0924f, 4.747295f},
+};
+
+} // anonymous namespace
+
 struct boss_jeklikAI : public CombatAI
 {
     boss_jeklikAI(Creature* creature) : CombatAI(creature, JEKLIK_ACTION_MAX), m_instance(static_cast<instance_zulgurub*>(creature->GetInstanceData()))
@@ -124,7 +135,7 @@ struct boss_jeklikAI : public CombatAI
             m_creature->SetLevitate(true);
             // override MMaps, by allowing the boss to fly up from the ledge
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(1, -12281.58f, -1392.84f, 146.1f);
+            m_creature->GetMotionMaster()->MovePoint(1, {-12281.58f, -1392.84f, 146.1f});
         }
     }
 
@@ -165,9 +176,8 @@ struct boss_jeklikAI : public CombatAI
     void EnterEvadeMode() override
     {
         // Override MMaps, and teleport to original position
-        float fX, fY, fZ, fO;
-        m_creature->GetRespawnCoord(fX, fY, fZ, &fO);
-        m_creature->NearTeleportTo(fX, fY, fZ, fO);
+        auto const respawn_pos = m_creature->GetRespawnPosition();
+        m_creature->NearTeleportTo(respawn_pos);
 
         ScriptedAI::EnterEvadeMode();
     }
@@ -215,21 +225,12 @@ struct boss_jeklikAI : public CombatAI
             case JEKLIK_PHASE_BATS:
                 if (m_creature->GetHealthPercent() < 35.0f)
                 {
-                    // TODO: check if more positions exist
-                    const std::vector<Position> positions =
-                    {
-                        {-12298.03f, -1368.506f, 145.3976f, 4.799655f}, // waits 15 sec
-                        {-12301.69f, -1371.292f, 145.0924f, 4.747295f},
-                    };
-
-                    Position const& pos1 = positions[0];
-                    Creature* bat = m_creature->SummonCreature(NPC_BAT_RIDER, pos1.x, pos1.y, pos1.z, 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    Creature* bat = m_creature->SummonCreature(NPC_BAT_RIDER, {jeklikBatpositions[0].xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                     bat->GetMotionMaster()->MoveIdle();
                     m_delayedBat = bat->GetObjectGuid();
                     ResetTimer(JEKLIK_DELAYED_BAT, 15000);
 
-                    Position const& pos2 = positions[1];
-                    bat = m_creature->SummonCreature(NPC_BAT_RIDER, pos2.x, pos2.y, pos2.z, 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+                    bat = m_creature->SummonCreature(NPC_BAT_RIDER, {jeklikBatpositions[1].xyz(), 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
                     bat->CastSpell(nullptr, SPELL_LIQUID_FIRE, TRIGGERED_OLD_TRIGGERED);
                     bat->GetMotionMaster()->MovePath(1);
 

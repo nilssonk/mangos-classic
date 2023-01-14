@@ -24,7 +24,13 @@
 #define _REALMLIST_H
 
 #include "Common.h"
+
 #include <array>
+#include <cstdint>
+#include <ctime>
+#include <map>
+#include <set>
+#include <string>
 
 struct RealmBuildInfo
 {

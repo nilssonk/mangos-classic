@@ -43,6 +43,7 @@
 #include <bitset>
 #include <functional>
 #include <list>
+#include <optional>
 
 struct CreatureInfo;
 class Creature;
@@ -149,27 +150,27 @@ class Map : public GridRefManager<NGridType>
         // function for setting up visibility distance for maps on per-type/per-Id basis
         virtual void InitVisibilityDistance();
 
-        void PlayerRelocation(Player*, float x, float y, float z, float orientation);
-        void CreatureRelocation(Creature* creature, float x, float y, float z, float ang);
-        void GameObjectRelocation(GameObject* go, float x, float y, float z, float orientation, bool respawnRelocationOnFail = true);
+        void PlayerRelocation(Player*, Position const& pos);
+        void CreatureRelocation(Creature* creature, Position const& pos);
+        void GameObjectRelocation(GameObject* go, Position const& pos, bool respawnRelocationOnFail = true);
 
         template<class T, class CONTAINER> void Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER>& visitor);
 
-        bool IsRemovalGrid(float x, float y) const
+        bool IsRemovalGrid(Vec2 const& pos) const
         {
-            GridPair p = MaNGOS::ComputeGridPair(x, y);
+            GridPair p = MaNGOS::ComputeGridPair(pos);
             return (!getNGrid(p.x_coord, p.y_coord) || getNGrid(p.x_coord, p.y_coord)->GetGridState() == GRID_STATE_REMOVAL);
         }
 
-        bool IsLoaded(float x, float y) const
+        bool IsLoaded(Vec2 const& pos) const
         {
-            GridPair p = MaNGOS::ComputeGridPair(x, y);
+            GridPair p = MaNGOS::ComputeGridPair(pos);
             return loaded(p);
         }
 
         bool GetUnloadLock(const GridPair& p) const { return getNGrid(p.x_coord, p.y_coord)->getUnloadLock(); }
         void SetUnloadLock(const GridPair& p, bool on) { getNGrid(p.x_coord, p.y_coord)->setUnloadExplicitLock(on); }
-        void ForceLoadGrid(float x, float y);
+        void ForceLoadGrid(Vec2 const& pos);
         bool UnloadGrid(const uint32& x, const uint32& y, bool pForce);
         virtual void UnloadAll(bool pForce);
 
@@ -294,10 +295,10 @@ class Map : public GridRefManager<NGridType>
         void PlayDirectSoundToMap(uint32 soundId, uint32 zoneId = 0) const;
 
         // Dynamic VMaps
-        float GetHeight(float x, float y, float z, bool swim = false) const;
-        bool GetHeightInRange(float x, float y, float& z, float maxSearchDist = 4.0f) const;
-        bool IsInLineOfSight(float x1, float y1, float z1, float x2, float y2, float z2, bool ignoreM2Model) const;
-        bool GetHitPosition(float srcX, float srcY, float srcZ, float& destX, float& destY, float& destZ, float modifyDist) const;
+        float GetHeight(Vec3 const& pos, bool swim = false) const;
+        bool GetHeightInRange(Vec2 const& pos, float& z, float maxSearchDist = 4.0f) const;
+        bool IsInLineOfSight(Vec3 const& src, Vec3 const& dst, bool ignoreM2Model) const;
+        std::optional<Vec3> GetHitPosition(Vec3 const& src, Vec3 const& dst, float modifyDist) const;
 
         // Object Model insertion/remove/test for dynamic vmaps use
         void InsertGameObjectModel(const GameObjectModel& mdl);
@@ -321,10 +322,8 @@ class Map : public GridRefManager<NGridType>
         void SetWeather(uint32 zoneId, WeatherType type, float grade, bool permanently);
 
         // Random on map generation
-        bool GetReachableRandomPosition(Unit* unit, float& x, float& y, float& z, float radius, bool randomRange = true) const;
-        bool GetReachableRandomPointOnGround(float& x, float& y, float& z, float radius, bool randomRange = true) const;
-        bool GetRandomPointInTheAir(float& x, float& y, float& z, float radius, bool randomRange = true) const;
-        bool GetRandomPointUnderWater(float& x, float& y, float& z, float radius, GridMapLiquidData& liquid_status, bool randomRange = true) const;
+        std::optional<Vec3> GetReachableRandomPosition(Unit* unit, Vec3 const& pos, float radius, bool randomRange = true) const;
+        std::optional<Vec3> GetReachableRandomPointOnGround(Vec3 const& pos, float radius, bool randomRange = true) const;
 
         uint32 SpawnedCountForEntry(uint32 entry);
         void AddToSpawnCount(const ObjectGuid& guid);
@@ -362,6 +361,9 @@ class Map : public GridRefManager<NGridType>
         std::set<ObjectGuid> m_objRemoveList; // this will eventually eat up too much memory - only used for debugging VisibleNotifier::Notify() customlog leak
 
     private:
+        std::optional<Vec3> GetRandomPointInTheAir(Vec3 const& pos, float radius, bool randomRange = true) const;
+        std::optional<Vec3> GetRandomPointUnderWater(Vec3 const& pos, float radius, GridMapLiquidData& liquid_status, bool randomRange = true) const;
+
         void LoadMapAndVMap(int gx, int gy);
 
         void SetTimer(uint32 t) { i_gridExpiry = t < MIN_GRID_DELAY ? MIN_GRID_DELAY : t; }

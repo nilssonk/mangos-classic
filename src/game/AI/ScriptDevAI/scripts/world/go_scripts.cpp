@@ -332,9 +332,8 @@ struct go_elemental_rift : public GameObjectAI
             return;
 
         // Spawn an elemental at a random point
-        float fX, fY, fZ;
-        m_go->GetRandomPoint(m_go->GetPositionX(), m_go->GetPositionY(), m_go->GetPositionZ(), 25.0f, fX, fY, fZ);
-        m_go->SummonCreature(elementalEntry, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0);
+        auto const rand_pos = m_go->GetRandomPoint(m_go->GetPosition().xyz(), 25.0f);
+        m_go->SummonCreature(elementalEntry, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
     }
 
     void UpdateAI(const uint32 uiDiff) override

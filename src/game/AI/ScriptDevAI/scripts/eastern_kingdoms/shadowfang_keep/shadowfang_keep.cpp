@@ -192,6 +192,8 @@ bool GossipSelect_npc_shadowfang_prisoner(Player* player, Creature* creature, ui
 ## mob_arugal_voidwalker
 ######*/
 
+namespace {
+
 enum
 {
     NPC_VOIDWALKER      = 4627,
@@ -207,7 +209,9 @@ enum ArugalVoidWalker
 };
 
 // Coordinates for Voidwalker home
-static const Waypoint voidwalkerHome = { -146.06f,  2172.84f, 127.953f};  // This is the initial location, in the middle of the room
+const Vec3 voidwalkerHome{ -146.06f,  2172.84f, 127.953f};  // This is the initial location, in the middle of the room
+
+} // anonymous namespace
 
 struct mob_arugal_voidwalkerAI : public CombatAI
 {
@@ -340,6 +344,8 @@ struct mob_arugal_voidwalkerAI : public CombatAI
 ## boss_arugal
 ######*/
 
+namespace {
+
 enum
 {
     SPELL_VOID_BOLT                 = 7588,
@@ -357,13 +363,8 @@ enum ArugalPosition
     POSITION_STAIRS      = 2
 };
 
-struct SpawnPoint
-{
-    float fX, fY, fZ, fO;
-};
-
 // Cordinates for voidwalker spawns
-static const SpawnPoint VWSpawns[] =
+const Position VWSpawns[] =
 {
     // fX        fY         fZ        fO
     { -155.352f, 2172.780f, 128.448f, 4.679f},
@@ -384,6 +385,8 @@ enum ArugalActions
     ARUGAL_THUNDERSHOCK,
     ARUGAL_ACTIONS_MAX,
 };
+
+} // anonymous namespace
 
 struct boss_arugalAI : public CombatAI
 {
@@ -441,10 +444,10 @@ struct boss_arugalAI : public CombatAI
             for (uint8 i = 0; i < MAX_VOID_WALKERS; ++i)
             {
                // No suitable spell was found for this in DBC files, so summoning the hard way
-               if (Creature* voidwalker = m_creature->SummonCreature(NPC_VOIDWALKER, VWSpawns[i].fX, VWSpawns[i].fY, VWSpawns[i].fZ, VWSpawns[i].fO, TEMPSPAWN_DEAD_DESPAWN, 1))
+               if (Creature* voidwalker = m_creature->SummonCreature(NPC_VOIDWALKER, VWSpawns[i], TempSpawnType::DEAD_DESPAWN, 1))
                {
                    // Set Voidwalker's home to the middle of the room to avoid evade in an unreachable place
-                   voidwalker->SetRespawnCoord(voidwalkerHome.fX, voidwalkerHome.fY, voidwalkerHome.fZ, voidwalker->GetOrientation());
+                   voidwalker->SetRespawnPosition({voidwalkerHome, voidwalker->GetOrientation()});
 
                    if (!i)
                    {

@@ -1522,7 +1522,7 @@ SpellCastResult Unit::CastCustomSpell(Unit* Victim, SpellEntry const* spellInfo,
 }
 
 // used for scripting
-SpellCastResult Unit::CastSpell(float x, float y, float z, uint32 spellId, uint32 triggeredFlags, Item* castItem, Aura* triggeredByAura, ObjectGuid originalCaster, SpellEntry const* triggeredBy)
+SpellCastResult Unit::CastSpell(Vec3 const& pos, uint32 spellId, uint32 triggeredFlags, Item* castItem, Aura* triggeredByAura, ObjectGuid originalCaster, SpellEntry const* triggeredBy)
 {
     SpellEntry const* spellInfo = sSpellTemplate.LookupEntry<SpellEntry>(spellId);
 
@@ -1535,11 +1535,11 @@ SpellCastResult Unit::CastSpell(float x, float y, float z, uint32 spellId, uint3
         return SPELL_NOT_FOUND;
     }
 
-    return CastSpell(x, y, z, spellInfo, triggeredFlags, castItem, triggeredByAura, originalCaster, triggeredBy);
+    return CastSpell(pos, spellInfo, triggeredFlags, castItem, triggeredByAura, originalCaster, triggeredBy);
 }
 
 // used for scripting
-SpellCastResult Unit::CastSpell(float x, float y, float z, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem, Aura* triggeredByAura, ObjectGuid originalCaster, SpellEntry const* triggeredBy)
+SpellCastResult Unit::CastSpell(Vec3 const& pos, SpellEntry const* spellInfo, uint32 triggeredFlags, Item* castItem, Aura* triggeredByAura, ObjectGuid originalCaster, SpellEntry const* triggeredBy)
 {
     if (!spellInfo)
     {
@@ -1566,13 +1566,13 @@ SpellCastResult Unit::CastSpell(float x, float y, float z, SpellEntry const* spe
     SpellCastTargets targets;
 
     if (spellInfo->Targets & TARGET_FLAG_DEST_LOCATION)
-        targets.setDestination(x, y, z);
+        targets.setDestination(pos);
     if (spellInfo->Targets & TARGET_FLAG_SOURCE_LOCATION)
-        targets.setSource(x, y, z);
+        targets.setSource(pos);
 
     // Spell cast with x,y,z but without dbc target-mask, set destination
     if (!(targets.m_targetMask & (TARGET_FLAG_DEST_LOCATION | TARGET_FLAG_SOURCE_LOCATION)))
-        targets.setDestination(x, y, z);
+        targets.setDestination(pos);
 
     spell->SetCastItem(castItem);
     return spell->SpellStart(&targets, triggeredByAura);
@@ -4399,10 +4399,9 @@ bool Unit::IsUnderwater() const
 
 bool Unit::IsAboveGround(float diff) const
 {
-    float x, y, z;
-    GetPosition(x, y, z);
-    float floorZ = GetMap()->GetHeight(x, y, z);
-    return std::abs(z - floorZ) > diff;
+    auto const pos = GetPosition();
+    float floorZ = GetMap()->GetHeight(pos.xyz());
+    return std::abs(pos.z - floorZ) > diff;
 }
 
 void Unit::DeMorph()
@@ -10533,14 +10532,14 @@ void Unit::RemoveAurasAtMechanicImmunity(uint32 mechMask, uint32 exceptSpellId, 
     }
 }
 
-void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool casting /*= false*/, bool transportLeave /*= false*/)
+void Unit::NearTeleportTo(Position const& pos, bool casting /*= false*/, bool transportLeave /*= false*/)
 {
     if (IsPlayer())
     {
         uint32 options = (transportLeave ? 0 : TELE_TO_NOT_LEAVE_TRANSPORT) | (casting ? TELE_TO_SPELL : 0);
-        if (GetDistance(x, y, z, DIST_CALC_NONE) < 100.f * 100.f)
+        if (GetDistance(pos.xyz(), DIST_CALC_NONE) < 100.f * 100.f)
             options |= TELE_TO_NOT_LEAVE_COMBAT;
-        static_cast<Player*>(this)->TeleportTo(GetMapId(), x, y, z, orientation, options);
+        static_cast<Player*>(this)->TeleportTo(GetMapId(), pos, options);
     }
     else
     {
@@ -10552,7 +10551,7 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
             if (MovementGenerator* movgen = c->GetMotionMaster()->top())
                 movgen->Interrupt(*c);
 
-        GetMap()->CreatureRelocation(c, x, y, z, orientation);
+        GetMap()->CreatureRelocation(c, pos);
 
         SendHeartBeat();
 
@@ -10564,7 +10563,7 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
     }
 }
 
-void Unit::SendTeleportPacket(float x, float y, float z, float ori, GenericTransport* transport)
+void Unit::SendTeleportPacket(Position const& pos, GenericTransport* transport)
 {
     MovementInfo teleportMovementInfo = m_movementInfo;
     if (transport)
@@ -10596,7 +10595,7 @@ void Unit::SendTeleportPacket(float x, float y, float z, float ori, GenericTrans
     SendMessageToSetExcept(moveUpdateTeleport, player);
 }
 
-void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath, bool forceDestination)
+void Unit::MonsterMoveWithSpeed(Vec3 const& pos, float speed, bool generatePath, bool forceDestination)
 {
     Movement::MoveSplineInit init(*this);
     init.MoveTo(x, y, z, generatePath, forceDestination);
@@ -11016,7 +11015,7 @@ void Unit::ForceHealthAndPowerUpdate()
 }
 
 // This will create a new creature and set the current unit as the controller of that new creature
-Unit* Unit::TakePossessOf(SpellEntry const* spellEntry, uint32 effIdx, float x, float y, float z, float ang)
+Unit* Unit::TakePossessOf(SpellEntry const* spellEntry, uint32 effIdx, Vec3 const& pos, float ang)
 {
     // Possess is a unique advertised charm, another advertised charm already exists: we should get rid of it first
     if (HasCharm())

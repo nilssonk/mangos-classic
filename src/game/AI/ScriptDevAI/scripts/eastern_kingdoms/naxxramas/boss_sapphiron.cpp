@@ -25,6 +25,8 @@ EndScriptData */
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "naxxramas.h"
 
+namespace {
+
 enum
 {
     EMOTE_BREATH                = -1533082,
@@ -57,7 +59,7 @@ enum
     NPC_BLIZZARD                = 16474,
 };
 
-static const float aLiftOffPosition[3] = {3522.386f, -5236.784f, 137.709f};
+const Vec3 aLiftOffPosition{3522.386f, -5236.784f, 137.709f};
 
 enum SapphironPhases
 {
@@ -80,7 +82,9 @@ enum SapphironActions
     SAPPHIRON_ACTION_MAX,
 };
 
-static const uint32 groundPhaseActions[] = {SAPPHIRON_CLEAVE, SAPPHIRON_TAIL_SWEEP, SAPPHIRON_BLIZZARD, SAPPHIRON_LIFE_DRAIN};
+const uint32 groundPhaseActions[] = {SAPPHIRON_CLEAVE, SAPPHIRON_TAIL_SWEEP, SAPPHIRON_BLIZZARD, SAPPHIRON_LIFE_DRAIN};
+
+} // anonymous namespace
 
 struct boss_sapphironAI : public CombatAI
 {
@@ -190,7 +194,7 @@ struct boss_sapphironAI : public CombatAI
             SetCombatMovement(false);
             SetMeleeEnabled(false);
             m_creature->SetTarget(nullptr);
-            m_creature->GetMotionMaster()->MovePoint(1, aLiftOffPosition[0], aLiftOffPosition[1], aLiftOffPosition[2]);
+            m_creature->GetMotionMaster()->MovePoint(1, aLiftOffPosition);
         }
         else
             DisableTimer(SAPPHIRON_AIR_PHASE);

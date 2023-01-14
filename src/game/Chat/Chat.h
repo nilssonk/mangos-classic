@@ -25,6 +25,7 @@
 #include "Entities/ObjectGuid.h"
 
 #include <functional>
+#include <optional>
 #include <utility>
 
 struct AreaTrigger;
@@ -155,7 +156,7 @@ class ChatHandler
         uint32 ExtractSpellIdFromLink(char** text);
         ObjectGuid ExtractGuidFromLink(char** text);
         GameTele const* ExtractGameTeleFromLink(char** text);
-        bool   ExtractLocationFromLink(char** text, uint32& mapid, float& x, float& y, float& z);
+        std::optional<WorldLocation> ExtractLocationFromLink(char** text);
         bool   ExtractRaceMask(char** text, uint32& raceMask, char const** maskName = nullptr);
         std::string ExtractPlayerNameFromLink(char** text);
         bool ExtractPlayerTarget(char** args, Player** player, ObjectGuid* player_guid = nullptr, std::string* player_name = nullptr);
@@ -805,7 +806,9 @@ class ChatHandler
         bool HandleUnBanHelper(BanMode mode, char* args);
         void HandleCharacterLevel(Player* player, ObjectGuid player_guid, uint32 oldlevel, uint32 newlevel);
         void HandleLearnSkillRecipesHelper(Player* player, uint32 skill_id);
-        bool HandleGoHelper(Player* _player, uint32 mapid, float x, float y, float const* zPtr = nullptr, float const* ortPtr = nullptr);
+        bool HandleGoHelper(Player* _player, uint32 mapid, Vec2 const& pos);
+        bool HandleGoHelper(Player* _player, uint32 mapid, Vec3 const& pos);
+        bool HandleGoHelper(Player* _player, uint32 mapid, Position const& pos);
         bool HandleGetValueHelper(Object* target, uint32 field, char* typeStr);
         void ShowAllUpdateFieldsHelper(Object const* target);
         void ShowUpdateFieldHelper(Object const* target, uint16 index);

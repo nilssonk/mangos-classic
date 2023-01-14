@@ -103,16 +103,18 @@ void SystemMgr::LoadScriptWaypoints()
                 continue;
             }
 
-            float position_x    = fields[3].GetFloat();
-            float position_y    = fields[4].GetFloat();
-            float position_z    = fields[5].GetFloat();
-            float orientation   = fields[6].GetFloat();
-            uint32 waitTime     = fields[7].GetUInt32();
-            uint32 scriptId     = fields[8].GetUInt32();
+            Position const pos{
+                fields[3].GetFloat(),
+                fields[4].GetFloat(),
+                fields[5].GetFloat(),
+                fields[6].GetFloat()
+            };
+            uint32 const waitTime = fields[7].GetUInt32();
+            uint32 const scriptId = fields[8].GetUInt32();
 
             // sanitize waypoints
             if (blacklistWaypoints.find((entry << 8) + pathId) == blacklistWaypoints.end())
-                sWaypointMgr.AddExternalNode(entry, pathId, pointId, position_x, position_y, position_z, orientation, waitTime, scriptId);
+                sWaypointMgr.AddExternalNode(entry, pathId, pointId, pos, waitTime, scriptId);
 
             ++nodeCount;
         }

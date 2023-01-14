@@ -624,22 +624,19 @@ void CreatureLinkingHolder::SetFollowing(Creature* pWho, Creature* pWhom) const
 {
     // Do some calculations
     float sX, sY, sZ, mX, mY, mZ, mO;
-    pWho->GetRespawnCoord(sX, sY, sZ);
-    pWhom->GetRespawnCoord(mX, mY, mZ, &mO);
+    auto const follower_respawn_pos = pWho->GetRespawnPosition();
+    auto const leader_respawn_pos = pWhom->GetRespawnPosition();
 
-    float dx = sX - mX;
-    float dy = sY - mY;
-    float dz = sZ - mZ;
+    auto const dx = follower_respawn_pos.xyz() - leader_respawn_pos.xyz();
 
-    float dist = sqrt(dx * dx + dy * dy + dz * dz);
+    float dist = dx.squaredLength();
     // REMARK: This code needs the same distance calculation that is used for following
     // Atm this means we have to subtract the bounding radiuses
     dist = dist - pWho->GetObjectBoundingRadius() - pWhom->GetObjectBoundingRadius();
-    if (dist < 0.0f)
-        dist = 0.0f;
+    dist = std::max(dist, 0.0f);
 
     // Need to pass the relative angle to following
-    float angle = atan2(dy, dx) - mO;
+    float angle = atan2(dx.y, dx.x) - mO;
     angle = (angle >= 0) ? angle : 2 * M_PI_F + angle;
 
     pWho->GetMotionMaster()->MoveFollow(pWhom, dist, angle);
@@ -648,23 +645,18 @@ void CreatureLinkingHolder::SetFollowing(Creature* pWho, Creature* pWhom) const
 // Function to check if a slave belongs to a boss by range-issue
 bool CreatureLinkingHolder::IsSlaveInRangeOfMaster(Creature const* pSlave, Creature const* pBoss, uint16 searchRange) const
 {
-    float sX, sY, sZ;
-    pSlave->GetRespawnCoord(sX, sY, sZ);
-    return IsSlaveInRangeOfMaster(pBoss, sX, sY, searchRange);
+    auto const respawn_pos = pSlave->GetRespawnPosition();
+    return IsSlaveInRangeOfMaster(pBoss, respawn_pos.xy(), searchRange);
 }
-bool CreatureLinkingHolder::IsSlaveInRangeOfMaster(Creature const* pBoss, float sX, float sY, uint16 searchRange) const
+bool CreatureLinkingHolder::IsSlaveInRangeOfMaster(Creature const* pBoss, Vec2 const& pos, uint16 searchRange) const
 {
     if (!searchRange)
         return true;
 
     // Do some calculations
-    float mX, mY, mZ;
-    pBoss->GetRespawnCoord(mX, mY, mZ);
+    auto const dx = pos - pBoss->GetRespawnPosition().xy();
 
-    float dx = sX - mX;
-    float dy = sY - mY;
-
-    return dx * dx + dy * dy < searchRange * searchRange;
+    return dx.squaredLength() < searchRange * searchRange;
 }
 
 // helper function to check if a lowguid can respawn
@@ -689,9 +681,7 @@ bool CreatureLinkingHolder::CanSpawn(Creature* pCreature) const
     if (!pInfo)
         return true;
 
-    float sx, sy, sz;
-    pCreature->GetRespawnCoord(sx, sy, sz);
-    return CanSpawn(pCreature->GetDbGuid(), pCreature->GetMap(), pInfo, sx, sy);
+    return CanSpawn(pCreature->GetDbGuid(), pCreature->GetMap(), pInfo, pCreature->GetRespawnPosition().xy());
 }
 
 /** Worker function to check if a spawning condition is met
@@ -702,54 +692,57 @@ bool CreatureLinkingHolder::CanSpawn(Creature* pCreature) const
  *  @param dbGuid (only relevant in case of recursive uses) -- db-guid of the npc that is checked
  *  @param _map Map on which things are checked
  *  @param pInfo (only shipped in case of initial use) -- used as marker of first use, also in first use filled directly
- *  @param sx, sy (spawn position of the checked npc with initial use)
+ *  @param pos (spawn position of the checked npc with initial use)
  */
-bool CreatureLinkingHolder::CanSpawn(uint32 dbGuid, Map* _map, CreatureLinkingInfo const*  pInfo, float sx, float sy) const
+
+bool CreatureLinkingHolder::CanSpawn(uint32 dbGuid, Map* _map, CreatureLinkingInfo const*  pInfo, Vec2 const& pos) const {
+    if (pInfo)
+        return CanSpawnImpl(dbGuid, _map, *pInfo, pos);
+
+    // Prepare data for recursive use
+    CreatureData const* data = sObjectMgr.GetCreatureData(dbGuid);
+    if (!data)
+        return true;
+    pInfo = sCreatureLinkingMgr.GetLinkedTriggerInformation(data->id, dbGuid, data->mapid);
+    if (!pInfo)
+        return true;
+    // Has dbGuid npc actually spawning linked?
+    if (!sCreatureLinkingMgr.IsSpawnedByLinkedMob(pInfo))
+        return true;
+
+    return CanSpawnImpl(dbGuid, _map, *pInfo, Vec2{data->posX, data->posY});
+}
+
+bool CreatureLinkingHolder::CanSpawnImpl(uint32 dbGuid, Map* _map, CreatureLinkingInfo const&  pInfo, Vec2 const& pos) const
 {
-    if (!pInfo)                                             // Prepare data for recursive use
+    if (pInfo.searchRange == 0)                            // Map wide case
     {
-        CreatureData const* data = sObjectMgr.GetCreatureData(dbGuid);
-        if (!data)
-            return true;
-        pInfo = sCreatureLinkingMgr.GetLinkedTriggerInformation(data->id, dbGuid, data->mapid);
-        if (!pInfo)
-            return true;
-        // Has dbGuid npc actually spawning linked?
-        if (!sCreatureLinkingMgr.IsSpawnedByLinkedMob(pInfo))
-            return true;
-
-        sx = data->posX;                                    // Fill position data
-        sy = data->posY;
-    }
-
-    if (pInfo->searchRange == 0)                            // Map wide case
-    {
-        if (!pInfo->masterDBGuid)
+        if (!pInfo.masterDBGuid)
             return false;                                   // This should never happen
 
-        if (pInfo->linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_DEAD)
+        if (pInfo.linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_DEAD)
         {
             if (InstanceData* data = _map->GetInstanceData())
                 if (data->IsEncounterInProgress())
                     return false;
 
-            return IsRespawnReady(pInfo->masterDBGuid, _map);
+            return IsRespawnReady(pInfo.masterDBGuid, _map);
         }
-        if (pInfo->linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_ALIVE)
-            return !IsRespawnReady(pInfo->masterDBGuid, _map);
+        if (pInfo.linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_ALIVE)
+            return !IsRespawnReady(pInfo.masterDBGuid, _map);
         return true;
     }
 
     // Search for nearby master
-    BossGuidMapBounds finds = m_masterGuid.equal_range(pInfo->masterId);
+    BossGuidMapBounds finds = m_masterGuid.equal_range(pInfo.masterId);
     for (BossGuidMap::const_iterator itr = finds.first; itr != finds.second; ++itr)
     {
         Creature* pMaster = _map->GetCreature(itr->second);
-        if (pMaster && IsSlaveInRangeOfMaster(pMaster, sx, sy, pInfo->searchRange))
+        if (pMaster && IsSlaveInRangeOfMaster(pMaster, pos, pInfo.searchRange))
         {
-            if (pInfo->linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_DEAD)
+            if (pInfo.linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_DEAD)
                 return pMaster->IsAlive();
-            if (pInfo->linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_ALIVE)
+            if (pInfo.linkingFlag & FLAG_CANT_SPAWN_IF_BOSS_ALIVE)
                 return !pMaster->IsAlive();
             return true;
         }

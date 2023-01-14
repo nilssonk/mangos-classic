@@ -45,7 +45,7 @@ bool ItemUse_example_item(Player* /*pPlayer*/, Item* /*pItem*/, SpellCastTargets
 
 bool GOUse_example_go_teleporter(Player* pPlayer, GameObject* /*pGo*/)
 {
-    pPlayer->TeleportTo(0, 1807.07f, 336.105f, 70.3975f, 0.0f);
+    pPlayer->TeleportTo(0, {1807.07f, 336.105f, 70.3975f, 0.0f});
     return false;
 }
 

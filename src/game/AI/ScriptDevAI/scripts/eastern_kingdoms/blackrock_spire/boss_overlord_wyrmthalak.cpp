@@ -39,7 +39,7 @@ enum
 
 const uint32 uSummons[3] = {NPC_BLOODAXE_VETERAN, NPC_SMOLDERTHORN_BERSERKER, NPC_SPIRESTONE_WARLORD};
 
-const float afLocations[4][4] =
+const Vec4 afLocations[4] =
 {
     { -51.6805f, -439.831f, 78.2874f, 4.657f},              // spawn points
     { -54.4554f, -439.679f, 78.2884f, 4.657f},
@@ -123,17 +123,17 @@ struct boss_overlordwyrmthalakAI : public ScriptedAI
         // Summon two Beserks
         if (!m_bSummoned && m_creature->GetHealthPercent() < 51.0f)
         {
-            Creature* pGuard1 = m_creature->SummonCreature(uSummons[urand(0, 2)], afLocations[0][0], afLocations[0][1], afLocations[0][2], afLocations[0][3], TEMPSPAWN_TIMED_DESPAWN, 300000);
-            Creature* pGuard2 = m_creature->SummonCreature(uSummons[urand(0, 2)], afLocations[1][0], afLocations[1][1], afLocations[1][2], afLocations[1][3], TEMPSPAWN_TIMED_DESPAWN, 300000);
+            Creature* pGuard1 = m_creature->SummonCreature(uSummons[urand(0, 2)], afLocations[0], TempSpawnType::TIMED_DESPAWN, 300000);
+            Creature* pGuard2 = m_creature->SummonCreature(uSummons[urand(0, 2)], afLocations[1], TempSpawnType::TIMED_DESPAWN, 300000);
             if (pGuard1)
             {
                 pGuard1->SetWalk(false);
-                pGuard1->GetMotionMaster()->MovePoint(0, afLocations[2][0], afLocations[2][1], afLocations[2][2]);
+                pGuard1->GetMotionMaster()->MovePoint(0, afLocations[2].xyz());
             }
             if (pGuard2)
             {
                 pGuard2->SetWalk(false);
-                pGuard2->GetMotionMaster()->MovePoint(0, afLocations[3][0], afLocations[3][1], afLocations[3][2]);
+                pGuard2->GetMotionMaster()->MovePoint(0, afLocations[3].xyz());
             }
 
             m_bSummoned = true;

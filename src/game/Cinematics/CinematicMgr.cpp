@@ -53,12 +53,12 @@ void CinematicMgr::BeginCinematic()
         auto camitr = m_cinematicCamera->begin();
         if (camitr != m_cinematicCamera->end())
         {
-            Position pos { camitr->locations.x, camitr->locations.y, camitr->locations.z, camitr->locations.w };
-            if (!MaNGOS::IsValidMapCoord(pos.x, pos.y, pos.z, pos.o))
+            auto const& pos = camitr->pos;
+            if (!MaNGOS::IsValidMapCoord(pos))
                 return;
 
-            player->GetMap()->ForceLoadGrid(camitr->locations.x, camitr->locations.y);
-            m_CinematicObject = player->SummonCreature(VISUAL_WAYPOINT, pos.x, pos.y, pos.z, 0.0f, TEMPSPAWN_TIMED_DESPAWN, 5 * MINUTE * IN_MILLISECONDS);
+            player->GetMap()->ForceLoadGrid(pos.xy());
+            m_CinematicObject = player->SummonCreature(VISUAL_WAYPOINT, Position{pos.xyz(), 0.0f}, TempSpawnType::TIMED_DESPAWN, 5 * MINUTE * IN_MILLISECONDS);
             if (m_CinematicObject)
             {
                 m_CinematicObject->SetActiveObjectState(true);
@@ -116,15 +116,15 @@ bool CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
     uint32 nextTimestamp = 0;
 
     // Obtain direction of travel
-    for (FlyByCamera cam : *m_cinematicCamera)
+    for (FlyByCamera const& cam : *m_cinematicCamera)
     {
         if (cam.timeStamp > m_cinematicDiff)
         {
-            nextPosition = { cam.locations.x, cam.locations.y, cam.locations.z, cam.locations.w };
+            nextPosition = cam.pos;
             nextTimestamp = cam.timeStamp;
             break;
         }
-        lastPosition = { cam.locations.x, cam.locations.y, cam.locations.z, cam.locations.w };
+        lastPosition = cam.pos;
         lastTimestamp = cam.timeStamp;
     }
 
@@ -134,7 +134,7 @@ bool CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
     float angle = std::atan2(dy, dx);
     angle = (angle >= 0) ? angle : 2 * float(M_PI) + angle;
 
-    angle -= lastPosition.o;
+    angle -= lastPosition.w;
     if (angle < 0)
         angle += 2 * float(M_PI);
 
@@ -154,15 +154,15 @@ bool CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
         workDiff = m_cinematicDiff;
 
     // Obtain the previous and next waypoint based on timestamp
-    for (FlyByCamera cam : *m_cinematicCamera)
+    for (FlyByCamera const& cam : *m_cinematicCamera)
     {
         if (static_cast<int32>(cam.timeStamp) >= workDiff)
         {
-            nextPosition = { cam.locations.x, cam.locations.y, cam.locations.z, cam.locations.w };
+            nextPosition = cam.pos;
             nextTimestamp = cam.timeStamp;
             break;
         }
-        lastPosition = { cam.locations.x, cam.locations.y, cam.locations.z, cam.locations.w };
+        lastPosition = cam.pos;
         lastTimestamp = cam.timeStamp;
     }
 
@@ -173,16 +173,16 @@ bool CinematicMgr::UpdateCinematicLocation(uint32 /*diff*/)
     // Interpolate the position for this moment in time (or the adjusted moment in time)
     uint32 timeDiff = nextTimestamp - lastTimestamp;
     uint32 interDiff = workDiff - lastTimestamp;
-    float xDiff = nextPosition.x - lastPosition.x;
-    float yDiff = nextPosition.y - lastPosition.y;
-    float zDiff = nextPosition.z - lastPosition.z;
-    Position interPosition = { lastPosition.x + (xDiff * (float(interDiff) / float(timeDiff))), lastPosition.y +
-        (yDiff * (float(interDiff) / float(timeDiff))), lastPosition.z + (zDiff * (float(interDiff) / float(timeDiff))), 0.0f };
+
+    Vec3 diff{nextPosition.xyz() - lastPosition.xyz()};
+    diff *= float(interDiff) / float(timeDiff);
+
+    Position interPosition = {lastPosition.xyz() + diff, 0.0f};
 
     // Advance (at speed) to this position. The remote sight object is used
     // to send update information to player in cinematic
-    if (m_CinematicObject && MaNGOS::IsValidMapCoord(interPosition.x, interPosition.y, interPosition.z, interPosition.o))
-        m_CinematicObject->MonsterMoveWithSpeed(interPosition.x, interPosition.y, interPosition.z, 500.0f, false, true);
+    if (m_CinematicObject && MaNGOS::IsValidMapCoord(interPosition))
+        m_CinematicObject->MonsterMoveWithSpeed(interPosition.xyz(), 500.0f, false, true);
 
     return true;
 }

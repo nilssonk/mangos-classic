@@ -165,7 +165,7 @@ struct boss_scarlet_commander_mograineAI : public CombatAI
         {
             m_instance->SetData(TYPE_MOGRAINE_AND_WHITE_EVENT, IN_PROGRESS);
 
-            pWhitemane->GetMotionMaster()->MovePoint(1, 1163.113370f, 1398.856812f, 32.527786f, FORCED_MOVEMENT_RUN);
+            pWhitemane->GetMotionMaster()->MovePoint(1, {1163.113370f, 1398.856812f, 32.527786f}, FORCED_MOVEMENT_RUN);
             pWhitemane->AI()->SetCombatScriptStatus(true);
 
             DoScriptText(SAY_WH_INTRO, pWhitemane);
@@ -485,10 +485,9 @@ struct boss_high_inquisitor_whitemaneAI : public CombatAI
                     {
                         SetCombatMovement(false);
                         m_creature->AttackStop(true);
-                        float fX, fY, fZ;
-                        mograine->GetContactPoint(m_creature, fX, fY, fZ, INTERACTION_DISTANCE / 2.f);
+                        auto const contact_point = mograine->GetContactPoint(m_creature, INTERACTION_DISTANCE / 2.f);
                         m_creature->GetMotionMaster()->Clear();
-                        m_creature->GetMotionMaster()->MovePoint(2, fX, fY, fZ, FORCED_MOVEMENT_RUN);
+                        m_creature->GetMotionMaster()->MovePoint(2, contact_point, FORCED_MOVEMENT_RUN);
                     }
                     DisableCombatAction(action);
                 }

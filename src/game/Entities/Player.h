@@ -889,11 +889,11 @@ class Player : public Unit
 
         float GetNativeScale() const override;
 
-        bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0, AreaTrigger const* at = nullptr, GenericTransport* transport = nullptr);
+        bool TeleportTo(uint32 mapid, Position const& pos, uint32 options = 0, AreaTrigger const* at = nullptr, GenericTransport* transport = nullptr);
 
         bool TeleportTo(WorldLocation const& loc, uint32 options = 0)
         {
-            return TeleportTo(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z, loc.orientation, options);
+            return TeleportTo(loc.mapid, loc.pos, options);
         }
 
         bool TeleportToBGEntryPoint();
@@ -1357,7 +1357,7 @@ class Player : public Unit
 
         static uint32 GetZoneIdFromDB(ObjectGuid guid);
         static uint32 GetLevelFromDB(ObjectGuid guid);
-        static bool   LoadPositionFromDB(ObjectGuid guid, uint32& mapid, float& x, float& y, float& z, float& o, bool& in_flight);
+        static std::optional<WorldLocation> LoadLocationFromDB(ObjectGuid guid);
 
         /*********************************************************/
         /***                   SAVE SYSTEM                     ***/
@@ -1367,7 +1367,7 @@ class Player : public Unit
         void SaveInventoryAndGoldToDB();                    // fast save function for item/money cheating preventing
         void SaveGoldToDB() const;
         static void SetUInt32ValueInArray(Tokens& tokens, uint16 index, uint32 value);
-        static void SavePositionInDB(ObjectGuid guid, uint32 mapid, float x, float y, float z, float o, uint32 zone);
+        static void SaveLocationInDB(ObjectGuid guid, WorldLocation const& loc, uint32 zone);
 
         static void DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRealmChars = true, bool deleteFinally = false);
         static void DeleteOldCharacters();
@@ -2053,17 +2053,16 @@ class Player : public Unit
         void   SetSaveTimer(uint32 timer) { m_nextSave = timer; }
 
         // Recall position
-        uint32 m_recallMap;
-        float  m_recallX;
-        float  m_recallY;
-        float  m_recallZ;
-        float  m_recallO;
+        WorldLocation m_recall;
         void   SaveRecallPosition();
 
         void SetHomebindToLocation(WorldLocation const& loc, uint32 area_id);
-        void GetHomebindLocation(float& x, float& y, float& z, uint32& mapId) { x = m_homebindX; y = m_homebindY; z = m_homebindZ; mapId = m_homebindMapId; }
-        void RelocateToHomebind() { SetLocationMapId(m_homebindMapId); Relocate(m_homebindX, m_homebindY, m_homebindZ); }
-        bool TeleportToHomebind(uint32 options = 0) { return TeleportTo(m_homebindMapId, m_homebindX, m_homebindY, m_homebindZ, GetOrientation(), options); }
+        WorldLocation GetHomebindLocation() { return m_homebind; }
+        void RelocateToHomebind() {
+            SetLocationMapId(m_homebind.mapid);
+            Relocate(m_homebind.pos);
+        }
+        bool TeleportToHomebind(uint32 options = 0) { return TeleportTo(m_homebind, options); }
 
         Object* GetObjectByTypeMask(ObjectGuid guid, TypeMask typemask);
 
@@ -2477,11 +2476,8 @@ class Player : public Unit
 #endif
 
         // Homebind coordinates
-        uint32 m_homebindMapId;
         uint16 m_homebindAreaId;
-        float m_homebindX;
-        float m_homebindY;
-        float m_homebindZ;
+        WorldLocation m_homebind;
 
         uint32 m_lastFallTime;
         float  m_lastFallZ;

@@ -16,8 +16,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MANGOS_TARGETEDMOVEMENTGENERATOR_H
-#define MANGOS_TARGETEDMOVEMENTGENERATOR_H
+#ifndef TARGETEDMOVEMENTGENERATOR_H
+#define TARGETEDMOVEMENTGENERATOR_H
 
 #include "Movement/MoveSplineInit.h"
 #include "MotionGenerators/MovementGenerator.h"
@@ -131,7 +131,7 @@ class ChaseMovementGenerator : public TargetedMovementGeneratorMedium<Unit, Chas
         bool _lostTarget(Unit& u) const;
         bool RemoveOnInvalid() const override { return false; }
         void _reachTarget(Unit&);
-        bool GetResetPosition(Unit& /*u*/, float& /*x*/, float& /*y*/, float& /*z*/, float& /*o*/) const override { return false; }
+        std::optional<Position> GetResetPosition(Unit& /*u*/) const override { return {}; }
         void HandleMovementFailure(Unit& owner) override;
 
         ChaseMovementMode GetCurrentMode() const { return m_currentMode; }
@@ -195,7 +195,7 @@ class FollowMovementGenerator : public TargetedMovementGeneratorMedium<Unit, Fol
         virtual void Interrupt(Unit& owner) override;
         void Reset(Unit& owner) override;
 
-        bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const override;
+        std::optional<Position> GetResetPosition(Unit&) const;
 
         virtual bool EnableWalking() const;
 
@@ -256,7 +256,7 @@ class FormationMovementGenerator : public FollowMovementGenerator
 
         bool Update(Unit&, const uint32&) override;
         void Interrupt(Unit& owner) override;
-        bool GetResetPosition(Unit&, float& x, float& y, float& z, float& o) const;
+        std::optional<Position> GetResetPosition(Unit& /*u*/) const override;
 
     protected:
         void HandleTargetedMovement(Unit& owner, const uint32& time_diff) override;
@@ -281,7 +281,7 @@ class FormationMovementGenerator : public FollowMovementGenerator
         float m_moveToMasterDistance;
 
         // reset position if this is interrupted
-        Position m_resetPoint;
+        std::optional<Position> m_resetPoint;
 };
 
 #endif

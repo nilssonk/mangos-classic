@@ -35,6 +35,7 @@
 #include "AI/ScriptDevAI/ScriptDevAIMgr.h"
 #include "Maps/InstanceData.h"
 #include "Entities/Object.h"
+#include "Entities/TempSpawnSettings.h"
 #include "Entities/Transports.h"
 
 ScriptMapMapName sQuestEndScripts;
@@ -145,10 +146,12 @@ void ScriptMgr::LoadScripts(ScriptMapMapName& scripts, const char* tablename)
         tmp.textId[2]          = fields[11].GetInt32();
         tmp.textId[3]          = fields[12].GetInt32();
         tmp.rawFloat.data[0]   = fields[13].GetFloat();
-        tmp.x                  = fields[14].GetFloat();
-        tmp.y                  = fields[15].GetFloat();
-        tmp.z                  = fields[16].GetFloat();
-        tmp.o                  = fields[17].GetFloat();
+        tmp.pos                = {
+            fields[14].GetFloat(),
+            fields[15].GetFloat(),
+            fields[16].GetFloat(),
+            fields[17].GetFloat()
+        };
         tmp.speed              = fields[18].GetFloat();
         tmp.condition_id       = fields[19].GetUInt32();
 
@@ -291,9 +294,9 @@ void ScriptMgr::LoadScripts(ScriptMapMapName& scripts, const char* tablename)
                     continue;
                 }
 
-                if (!MaNGOS::IsValidMapCoord(tmp.x, tmp.y, tmp.z, tmp.o))
+                if (!MaNGOS::IsValidMapCoord(tmp.pos))
                 {
-                    sLog.outErrorDb("Table `%s` has invalid coordinates (X: %f Y: %f) in SCRIPT_COMMAND_TELEPORT_TO for script id %u", tablename, tmp.x, tmp.y, tmp.id);
+                    sLog.outErrorDb("Table `%s` has invalid coordinates (X: %f Y: %f) in SCRIPT_COMMAND_TELEPORT_TO for script id %u", tablename, tmp.pos.x, tmp.pos.y, tmp.id);
                     continue;
                 }
                 break;
@@ -390,9 +393,9 @@ void ScriptMgr::LoadScripts(ScriptMapMapName& scripts, const char* tablename)
             }
             case SCRIPT_COMMAND_TEMP_SPAWN_CREATURE:        // 10
             {
-                if (!MaNGOS::IsValidMapCoord(tmp.x, tmp.y, tmp.z, tmp.o))
+                if (!MaNGOS::IsValidMapCoord(tmp.pos))
                 {
-                    sLog.outErrorDb("Table `%s` has invalid coordinates (X: %f Y: %f) in SCRIPT_COMMAND_TEMP_SPAWN_CREATURE for script id %u", tablename, tmp.x, tmp.y, tmp.id);
+                    sLog.outErrorDb("Table `%s` has invalid coordinates (X: %f Y: %f) in SCRIPT_COMMAND_TEMP_SPAWN_CREATURE for script id %u", tablename, tmp.pos.x, tmp.pos.y, tmp.id);
                     continue;
                 }
 
@@ -863,9 +866,9 @@ void ScriptMgr::LoadScripts(ScriptMapMapName& scripts, const char* tablename)
 
                     case 101: // change formation spread
                     {
-                        if (tmp.x < 0.5f || tmp.x > 15.0f)
+                        if (tmp.pos.x < 0.5f || tmp.pos.x > 15.0f)
                         {
-                            sLog.outErrorDb("Table `%s` uses invalid formation spread(%f) should be in 0.5 .. 15 range for script id %u.", tablename, tmp.x, tmp.id);
+                            sLog.outErrorDb("Table `%s` uses invalid formation spread(%f) should be in 0.5 .. 15 range for script id %u.", tablename, tmp.pos.x, tmp.id);
                             continue;
                         }
                         break;
@@ -1696,28 +1699,29 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
             }
 
             // Just turn around
-            if ((m_script->x == 0.0f && m_script->y == 0.0f && m_script->z == 0.0f) ||
+            if ((m_script->pos.xyz() == Vec3{}) ||
                     // Check point-to-point distance, hence revert effect of bounding radius
-                    ((Unit*)pSource)->IsWithinDist3d(m_script->x, m_script->y, m_script->z, 0.01f - ((Unit*)pSource)->GetObjectBoundingRadius()))
+                    ((Unit*)pSource)->IsWithinDist(m_script->pos.xyz(), 0.01f - ((Unit*)pSource)->GetObjectBoundingRadius()))
             {
-                ((Unit*)pSource)->SetFacingTo(m_script->o);
+                ((Unit*)pSource)->SetFacingTo(m_script->pos.w);
                 break;
             }
 
             // For command additional teleport the unit
             if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
             {
-                ((Unit*)pSource)->NearTeleportTo(m_script->x, m_script->y, m_script->z, m_script->o != 0.0f ? m_script->o : ((Unit*)pSource)->GetOrientation());
+                float const orientation = m_script->pos.w != 0.0f ? m_script->pos.w : ((Unit*)pSource)->GetOrientation();
+                ((Unit*)pSource)->NearTeleportTo(Position{m_script->pos.xyz(), orientation});
                 break;
             }
 
             // Normal Movement
             if (m_script->moveTo.travelSpeed)
-                ((Unit*)pSource)->GetMotionMaster()->MoveCharge(m_script->x, m_script->y, m_script->z, m_script->moveTo.travelSpeed * 0.01f, 0);
+                ((Unit*)pSource)->GetMotionMaster()->MoveCharge(m_script->pos.xyz(), m_script->moveTo.travelSpeed * 0.01f, 0);
             else
             {
                 ((Unit*)pSource)->GetMotionMaster()->Clear();
-                ((Unit*)pSource)->GetMotionMaster()->MovePoint(0, Position(m_script->x, m_script->y, m_script->z, m_script->o), ForcedMovement(m_script->moveTo.forcedMovement), 0.f, true, pTarget ? pTarget->GetObjectGuid() : ObjectGuid(), m_script->moveTo.relayId);
+                ((Unit*)pSource)->GetMotionMaster()->MovePoint(0, m_script->pos, ForcedMovement(m_script->moveTo.forcedMovement), 0.f, true, pTarget ? pTarget->GetObjectGuid() : ObjectGuid(), m_script->moveTo.relayId);
             }
             break;
         }
@@ -1755,7 +1759,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
             if (!pPlayer)
                 break;
 
-            pPlayer->TeleportTo(m_script->teleportTo.mapId, m_script->x, m_script->y, m_script->z, m_script->o);
+            pPlayer->TeleportTo(m_script->teleportTo.mapId, m_script->pos);
             break;
         }
         case SCRIPT_COMMAND_QUEST_EXPLORED:                 // 7
@@ -1880,14 +1884,11 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                 break;
             }
 
-            float x = m_script->x;
-            float y = m_script->y;
-            float z = m_script->z;
-            float o = m_script->o;
             bool run = m_script->textId[0] == 1;
             uint32 relayId = m_script->textId[1];
 
-            TempSpawnSettings settings(pSource, m_script->summonCreature.creatureEntry, x, y, z, o, m_script->summonCreature.despawnDelay ? TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN : TEMPSPAWN_DEAD_DESPAWN, m_script->summonCreature.despawnDelay, (m_script->data_flags& SCRIPT_FLAG_COMMAND_ADDITIONAL) != 0, run, m_script->summonCreature.pathId);
+            auto const temp_spawn_type = m_script->summonCreature.despawnDelay ? TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN : TempSpawnType::DEAD_DESPAWN;
+            TempSpawnSettings settings(pSource, m_script->summonCreature.creatureEntry, m_script->pos, temp_spawn_type, m_script->summonCreature.despawnDelay, (m_script->data_flags& SCRIPT_FLAG_COMMAND_ADDITIONAL) != 0, run, m_script->summonCreature.pathId);
             settings.spawnDataEntry = m_script->textId[3];
             settings.dbscriptTarget = pTarget;
 
@@ -2097,9 +2098,9 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
             uint32 movementType = m_script->movement.movementType;
             uint32 wanderORpathId = m_script->movement.wanderORpathId;
 
-            WaypointPathOrigin wp_origin = PATH_NO_PATH;
+            auto wp_origin = WaypointPathOrigin::NO_PATH;
             if (m_script->movement.timerOrPassTarget & 0x2)
-                wp_origin = PATH_FROM_WAYPOINT_PATH;
+                wp_origin = WaypointPathOrigin::FROM_WAYPOINT_PATH;
 
             ObjectGuid targetGuid;
 
@@ -2140,13 +2141,15 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                     break;
                 case RANDOM_MOTION_TYPE:
                     if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
-                        source->GetMotionMaster()->MoveRandomAroundPoint(pSource->GetPositionX(), pSource->GetPositionY(), pSource->GetPositionZ(), float(m_script->movement.wanderORpathId), 0.f, m_script->movement.timerOrPassTarget);
+                        source->GetMotionMaster()->MoveRandomAroundPoint(pSource->GetPosition().xyz(), float(m_script->movement.wanderORpathId), 0.f, m_script->movement.timerOrPassTarget);
                     else
                     {
-                        float respX, respY, respZ, respO, wander_distance;
-                        source->GetRespawnCoord(respX, respY, respZ, &respO, &wander_distance);
-                        wander_distance = wanderORpathId ? wanderORpathId : wander_distance;
-                        source->GetMotionMaster()->MoveRandomAroundPoint(respX, respY, respZ, wander_distance, 0.f, m_script->movement.timerOrPassTarget);
+                        auto const respawn_pos = source->GetRespawnPosition();
+
+                        // @FIXME: This is fucked up
+                        auto const respawn_radius = wanderORpathId ? static_cast<float>(wanderORpathId) : source->GetRespawnRadius();
+
+                        source->GetMotionMaster()->MoveRandomAroundPoint(respawn_pos.xyz(), respawn_radius, 0.0f, m_script->movement.timerOrPassTarget);
                     }
                     break;
                 case WAYPOINT_MOTION_TYPE:
@@ -2431,7 +2434,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                         {
                             // buddy should be alive and in search dist range
                             if (buddy->IsAlive() &&
-                                (!m_script->terminateScript.searchDist || pSearcher->IsWithinDist3d(buddy->GetPositionX(), buddy->GetPositionY(), buddy->GetPositionZ(), m_script->terminateScript.searchDist)))
+                                (!m_script->terminateScript.searchDist || pSearcher->IsWithinDist(buddy->GetPosition().xyz(), m_script->terminateScript.searchDist)))
                             {
                                 terminationBuddy = buddy;
                                 break;
@@ -2450,7 +2453,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                             {
                                 // buddy should be alive and in search dist range
                                 if (buddy->IsAlive() &&
-                                    (!m_script->terminateScript.searchDist || pSearcher->IsWithinDist3d(buddy->GetPositionX(), buddy->GetPositionY(), buddy->GetPositionZ(), m_script->terminateScript.searchDist)))
+                                    (!m_script->terminateScript.searchDist || pSearcher->IsWithinDist(buddy->GetPosition().xyz(), m_script->terminateScript.searchDist)))
                                 {
                                     terminationBuddy = buddy;
                                     break;
@@ -2579,14 +2582,21 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
             }
             if (m_script->setFacing.resetFacing)
             {
-                float x, y, z, o;
-                if (pCSource->GetMotionMaster()->empty() || !pCSource->GetMotionMaster()->top()->GetResetPosition(*pCSource, x, y, z, o))
-                    pCSource->GetRespawnCoord(x, y, z, &o);
-                pCSource->SetFacingTo(o);
-            }
-            else
+                auto const orientation = [&pCSource] {
+                    if (!pCSource->GetMotionMaster()->empty()) {
+                        auto const maybe_reset_pos = pCSource->GetMotionMaster()->top()->GetResetPosition(*pCSource);
+                        if (maybe_reset_pos) {
+                            return maybe_reset_pos->w;
+                        }
+                    }
+
+                    return pCSource->GetRespawnPosition().w;
+                }();
+                
+                pCSource->SetFacingTo(orientation);
+            } else {
                 pCSource->SetFacingToObject(pTarget);
-            break;
+            } break;
         }
         case SCRIPT_COMMAND_MOVE_DYNAMIC:                   // 37
         {
@@ -2605,7 +2615,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                 break;
             }
 
-            float x, y, z;
+            Vec3 point{};
             if (m_script->moveDynamic.maxDist == 0)         // Move to pTarget
             {
                 if (pTarget == source)
@@ -2613,22 +2623,23 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                     sLog.outErrorDb(" DB-SCRIPTS: Process table `%s` id %u, _MOVE_DYNAMIC called with maxDist == 0, but resultingSource == resultingTarget (== %s)", m_table, m_script->id, source->GetGuidStr().c_str());
                     break;
                 }
-                pTarget->GetContactPoint(source, x, y, z, m_script->moveDynamic.fixedDist);
+                point = pTarget->GetContactPoint(source, m_script->moveDynamic.fixedDist);
             }
             else                                            // Calculate position
             {
                 float orientation;
                 if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
-                    orientation = source->GetOrientation() + m_script->o + 2 * M_PI_F;
+                    orientation = source->GetOrientation() + m_script->pos.w + 2 * M_PI_F;
                 else
-                    orientation = m_script->o;
+                    orientation = m_script->pos.w;
 
-                source->GetRandomPoint(pTarget->GetPositionX(), pTarget->GetPositionY(), pTarget->GetPositionZ(), m_script->moveDynamic.maxDist, x, y, z,
+                point = source->GetRandomPoint(pTarget->GetPosition().xyz(), m_script->moveDynamic.maxDist,
                                         m_script->moveDynamic.minDist, (orientation == 0.0f ? nullptr : &orientation));
-                z = std::max(z, pTarget->GetPositionZ());
-                source->UpdateAllowedPositionZ(x, y, z);
+                point.z = std::max(point.z, pTarget->GetPositionZ());
+                point = source->UpdateAllowedPositionZ(point);
             }
-            source->GetMotionMaster()->MovePoint(1, Position(x, y, z, 0.f), ForcedMovement(m_script->textId[0]), 0.f, true, pTarget ? pTarget->GetObjectGuid() : ObjectGuid(), m_script->textId[1]);
+            auto const guid = pTarget ? pTarget->GetObjectGuid() : ObjectGuid();
+            source->GetMotionMaster()->MovePoint(1, Position(point, 0.f), ForcedMovement(m_script->textId[0]), 0.f, true, guid, m_script->textId[1]);
             break;
         }
         case SCRIPT_COMMAND_SEND_MAIL:                      // 38
@@ -2871,7 +2882,7 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                     FormationEntrySPtr fEntry = std::make_shared<FormationEntry>();
                     fEntry->GroupId = targetGroup->GetGroupId();
                     fEntry->Type = static_cast<SpawnGroupFormationType>(m_script->textId[0]);
-                    fEntry->Spread = m_script->x;
+                    fEntry->Spread = m_script->pos.x;
                     fEntry->Options = m_script->textId[1];
                     fEntry->MovementType = 0;
                     fEntry->MovementIdOrWander = 0;
@@ -3018,14 +3029,14 @@ bool ScriptAction::ExecuteDbscriptCommand(WorldObject* pSource, WorldObject* pTa
                         break;
                     }
 
-                    if (m_script->x <= 15)
+                    if (m_script->pos.x <= 15)
                     {
-                        leaderFormation->SetSpread(m_script->x);
+                        leaderFormation->SetSpread(m_script->pos.x);
                     }
                     else
                     {
                         sLog.outErrorDb(" DB-SCRIPTS: Process table `%s` id %u, command %u subcommand changeSpread(%u) failed, wrong shape id(%f).",
-                            m_table, m_script->id, m_script->command, m_script->formationData.command, m_script->x);
+                            m_table, m_script->id, m_script->command, m_script->formationData.command, m_script->pos.x);
                         return true;
                     }
                     break;

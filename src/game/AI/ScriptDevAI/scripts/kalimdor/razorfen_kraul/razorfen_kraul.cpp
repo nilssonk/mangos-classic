@@ -35,6 +35,8 @@ EndContentData */
 ## npc_willix_the_importer
 ######*/
 
+namespace {
+
 enum
 {
     QUEST_WILLIX_THE_IMPORTER  = 1144,
@@ -57,13 +59,15 @@ enum
     NPC_RAGING_AGAMAR          = 4514
 };
 
-static const float aBoarSpawn[4][3] =
+const Vec3 aBoarSpawn[4] =
 {
     {2151.420f, 1733.18f, 52.10f},
     {2144.463f, 1726.89f, 51.93f},
     {1956.433f, 1597.97f, 81.75f},
     {1958.971f, 1599.01f, 81.44f}
 };
+
+} // namespace
 
 struct npc_willix_the_importerAI : public npc_escortAI
 {
@@ -104,8 +108,8 @@ struct npc_willix_the_importerAI : public npc_escortAI
             case 15:
                 DoScriptText(SAY_WILLIX_4, m_creature);
                 // Summon 2 boars on the pathway
-                m_creature->SummonCreature(NPC_RAGING_AGAMAR, aBoarSpawn[0][0], aBoarSpawn[0][1], aBoarSpawn[0][2], 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
-                m_creature->SummonCreature(NPC_RAGING_AGAMAR, aBoarSpawn[1][0], aBoarSpawn[1][1], aBoarSpawn[1][2], 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_RAGING_AGAMAR, {aBoarSpawn[0], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_RAGING_AGAMAR, {aBoarSpawn[1], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
                 break;
             case 26:
                 DoScriptText(SAY_WILLIX_5, m_creature);
@@ -116,8 +120,8 @@ struct npc_willix_the_importerAI : public npc_escortAI
             case 45:
                 DoScriptText(SAY_WILLIX_7, m_creature);
                 // Summon 2 boars at the end
-                m_creature->SummonCreature(NPC_RAGING_AGAMAR, aBoarSpawn[2][0], aBoarSpawn[2][1], aBoarSpawn[2][2], 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
-                m_creature->SummonCreature(NPC_RAGING_AGAMAR, aBoarSpawn[3][0], aBoarSpawn[3][1], aBoarSpawn[3][2], 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_RAGING_AGAMAR, {aBoarSpawn[2], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_RAGING_AGAMAR, {aBoarSpawn[3], 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 25000);
                 break;
             case 46:
                 DoScriptText(SAY_WILLIX_END, m_creature);
@@ -218,9 +222,8 @@ struct npc_snufflenose_gopherAI : public ScriptedPetAI
             return;
         m_targetTubberGuid = pNearestTubber->GetObjectGuid();
 
-        float fX, fY, fZ;
-        pNearestTubber->GetContactPoint(m_creature, fX, fY, fZ);
-        m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+        auto const contact_point = pNearestTubber->GetContactPoint(m_creature);
+        m_creature->GetMotionMaster()->MovePoint(1, contact_point);
         m_bIsMovementActive = true;
     }
 

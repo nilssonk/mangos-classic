@@ -25,6 +25,8 @@ EndScriptData
 
 #include "AI/ScriptDevAI/include/sc_common.h"
 
+namespace {
+
 enum
 {
     EMOTE_ALARM                 = -1230035,
@@ -40,7 +42,9 @@ enum
     NPC_NORMAL_AMOUNT           = 8,
 };
 
-static const float aAlarmPoint[4] = {717.343f, 22.116f, -45.4321f, 3.1415f};
+const Vec4 aAlarmPoint{717.343f, 22.116f, -45.4321f, 3.1415f};
+
+} // anonymous namespace
 
 struct boss_general_angerforgeAI : public ScriptedAI
 {
@@ -63,9 +67,8 @@ struct boss_general_angerforgeAI : public ScriptedAI
 
     void SummonAdd(uint32 uiEntry)
     {
-        float fX, fY, fZ;
-        m_creature->GetRandomPoint(aAlarmPoint[0], aAlarmPoint[1], aAlarmPoint[2], 1.0f, fX, fY, fZ);
-        m_creature->SummonCreature(uiEntry, fX, fY, fZ, aAlarmPoint[3], TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 30 * IN_MILLISECONDS);
+        auto const rand_pos = m_creature->GetRandomPoint(aAlarmPoint.xyz(), 1.0f);
+        m_creature->SummonCreature(uiEntry, {rand_pos, aAlarmPoint.w}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 30 * IN_MILLISECONDS);
     }
 
     void JustSummoned(Creature* pSummoned) override

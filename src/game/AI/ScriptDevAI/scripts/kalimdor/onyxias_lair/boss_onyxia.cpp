@@ -27,6 +27,8 @@ EndScriptData
 #include "onyxias_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace {
+
 enum
 {
     SAY_AGGRO                   = -1249000,
@@ -92,27 +94,27 @@ enum
 struct OnyxiaMove
 {
     uint32 uiSpellId;
-    float fX, fY, fZ;
+    Vec3 pos;
 };
 
 static const OnyxiaMove aMoveData[NUM_MOVE_POINT] =
 {
-    {SPELL_BREATH_NORTH_TO_SOUTH,  24.16332f, -216.0808f, -58.98009f},  // north (coords verified in wotlk)
-    {SPELL_BREATH_NE_TO_SW,        10.2191f,  -247.912f,  -60.896f},    // north-east
-    {SPELL_BREATH_EAST_TO_WEST,   -15.00505f, -244.4841f, -60.40087f},  // east (coords verified in wotlk)
-    {SPELL_BREATH_SE_TO_NW,       -63.5156f,  -240.096f,  -60.477f},    // south-east
-    {SPELL_BREATH_SOUTH_TO_NORTH, -66.3589f,  -215.928f,  -64.23904f},  // south (coords verified in wotlk)
-    {SPELL_BREATH_SW_TO_NE,       -58.2509f,  -189.020f,  -60.790f},    // south-west
-    {SPELL_BREATH_WEST_TO_EAST,   -16.70134f, -181.4501f, -61.98513f},  // west (coords verified in wotlk)
-    {SPELL_BREATH_NW_TO_SE,        12.26687f, -181.1084f, -60.23914f},  // north-west (coords verified in wotlk)
+    {SPELL_BREATH_NORTH_TO_SOUTH,  {24.16332f, -216.0808f, -58.98009f}},  // north (coords verified in wotlk)
+    {SPELL_BREATH_NE_TO_SW,        {10.2191f,  -247.912f,  -60.896f}},    // north-east
+    {SPELL_BREATH_EAST_TO_WEST,   {-15.00505f, -244.4841f, -60.40087f}},  // east (coords verified in wotlk)
+    {SPELL_BREATH_SE_TO_NW,       {-63.5156f,  -240.096f,  -60.477f}},    // south-east
+    {SPELL_BREATH_SOUTH_TO_NORTH, {-66.3589f,  -215.928f,  -64.23904f}},  // south (coords verified in wotlk)
+    {SPELL_BREATH_SW_TO_NE,       {-58.2509f,  -189.020f,  -60.790f}},    // south-west
+    {SPELL_BREATH_WEST_TO_EAST,   {-16.70134f, -181.4501f, -61.98513f}},  // west (coords verified in wotlk)
+    {SPELL_BREATH_NW_TO_SE,        {12.26687f, -181.1084f, -60.23914f}},  // north-west (coords verified in wotlk)
 };
 
-static const float landPoints[1][3] =
+const Vec3 landPoints[1] =
 {
     {-1.060547f, -229.9293f, -86.14094f},
 };
 
-static const float afSpawnLocations[3][3] =
+const Vec3 afSpawnLocations[3] =
 {
     { -30.127f, -254.463f, -89.440f},                       // whelps
     { -30.817f, -177.106f, -89.258f},                       // whelps
@@ -135,6 +137,8 @@ enum OnyxiaActions
     ONYXIA_SUMMON_WHELPS,
     ONYXIA_PHASE_TRANSITIONS,
 };
+
+} // namespace
 
 struct boss_onyxiaAI : public CombatAI
 {
@@ -255,7 +259,7 @@ struct boss_onyxiaAI : public CombatAI
                 spellInfo->Id == SPELL_BREATH_NORTH_TO_SOUTH)
         {
             // This was sent with SendMonsterMove - which resulted in better speed than now
-            m_creature->GetMotionMaster()->MovePoint(m_uiMovePoint, aMoveData[m_uiMovePoint].fX, aMoveData[m_uiMovePoint].fY, aMoveData[m_uiMovePoint].fZ);
+            m_creature->GetMotionMaster()->MovePoint(m_uiMovePoint, aMoveData[m_uiMovePoint].pos);
             DoCastSpellIfCan(m_creature, SPELL_HEATED_GROUND, CAST_TRIGGERED);
         }
     }
@@ -316,7 +320,7 @@ struct boss_onyxiaAI : public CombatAI
         for (uint8 i = 0; i < 2; i++)
         {
             // Should probably make use of SPELL_SUMMON_ONYXIAN_WHELPS instead. Correct caster and removal of the spell is unkown, so make Onyxia do the summoning
-            if (Creature* pWhelp =  m_creature->SummonCreature(NPC_ONYXIA_WHELP, afSpawnLocations[i][0], afSpawnLocations[i][1], afSpawnLocations[i][2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 3 * IN_MILLISECONDS))
+            if (Creature* pWhelp =  m_creature->SummonCreature(NPC_ONYXIA_WHELP, {afSpawnLocations[i], 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 3 * IN_MILLISECONDS))
             {
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_TOPAGGRO, 0))
                     pWhelp->AI()->AttackStart(pTarget);
@@ -335,7 +339,7 @@ struct boss_onyxiaAI : public CombatAI
                 ResetTimer(ONYXIA_SUMMON_WHELPS, 3000);
                 if (m_instance)
                     m_instance->SetData(TYPE_ONYXIA, DATA_LIFTOFF);
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_INIT_NORTH, aMoveData[POINT_ID_NORTH].fX, aMoveData[POINT_ID_NORTH].fY, aMoveData[POINT_ID_NORTH].fZ, FORCED_MOVEMENT_FLIGHT);
+                m_creature->GetMotionMaster()->MovePoint(POINT_ID_INIT_NORTH, aMoveData[POINT_ID_NORTH].pos, FORCED_MOVEMENT_FLIGHT);
                 break;
             case PHASE_BREATH_POST:
                 m_uiPhase = PHASE_END;
@@ -404,7 +408,7 @@ struct boss_onyxiaAI : public CombatAI
                 m_creature->SetTarget(nullptr);
                 SetCombatScriptStatus(true);
 
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_LIFTOFF, Position(aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, -84.25523f, 6.248279f));
+                m_creature->GetMotionMaster()->MovePoint(POINT_ID_LIFTOFF, {aMoveData[POINT_ID_SOUTH].pos.xy(), -84.25523f, 6.248279f});
                 SetActionReadyStatus(action, false);
                 break;
             }
@@ -420,7 +424,7 @@ struct boss_onyxiaAI : public CombatAI
                 SetCombatScriptStatus(true);
                 m_creature->SetTarget(nullptr);
                 m_creature->RemoveAurasDueToSpell(SPELL_DRAGON_HOVER);
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_LAND, landPoints[0][0], landPoints[0][1], landPoints[0][2], FORCED_MOVEMENT_FLIGHT);
+                m_creature->GetMotionMaster()->MovePoint(POINT_ID_LAND, landPoints[0], FORCED_MOVEMENT_FLIGHT);
                 SetActionReadyStatus(action, false);
                 break;
             }
@@ -527,7 +531,7 @@ struct boss_onyxiaAI : public CombatAI
 
                 ResetCombatAction(action, urand(15000, 25000));
                 m_creature->RemoveAurasDueToSpell(SPELL_DRAGON_HOVER);
-                m_creature->GetMotionMaster()->MovePoint(m_uiMovePoint, aMoveData[m_uiMovePoint].fX, aMoveData[m_uiMovePoint].fY, aMoveData[m_uiMovePoint].fZ, FORCED_MOVEMENT_FLIGHT);
+                m_creature->GetMotionMaster()->MovePoint(m_uiMovePoint, aMoveData[m_uiMovePoint].pos, FORCED_MOVEMENT_FLIGHT);
                 break;
             }
         }

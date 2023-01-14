@@ -27,6 +27,8 @@ EndScriptData
 #include "blackwing_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace bwl {
+
 enum
 {
     SAY_GAMESBEGIN_1                = -1469004,
@@ -134,9 +136,9 @@ struct boss_victor_nefariusAI : public CombatAI, private DialogueHelper
             if (m_instance)
             {
                 // Left
-                m_creature->SummonCreature(m_instance->GetData(TYPE_NEFA_LTUNNEL), aNefarianLocs[0].m_fX, aNefarianLocs[0].m_fY, aNefarianLocs[0].m_fZ, 5.000f, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, HOUR * IN_MILLISECONDS);
+                m_creature->SummonCreature(m_instance->GetData(TYPE_NEFA_LTUNNEL), {aNefarianLocs[0], 5.000f}, TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, HOUR * IN_MILLISECONDS);
                 // Right
-                m_creature->SummonCreature(m_instance->GetData(TYPE_NEFA_RTUNNEL), aNefarianLocs[1].m_fX, aNefarianLocs[1].m_fY, aNefarianLocs[1].m_fZ, 5.000f, TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, HOUR * IN_MILLISECONDS);
+                m_creature->SummonCreature(m_instance->GetData(TYPE_NEFA_RTUNNEL), {aNefarianLocs[1], 5.000f}, TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, HOUR * IN_MILLISECONDS);
             }
         }
     }
@@ -250,3 +252,5 @@ void AddSC_boss_victor_nefarius()
     pNewScript->pGossipSelect = &GossipSelect_boss_victor_nefarius;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

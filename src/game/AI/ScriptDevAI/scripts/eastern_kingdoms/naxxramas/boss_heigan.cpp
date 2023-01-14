@@ -79,11 +79,10 @@ struct boss_heiganAI : public CombatAI
 {
     boss_heiganAI(Creature* creature) : CombatAI(creature, HEIGAN_ACTION_MAX), m_instance(static_cast<ScriptedInstance*>(creature->GetInstanceData()))
     {
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit*, float x, float /*y*/, float /*z*/)
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const& u)
         {
-            float respawnX, respawnY, respawnZ;
-            m_creature->GetRespawnCoord(respawnX, respawnY, respawnZ);
-            return m_creature->GetDistance2d(respawnX, respawnY) > 90.f || x > resetX;
+            auto const respawn_pos = m_creature->GetRespawnPosition();
+            return m_creature->GetDistance(respawn_pos.xy()) > 90.f || u.GetPositionX() > resetX;
         });
         AddCombatAction(HEIGAN_FEVER, 4u * IN_MILLISECONDS);
         AddCombatAction(HEIGAN_MANA_BURN, 5u * IN_MILLISECONDS);

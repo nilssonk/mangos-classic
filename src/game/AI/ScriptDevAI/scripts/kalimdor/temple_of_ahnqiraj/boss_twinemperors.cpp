@@ -336,22 +336,20 @@ struct boss_veklorAI : public boss_twin_emperorsAI
 
             if (Creature* veknilash = m_instance->GetSingleCreatureFromStorage(NPC_VEKNILASH))
             {
-                float twinX, twinY, twinZ;
-                m_creature->GetPosition(twinX, twinY, twinZ);
-                float twinOri = m_creature->GetOrientation();
+                auto const twin_pos = m_creature->GetPosition();
 
-                TeleportTwin(m_creature, veknilash->GetPositionX(), veknilash->GetPositionY(), veknilash->GetPositionZ(), veknilash->GetOrientation());
-                TeleportTwin(veknilash, twinX, twinY, twinZ, twinOri);
+                TeleportTwin(m_creature, veknilash->GetPosition());
+                TeleportTwin(veknilash, twin_pos);
             }
         }
     }
 
-    void TeleportTwin(Creature* twin, float x, float y, float z, float ori)
+    void TeleportTwin(Creature* twin, Position const& pos)
     {
         twin->AI()->DoResetThreat();
         twin->AI()->DoCastSpellIfCan(nullptr, SPELL_TWIN_TELEPORT_VISUAL, CAST_TRIGGERED);
         twin->AI()->DoCastSpellIfCan(nullptr, SPELL_TWIN_TELEPORT_STUN, CAST_TRIGGERED);
-        twin->NearTeleportTo(x, y, z, ori, true);
+        twin->NearTeleportTo(pos, true);
         static_cast<boss_twin_emperorsAI*>(twin->AI())->StartDelayedAttack();
     }
 

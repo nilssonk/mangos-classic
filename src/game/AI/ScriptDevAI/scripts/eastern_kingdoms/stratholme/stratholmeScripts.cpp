@@ -117,8 +117,8 @@ bool GOUse_go_stratholme_postbox(Player* pPlayer, GameObject* pGo)
     float fX, fY, fZ;
     for (uint8 i = 0; i < 3; ++i)
     {
-        pPlayer->GetRandomPoint(pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ(), 3.0f, fX, fY, fZ);
-        pPlayer->SummonCreature(NPC_UNDEAD_POSTMAN, fX, fY, fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0);
+        auto const rand_pos = pPlayer->GetRandomPoint(pPlayer->GetPosition().xyz(), 3.0f);
+        pPlayer->SummonCreature(NPC_UNDEAD_POSTMAN, {rand_pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 0);
     }
 
     return false;

@@ -2989,7 +2989,7 @@ static char const* const locationKeys[] =
     nullptr
 };
 
-bool ChatHandler::ExtractLocationFromLink(char** text, uint32& mapid, float& x, float& y, float& z)
+std::optional<WorldLocation> ChatHandler::ExtractLocationFromLink(char** text)
 {
     int type = 0;
 
@@ -3011,190 +3011,203 @@ bool ChatHandler::ExtractLocationFromLink(char** text, uint32& mapid, float& x, 
         case LOCATION_LINK_RAW:
         case LOCATION_LINK_PLAYER:
         {
-            std::string name = idS;
+            std::string name{idS};
             if (!normalizePlayerName(name))
-                return false;
+                return {};
 
-            if (Player* player = sObjectMgr.GetPlayer(name.c_str()))
-            {
-                mapid = player->GetMapId();
-                x = player->GetPositionX();
-                y = player->GetPositionY();
-                z = player->GetPositionZ();
-                return true;
+            Player const* player = sObjectMgr.GetPlayer(name.c_str());
+            if (player != nullptr) {
+                return std::make_optional<WorldLocation>(
+                    player->GetMapId(),
+                    player->GetPosition()
+                );
             }
 
+            // to point where player stay (if loaded)
             if (ObjectGuid guid = sObjectMgr.GetPlayerGuidByName(name))
-            {
-                // to point where player stay (if loaded)
-                float o;
-                bool in_flight;
-                return Player::LoadPositionFromDB(guid, mapid, x, y, z, o, in_flight);
-            }
+                return Player::LoadLocationFromDB(guid);
 
-            return false;
+            return {};
         }
         case LOCATION_LINK_TELE:
         {
             uint32 id;
             if (!ExtractUInt32(&idS, id))
-                return false;
+                return {};
 
             GameTele const* tele = sObjectMgr.GetGameTele(id);
-            if (!tele)
-                return false;
-            mapid = tele->mapId;
-            x = tele->position_x;
-            y = tele->position_y;
-            z = tele->position_z;
-            return true;
+            if (tele == nullptr)
+                return {};
+
+            return tele->loc;
         }
         case LOCATION_LINK_TAXINODE:
         {
             uint32 id;
             if (!ExtractUInt32(&idS, id))
-                return false;
+                return {};
 
             TaxiNodesEntry const* node = sTaxiNodesStore.LookupEntry(id);
-            if (!node)
-                return false;
-            mapid = node->map_id;
-            x = node->x;
-            y = node->y;
-            z = node->z;
-            return true;
+            if (node == nullptr)
+                return {};
+
+            return std::make_optional<WorldLocation>(
+                node->map_id,
+                Position{
+                    node->x,
+                    node->y,
+                    node->z,
+                    0.0f
+                }
+            );
         }
         case LOCATION_LINK_CREATURE:
         {
-            uint32 lowguid;
-            if (!ExtractUInt32(&idS, lowguid))
-                return false;
+            uint32 id;
+            if (!ExtractUInt32(&idS, id))
+                return {};
 
-            if (CreatureData const* data = sObjectMgr.GetCreatureData(lowguid))
-            {
-                mapid = data->mapid;
-                x = data->posX;
-                y = data->posY;
-                z = data->posZ;
-                return true;
-            }
-            return false;
+            CreatureData const* data = sObjectMgr.GetCreatureData(id);
+            if (data == nullptr)
+                return {};
+            
+            return std::make_optional<WorldLocation>(
+                data->mapid,
+                Position{
+                    data->posX,
+                    data->posY,
+                    data->posZ,
+                    data->orientation
+                }
+            );
         }
         case LOCATION_LINK_GAMEOBJECT:
         {
-            uint32 lowguid;
-            if (!ExtractUInt32(&idS, lowguid))
-                return false;
+            uint32 id;
+            if (!ExtractUInt32(&idS, id))
+                return {};
 
-            if (GameObjectData const* data = sObjectMgr.GetGOData(lowguid))
-            {
-                mapid = data->mapid;
-                x = data->posX;
-                y = data->posY;
-                z = data->posZ;
-                return true;
-            }
-            return false;
+            GameObjectData const* data = sObjectMgr.GetGOData(id);
+            if (data == nullptr)
+                return {};
+            
+            return std::make_optional<WorldLocation>(
+                data->mapid,
+                Position{
+                    data->posX,
+                    data->posY,
+                    data->posZ,
+                    data->orientation
+                }
+            );
         }
         case LOCATION_LINK_CREATURE_ENTRY:
         {
             uint32 id;
             if (!ExtractUInt32(&idS, id))
-                return false;
+                return {};
 
-            if (ObjectMgr::GetCreatureTemplate(id))
-            {
-                FindCreatureData worker(id, m_session ? m_session->GetPlayer() : nullptr);
+            if (!ObjectMgr::GetCreatureTemplate(id))
+                return {};
 
-                sObjectMgr.DoCreatureData(worker);
+            FindCreatureData worker(id, m_session ? m_session->GetPlayer() : nullptr);
+            sObjectMgr.DoCreatureData(worker);
 
-                if (CreatureDataPair const* dataPair = worker.GetResult())
-                {
-                    mapid = dataPair->second.mapid;
-                    x = dataPair->second.posX;
-                    y = dataPair->second.posY;
-                    z = dataPair->second.posZ;
-                    return true;
+            CreatureDataPair const* dataPair = worker.GetResult();
+            if (dataPair == nullptr)
+                return {};
+
+            auto const& data = dataPair->second;
+            
+            return std::make_optional<WorldLocation>(
+                dataPair->second.mapid,
+                Position{
+                    data.posX,
+                    data.posY,
+                    data.posZ,
+                    data.orientation
                 }
-                return false;
-            }
-            return false;
+            );
         }
         case LOCATION_LINK_GAMEOBJECT_ENTRY:
         {
             uint32 id;
             if (!ExtractUInt32(&idS, id))
-                return false;
+                return {};
 
-            if (ObjectMgr::GetGameObjectInfo(id))
-            {
-                FindGOData worker(id, m_session ? m_session->GetPlayer() : nullptr);
+            if (!ObjectMgr::GetGameObjectInfo(id))
+                return {};
 
-                sObjectMgr.DoGOData(worker);
+            FindGOData worker(id, m_session ? m_session->GetPlayer() : nullptr);
+            sObjectMgr.DoGOData(worker);
 
-                if (GameObjectDataPair const* dataPair = worker.GetResult())
-                {
-                    mapid = dataPair->second.mapid;
-                    x = dataPair->second.posX;
-                    y = dataPair->second.posY;
-                    z = dataPair->second.posZ;
-                    return true;
+            GameObjectDataPair const* dataPair = worker.GetResult();
+            if (dataPair == nullptr)
+                return {};
+
+            auto const& data = dataPair->second;
+            
+            return std::make_optional<WorldLocation>(
+                data.mapid,
+                Position{
+                    data.posX,
+                    data.posY,
+                    data.posZ,
+                    data.orientation
                 }
-                return false;
-            }
-            return false;
+            );
         }
         case LOCATION_LINK_AREATRIGGER:
         {
             uint32 id;
             if (!ExtractUInt32(&idS, id))
-                return false;
+                return {};
 
             AreaTriggerEntry const* atEntry = sAreaTriggerStore.LookupEntry(id);
-            if (!atEntry)
+            if (atEntry == nullptr)
             {
                 PSendSysMessage(LANG_COMMAND_GOAREATRNOTFOUND, id);
                 SetSentErrorMessage(true);
-                return false;
+                return {};
             }
 
-            mapid = atEntry->mapid;
-            x = atEntry->x;
-            y = atEntry->y;
-            z = atEntry->z;
-            return true;
+            return std::make_optional<WorldLocation>(
+                atEntry->mapid,
+                Position{
+                    atEntry->x,
+                    atEntry->y,
+                    atEntry->z,
+                    0.0f
+                }
+            );
         }
         case LOCATION_LINK_AREATRIGGER_TARGET:
         {
             uint32 id;
             if (!ExtractUInt32(&idS, id))
-                return false;
+                return {};
 
             if (!sAreaTriggerStore.LookupEntry(id))
             {
                 PSendSysMessage(LANG_COMMAND_GOAREATRNOTFOUND, id);
                 SetSentErrorMessage(true);
-                return false;
+                return {};
             }
 
             AreaTrigger const* at = sObjectMgr.GetAreaTrigger(id);
-            if (!at)
+            if (at == nullptr)
             {
                 PSendSysMessage(LANG_AREATRIGER_NOT_HAS_TARGET, id);
                 SetSentErrorMessage(true);
-                return false;
+                return {};
             }
 
-            mapid = at->target_mapId;
-            x = at->target_X;
-            y = at->target_Y;
-            z = at->target_Z;
-            return true;
+            return at->target_loc;
         }
     }
 
     // unknown type?
-    return false;
+    return {};
 }
 
 std::string ChatHandler::ExtractPlayerNameFromLink(char** text)

@@ -26,7 +26,27 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "shadowfang_keep.h"
 
-static const DialogueEntry aArugalDialogue[] =
+namespace {
+
+enum {
+    VINCENT_DEATH = 1,
+    ARUGAL_VISIBLE,
+    ARUGAL_TELEPORT_IN,
+    ARUGAL_TURN_TO_VINCENT,
+    ARUGAL_EMOTE_POINT,
+    ARUGAL_EMOTE_EXCLAMATION,
+    ARUGAL_EMOTE_LAUGH,
+    ARUGAL_TELEPORT_OUT,
+    ARUGAL_INTRO_DONE,
+    ARCHMAGE_FIRE,
+    ARCHMAGE_LIGHTNING,
+    ARCHMAGE_INVIS,
+    ARCHMAGE_VOIDWALKERS,
+};
+
+const Vec3 nandosMovement{-170.6f, 2182.45f, 151.91f};
+
+const DialogueEntry aArugalDialogue[] =
 {
     {NPC_VINCENT,                      0,   3000},
     {VINCENT_DEATH,          NPC_VINCENT,   8000},
@@ -50,6 +70,8 @@ static const DialogueEntry aArugalDialogue[] =
     {ARCHMAGE_VOIDWALKERS, NPC_ARCHMAGE_ARUGAL, 0},
     {0, 0, 0},
 };
+
+} // anonymous namespace
 
 instance_shadowfang_keep::instance_shadowfang_keep(Map* map) : ScriptedInstance(map), DialogueHelper(aArugalDialogue)
 {
@@ -83,7 +105,7 @@ void instance_shadowfang_keep::OnCreatureCreate(Creature* creature)
         case NPC_BLEAK_WORG:
         case NPC_SLAVERING_WORG:
             // Only store the wolves/worgs that are static spawn on the top level of the instance
-            if (creature->GetPositionZ() > nandosMovement.fZ && !creature->IsTemporarySummon())
+            if (creature->GetPositionZ() > nandosMovement.z && !creature->IsTemporarySummon())
                 m_lNandosWolvesGuids.push_back(creature->GetObjectGuid());
             break;
         case NPC_ARUGAL:
@@ -119,7 +141,7 @@ void instance_shadowfang_keep::OnCreatureDeath(Creature* creature)
                         return;
                     DoScriptText(YELL_PACK_DEAD, nandos);
                     nandos->SetWalk(false);
-                    nandos->GetMotionMaster()->MovePoint(0, nandosMovement.fX, nandosMovement.fY, nandosMovement.fZ);
+                    nandos->GetMotionMaster()->MovePoint(0, nandosMovement);
                 }
             }
             break;
@@ -186,7 +208,7 @@ void instance_shadowfang_keep::SetData(uint32 type, uint32 data)
             {
                 if (Creature* fenrus = GetSingleCreatureFromStorage(NPC_FENRUS))
                 {
-                    fenrus->SummonCreature(NPC_ARCHMAGE_ARUGAL, -136.89f, 2169.17f, 136.58f, 2.794f, TEMPSPAWN_TIMED_DESPAWN, 30000);
+                    fenrus->SummonCreature(NPC_ARCHMAGE_ARUGAL, {-136.89f, 2169.17f, 136.58f, 2.794f}, TempSpawnType::TIMED_DESPAWN, 30000);
                     StartNextDialogueText(NPC_ARCHMAGE_ARUGAL);
                 }
             }

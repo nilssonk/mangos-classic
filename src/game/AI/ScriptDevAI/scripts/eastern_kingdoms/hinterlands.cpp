@@ -96,10 +96,9 @@ struct npc_00x09hlAI : public npc_escortAI
 
                 for (uint8 i = 0; i < 3; ++i)
                 {
-                    float fX, fY, fZ;
-                    m_creature->GetRandomPoint(147.927444f, -3851.513428f, 130.893f, 7.0f, fX, fY, fZ);
+                    auto const rand_pos = m_creature->GetRandomPoint({147.927444f, -3851.513428f, 130.893f}, 7.0f);
 
-                    m_creature->SummonCreature(NPC_MARAUDING_OWL, fX, fY, fZ, 0.0f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
+                    m_creature->SummonCreature(NPC_MARAUDING_OWL, {rand_pos, 0.0f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
                     ++m_uiSummonCount;
                 }
                 break;
@@ -109,10 +108,9 @@ struct npc_00x09hlAI : public npc_escortAI
 
                 for (uint8 i = 0; i < 3; ++i)
                 {
-                    float fX, fY, fZ;
-                    m_creature->GetRandomPoint(-141.151581f, -4291.213867f, 120.130f, 7.0f, fX, fY, fZ);
+                    auto const rand_pos = m_creature->GetRandomPoint({-141.151581f, -4291.213867f, 120.130f}, 7.0f);
 
-                    m_creature->SummonCreature(NPC_VILE_AMBUSHER, fX, fY, fZ, 0.0f, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
+                    m_creature->SummonCreature(NPC_VILE_AMBUSHER, {rand_pos, 0.0f}, TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
                     ++m_uiSummonCount;
                 }
                 break;
@@ -129,7 +127,7 @@ struct npc_00x09hlAI : public npc_escortAI
 
     void JustSummoned(Creature* pSummoned) override
     {
-        pSummoned->GetMotionMaster()->MovePoint(0, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ());
+        pSummoned->GetMotionMaster()->MovePoint(0, m_creature->GetPosition().xyz());
         m_lSummonsList.push_back(pSummoned->GetObjectGuid());
     }
 
@@ -249,21 +247,21 @@ struct npc_rinjiAI : public npc_escortAI
             m_iSpawnId = 1;
 
         m_creature->SummonCreature(NPC_RANGER,
-                                   m_afAmbushSpawn[m_iSpawnId].x, m_afAmbushSpawn[m_iSpawnId].y, m_afAmbushSpawn[m_iSpawnId].z, 0.0f,
-                                   TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, 60000);
+                                   {m_afAmbushSpawn[m_iSpawnId].xyz(), 0.0f},
+                                   TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, 60000);
 
         for (int i = 0; i < 2; ++i)
         {
             m_creature->SummonCreature(NPC_OUTRUNNER,
-                                       m_afAmbushSpawn[m_iSpawnId].x, m_afAmbushSpawn[m_iSpawnId].y, m_afAmbushSpawn[m_iSpawnId].z, 0.0f,
-                                       TEMPSPAWN_TIMED_OOC_OR_CORPSE_DESPAWN, 60000);
+                                       {m_afAmbushSpawn[m_iSpawnId].xyz(), 0.0f},
+                                       TempSpawnType::TIMED_OOC_OR_CORPSE_DESPAWN, 60000);
         }
     }
 
     void JustSummoned(Creature* pSummoned) override
     {
         m_creature->SetWalk(false);
-        pSummoned->GetMotionMaster()->MovePoint(0, m_afAmbushMoveTo[m_iSpawnId].x, m_afAmbushMoveTo[m_iSpawnId].y, m_afAmbushMoveTo[m_iSpawnId].z);
+        pSummoned->GetMotionMaster()->MovePoint(0, m_afAmbushMoveTo[m_iSpawnId].xyz());
     }
 
     void WaypointReached(uint32 uiPointId) override

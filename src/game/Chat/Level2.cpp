@@ -51,6 +51,7 @@
 #include "Movement/MoveSplineInit.h"
 #include "Anticheat/Anticheat.hpp"
 #include "Entities/Transports.h"
+#include "Entities/TempSpawnSettings.h"
 
 #include <fstream>
 #include <map>
@@ -167,24 +168,26 @@ bool ChatHandler::HandleUnmuteCommand(char* args)
 }
 
 void ChatHandler::ShowTriggerTargetListHelper(uint32 id, AreaTrigger const* at, bool subpart /*= false*/)
-{
+{  
+    auto const& tpos = at->target_loc.pos;
+
     if (m_session)
     {
         char dist_buf[50];
         if (!subpart)
         {
-            float dist = m_session->GetPlayer()->GetDistance2d(at->target_X, at->target_Y);
+            float dist = m_session->GetPlayer()->GetDistance(tpos.xy());
             snprintf(dist_buf, 50, GetMangosString(LANG_TRIGGER_DIST), dist);
         }
         else
             dist_buf[0] = '\0';
 
         PSendSysMessage(LANG_TRIGGER_TARGET_LIST_CHAT,
-                        subpart ? " -> " : "", id, id, at->target_mapId, at->target_X, at->target_Y, at->target_Z, dist_buf);
+                        subpart ? " -> " : "", id, id, at->target_loc.mapid, tpos.x, tpos.y, tpos.z, dist_buf);
     }
     else
         PSendSysMessage(LANG_TRIGGER_TARGET_LIST_CONSOLE,
-                        subpart ? " -> " : "", id, at->target_mapId, at->target_X, at->target_Y, at->target_Z);
+                        subpart ? " -> " : "", id, at->target_loc.mapid, tpos.x, tpos.y, tpos.z);
 }
 
 void ChatHandler::ShowTriggerListHelper(AreaTriggerEntry const* atEntry)
@@ -195,7 +198,7 @@ void ChatHandler::ShowTriggerListHelper(AreaTriggerEntry const* atEntry)
 
     if (m_session)
     {
-        float dist = m_session->GetPlayer()->GetDistance2d(atEntry->x, atEntry->y);
+        float dist = m_session->GetPlayer()->GetDistance(Vec2{atEntry->x, atEntry->y});
         char dist_buf[50];
         snprintf(dist_buf, 50, GetMangosString(LANG_TRIGGER_DIST), dist);
 
@@ -376,11 +379,11 @@ bool ChatHandler::HandleTriggerNearCommand(char* args)
         if (!at)
             continue;
 
-        if (at->target_mapId != m_session->GetPlayer()->GetMapId())
+        if (at->target_loc.mapid != m_session->GetPlayer()->GetMapId())
             continue;
 
-        float dx = at->target_X - pl->GetPositionX();
-        float dy = at->target_Y - pl->GetPositionY();
+        float dx = at->target_loc.pos.x - pl->GetPositionX();
+        float dy = at->target_loc.pos.y - pl->GetPositionY();
 
         if (dx * dx + dy * dy > dist2)
             continue;
@@ -443,9 +446,9 @@ bool ChatHandler::HandleGoTriggerCommand(char* args)
             return false;
         }
 
-        return HandleGoHelper(_player, at->target_mapId, at->target_X, at->target_Y, &at->target_Z);
+        return HandleGoHelper(_player, at->target_loc.mapid, at->target_loc.pos);
     }
-    return HandleGoHelper(_player, atEntry->mapid, atEntry->x, atEntry->y, &atEntry->z);
+    return HandleGoHelper(_player, atEntry->mapid, Vec3{atEntry->x, atEntry->y, atEntry->z});
 }
 
 bool ChatHandler::HandleGoGraveyardCommand(char* args)
@@ -464,7 +467,7 @@ bool ChatHandler::HandleGoGraveyardCommand(char* args)
         return false;
     }
 
-    return HandleGoHelper(_player, gy->map_id, gy->x, gy->y, &gy->z);
+    return HandleGoHelper(_player, gy->loc.mapid, gy->loc.pos.xyz());
 }
 
 enum CreatureLinkType
@@ -665,13 +668,12 @@ bool ChatHandler::HandleGoCreatureCommand(char* args)
 
             if (creature)
             {
-                float z = creature->GetPositionZ();
-                return HandleGoHelper(_player, data->mapid, creature->GetPositionX(), creature->GetPositionY(), &z);
+                return HandleGoHelper(_player, data->mapid, creature->GetPosition().xyz());
             }
         }
     }
 
-    return HandleGoHelper(_player, data->mapid, data->posX, data->posY, &data->posZ);
+    return HandleGoHelper(_player, data->mapid, Vec3{data->posX, data->posY, data->posZ});
 }
 
 enum GameobjectLinkType
@@ -823,7 +825,7 @@ bool ChatHandler::HandleGoObjectCommand(char* args)
         }
     }
 
-    return HandleGoHelper(_player, data->mapid, data->posX, data->posY, &data->posZ);
+    return HandleGoHelper(_player, data->mapid, Vec3{data->posX, data->posY, data->posZ});
 }
 
 bool ChatHandler::HandleGameObjectTargetCommand(char* args)
@@ -1036,7 +1038,7 @@ bool ChatHandler::HandleGameObjectTurnCommand(char* args)
     Map* map = obj->GetMap();
     map->Remove(obj, false);
 
-    obj->Relocate(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), o);
+    obj->Relocate(Position{obj->GetPosition().xyz(), o});
     obj->UpdateRotationFields();
 
     map->Add(obj);
@@ -1080,30 +1082,25 @@ bool ChatHandler::HandleGameObjectMoveCommand(char* args)
         Map* map = obj->GetMap();
         map->Remove(obj, false);
 
-        obj->Relocate(chr->GetPositionX(), chr->GetPositionY(), chr->GetPositionZ(), obj->GetOrientation());
-        obj->SetFloatValue(GAMEOBJECT_POS_X, chr->GetPositionX());
-        obj->SetFloatValue(GAMEOBJECT_POS_Y, chr->GetPositionY());
-        obj->SetFloatValue(GAMEOBJECT_POS_Z, chr->GetPositionZ());
+        auto const& pos = chr->GetPosition();
+        obj->Relocate(pos);
+        obj->SetFloatValue(GAMEOBJECT_POS_X, pos.x);
+        obj->SetFloatValue(GAMEOBJECT_POS_Y, pos.y);
+        obj->SetFloatValue(GAMEOBJECT_POS_Z, pos.z);
 
         map->Add(obj);
     }
     else
     {
-        float x;
-        if (!ExtractFloat(&args, x))
+        Vec3 pos{};
+        if (!ExtractFloat(&args, pos.x)
+            || !ExtractFloat(&args, pos.y)
+            || !ExtractFloat(&args, pos.z))
             return false;
 
-        float y;
-        if (!ExtractFloat(&args, y))
-            return false;
-
-        float z;
-        if (!ExtractFloat(&args, z))
-            return false;
-
-        if (!MapManager::IsValidMapCoord(obj->GetMapId(), x, y, z))
+        if (!MapManager::IsValidMapCoord(obj->GetMapId(), pos))
         {
-            PSendSysMessage(LANG_INVALID_TARGET_COORD, x, y, obj->GetMapId());
+            PSendSysMessage(LANG_INVALID_TARGET_COORD, pos.x, pos.y, obj->GetMapId());
             SetSentErrorMessage(true);
             return false;
         }
@@ -1111,10 +1108,10 @@ bool ChatHandler::HandleGameObjectMoveCommand(char* args)
         Map* map = obj->GetMap();
         map->Remove(obj, false);
 
-        obj->Relocate(x, y, z, obj->GetOrientation());
-        obj->SetFloatValue(GAMEOBJECT_POS_X, x);
-        obj->SetFloatValue(GAMEOBJECT_POS_Y, y);
-        obj->SetFloatValue(GAMEOBJECT_POS_Z, z);
+        obj->Relocate(Position{pos, obj->GetOrientation()});
+        obj->SetFloatValue(GAMEOBJECT_POS_X, pos.x);
+        obj->SetFloatValue(GAMEOBJECT_POS_Y, pos.y);
+        obj->SetFloatValue(GAMEOBJECT_POS_Z, pos.z);
 
         map->Add(obj);
     }
@@ -1326,25 +1323,26 @@ bool ChatHandler::HandleGameObjectNearSpawnedCommand(char* args)
     GameObjectList gameobjects;
     Player* player = m_session->GetPlayer();
 
-    MaNGOS::GameObjectInPosRangeCheck go_check(*player, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), distance);
+    MaNGOS::GameObjectInPosRangeCheck go_check(*player, player->GetPosition().xyz(), distance);
     MaNGOS::GameObjectListSearcher<MaNGOS::GameObjectInPosRangeCheck> checker(gameobjects, go_check);
     Cell::VisitGridObjects(player, checker, distance);
 
     for (GameObject* go : gameobjects)
     {
+        MANGOS_ASSERT(go != nullptr);
+
         uint32 entry = go->GetEntry();
         GameObjectInfo const* goInfo = ObjectMgr::GetGameObjectInfo(entry);
 
         if (!goInfo)
             continue;
 
-        float x, y, z;
-        go->GetPosition(x, y, z);
+        auto const& pos = go->GetPosition();
         ObjectGuid guid = go->GetObjectGuid();
         uint32 spawnGroupId = 0;
         if (SpawnGroupEntry* groupEntry = player->GetMap()->GetMapDataContainer().GetSpawnGroupByGuid(guid, TYPEID_GAMEOBJECT))
             spawnGroupId = groupEntry->Id;
-        PSendSysMessage(LANG_GO_MIXED_LIST_CHAT, guid.GetCounter(), PrepareStringNpcOrGoSpawnInformation<GameObject>(guid).c_str(), entry, guid, goInfo->name, x, y, z, go->GetMapId(), spawnGroupId);
+        PSendSysMessage(LANG_GO_MIXED_LIST_CHAT, guid.GetCounter(), PrepareStringNpcOrGoSpawnInformation<GameObject>(guid).c_str(), entry, guid, goInfo->name, pos.x, pos.y, pos.z, go->GetMapId(), spawnGroupId);
     }
 
     PSendSysMessage(LANG_COMMAND_NEAROBJMESSAGE, distance, gameobjects.size());
@@ -1670,7 +1668,7 @@ bool ChatHandler::HandleNpcTempSpawn(char* args)
         return false;
     }
 
-    player->SummonCreature(entry, player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetOrientation(), TEMPSPAWN_TIMED_OOC_DESPAWN, timer);
+    player->SummonCreature(entry, player->GetPosition(), TempSpawnType::TIMED_OOC_DESPAWN, timer);
     return true;
 }
 
@@ -1947,21 +1945,18 @@ bool ChatHandler::HandleNpcMoveCommand(char* args)
     else
         lowguid = pCreature->GetGUIDLow();
 
-    float x = player->GetPositionX();
-    float y = player->GetPositionY();
-    float z = player->GetPositionZ();
-    float o = player->GetOrientation();
+    auto const& pos = player->GetPosition();
 
     if (pCreature)
     {
         if (CreatureData const* data = sObjectMgr.GetCreatureData(pCreature->GetGUIDLow()))
         {
-            const_cast<CreatureData*>(data)->posX = x;
-            const_cast<CreatureData*>(data)->posY = y;
-            const_cast<CreatureData*>(data)->posZ = z;
-            const_cast<CreatureData*>(data)->orientation = o;
+            const_cast<CreatureData*>(data)->posX = pos.x;
+            const_cast<CreatureData*>(data)->posY = pos.y;
+            const_cast<CreatureData*>(data)->posZ = pos.z;
+            const_cast<CreatureData*>(data)->orientation = pos.w;
         }
-        pCreature->GetMap()->CreatureRelocation(pCreature, x, y, z, o);
+        pCreature->GetMap()->CreatureRelocation(pCreature, pos);
         pCreature->GetMotionMaster()->Initialize();
         if (pCreature->IsAlive())                           // dead creature will reset movement generator at respawn
         {
@@ -1970,7 +1965,7 @@ bool ChatHandler::HandleNpcMoveCommand(char* args)
         }
     }
 
-    WorldDatabase.PExecuteLog("UPDATE creature SET position_x = '%f', position_y = '%f', position_z = '%f', orientation = '%f' WHERE guid = '%u'", x, y, z, o, lowguid);
+    WorldDatabase.PExecuteLog("UPDATE creature SET position_x = '%f', position_y = '%f', position_z = '%f', orientation = '%f' WHERE guid = '%u'", pos.x, pos.y, pos.z, pos.w, lowguid);
     PSendSysMessage(LANG_COMMAND_CREATUREMOVED);
     return true;
 }
@@ -2800,32 +2795,35 @@ bool ChatHandler::HandlePInfoCommand(char* args)
     return true;
 }
 
+namespace {
+
 /// Helper function
-inline Creature* Helper_CreateWaypointFor(Creature* wpOwner, WaypointPathOrigin wpOrigin, int32 pathId, uint32 wpId, WaypointNode const* wpNode, CreatureInfo const* waypointInfo)
+Creature* Helper_CreateWaypointFor(Creature & wpOwner, WaypointPathOrigin wpOrigin, int32 pathId, uint32 wpId, WaypointNode const& wpNode, CreatureInfo const* waypointInfo)
 {
     TempSpawnSettings settings;
-    settings.spawner = wpOwner;
+    settings.spawner = &wpOwner;
     settings.entry = VISUAL_WAYPOINT;
-    settings.x = wpNode->x; settings.y = wpNode->y; settings.z = wpNode->z; settings.ori = wpNode->orientation;
+    settings.pos = wpNode.pos;
     settings.activeObject = true;
     settings.spawnDataEntry = 2;
-    settings.spawnType = TEMPSPAWN_TIMED_DESPAWN;
+    settings.spawnType = TempSpawnType::TIMED_DESPAWN;
     settings.despawnTime = 5 * MINUTE * IN_MILLISECONDS;
-    settings.spawnType = TEMPSPAWN_TIMED_DESPAWN;
+    settings.spawnType = TempSpawnType::TIMED_DESPAWN;
 
     settings.tempSpawnMovegen = true;
     settings.waypointId = wpId;
     settings.spawnPathId = pathId;
     settings.pathOrigin = uint32(wpOrigin);
 
-    Creature* wpCreature = WorldObject::SummonCreature(settings, wpOwner->GetMap());
+    Creature* wpCreature = WorldObject::SummonCreature(settings, wpOwner.GetMap());
 
     if (wpCreature)
         wpCreature->SetLevel(wpId);
 
     return wpCreature;
 }
-inline void UnsummonVisualWaypoints(Player const* player, ObjectGuid ownerGuid)
+
+void UnsummonVisualWaypoints(Player const* player, ObjectGuid ownerGuid)
 {
     CreatureList waypoints;
     MaNGOS::AllCreaturesOfEntryInRangeCheck checkerForWaypoint(player, VISUAL_WAYPOINT, SIZE_OF_GRIDS);
@@ -2845,6 +2843,26 @@ inline void UnsummonVisualWaypoints(Player const* player, ObjectGuid ownerGuid)
             wpTarget->UnSummon();
     }
 }
+
+WaypointPathOrigin ok_or_default(uint32_t x) {
+    using WPO = WaypointPathOrigin;
+
+    constexpr auto as_uint = [] (auto x) {
+        return static_cast<uint32_t>(x);
+    };
+
+    switch (x) {
+        case as_uint(WPO::NO_PATH):
+        case as_uint(WPO::FROM_GUID):
+        case as_uint(WPO::FROM_ENTRY):
+        case as_uint(WPO::FROM_EXTERNAL): [[fallthrough]];
+        case as_uint(WPO::FROM_WAYPOINT_PATH): return static_cast<WaypointPathOrigin>(x);
+    }
+
+    return WPO::NO_PATH;
+}
+
+} // namespace
 
 /** Add a waypoint to a creature
  * .wp add [dbGuid] [pathId] [source]
@@ -2866,6 +2884,8 @@ inline void UnsummonVisualWaypoints(Player const* player, ObjectGuid ownerGuid)
  */
 bool ChatHandler::HandleWpAddCommand(char* args)
 {
+    using WPO = WaypointPathOrigin;
+
     DEBUG_LOG("DEBUG: HandleWpAddCommand");
 
     CreatureInfo const* waypointInfo = ObjectMgr::GetCreatureTemplate(VISUAL_WAYPOINT);
@@ -2873,7 +2893,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
         return false;                                       // must exist as normal creature in mangos.sql 'creature_template'
 
     Creature* targetCreature = getSelectedCreature();
-    WaypointPathOrigin wpDestination = PATH_NO_PATH;        ///< into which storage
+    auto wpDestination = WPO::NO_PATH;        ///< into which storage
     uint32 wpPathId = 0;                                    ///< along which path
     uint32 wpPointId = 0;                                   ///< pointId if a waypoint was selected, in this case insert after
     Creature* wpOwner;
@@ -2940,36 +2960,35 @@ bool ChatHandler::HandleWpAddCommand(char* args)
         }
     }
 
-    if (wpDestination == PATH_NO_PATH)                      // No Waypoint selected, parse additional params
+    if (wpDestination == WPO::NO_PATH)                      // No Waypoint selected, parse additional params
     {
         if (ExtractOptUInt32(&args, wpPathId, 0))           // Fill path-id and source
         {
-            uint32 src = (uint32)PATH_NO_PATH;
-            if (ExtractOptUInt32(&args, src, src))
-                wpDestination = (WaypointPathOrigin)src;
+            uint32 src{};
+            if (ExtractOptUInt32(&args, src, static_cast<uint32>(WPO::NO_PATH)))
+                wpDestination = ok_or_default(src);
             else // pathId provided but no destination
             {
                 if (wpPathId != 0)
-                    wpDestination = PATH_FROM_ENTRY;        // Multiple Paths must only be assigned by entry
+                    wpDestination = WPO::FROM_ENTRY;        // Multiple Paths must only be assigned by entry
             }
         }
 
-        if (wpDestination == PATH_NO_PATH)                  // No overwrite params. Do best estimate
+        if (wpDestination == WPO::NO_PATH)                  // No overwrite params. Do best estimate
         {
             if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
                 if (WaypointMovementGenerator<Creature> const* wpMMGen = dynamic_cast<WaypointMovementGenerator<Creature> const*>(wpOwner->GetMotionMaster()->GetCurrent()))
                     wpMMGen->GetPathInformation(wpPathId, wpDestination);
 
             // Get information about default path if no current path. If no default path, prepare data dependendy on uniqueness
-            if (wpDestination == PATH_NO_PATH && !sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpDestination))
+            if (wpDestination == WPO::NO_PATH && !sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpDestination))
             {
-                wpDestination = PATH_FROM_ENTRY;                // Default place to store paths
+                wpDestination = WPO::FROM_ENTRY;                // Default place to store paths
                 if (wpOwner->HasStaticDBSpawnData())
                 {
-                    QueryResult* result = WorldDatabase.PQuery("SELECT COUNT(id) FROM creature WHERE id = %u", wpOwner->GetEntry());
+                    std::unique_ptr<QueryResult> result{WorldDatabase.PQuery("SELECT COUNT(id) FROM creature WHERE id = %u", wpOwner->GetEntry())};
                     if (result && result->Fetch()[0].GetUInt32() != 1)
-                        wpDestination = PATH_FROM_GUID;
-                    delete result;
+                        wpDestination = WPO::FROM_GUID;
                 }
             }
         }
@@ -2978,9 +2997,8 @@ bool ChatHandler::HandleWpAddCommand(char* args)
     // All arguments parsed
     // wpOwner will get a new waypoint inserted into wpPath = GetPathFromOrigin(wpOwner, wpDestination, wpPathId) at wpPointId
 
-    float x, y, z;
-    m_session->GetPlayer()->GetPosition(x, y, z);
-    if (!sWaypointMgr.AddNode(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpPointId, wpDestination, x, y, z, m_session->GetPlayer()->GetOrientation()))
+    auto const pos = m_session->GetPlayer()->GetPosition();
+    if (!sWaypointMgr.AddNode(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpPointId, wpDestination, pos))
     {
         PSendSysMessage(LANG_WAYPOINT_NOTCREATED, wpPointId, wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpDestination).c_str());
         SetSentErrorMessage(true);
@@ -2990,9 +3008,9 @@ bool ChatHandler::HandleWpAddCommand(char* args)
     // Unsummon old visuals, summon new ones
     UnsummonVisualWaypoints(m_session->GetPlayer(), wpOwner->GetObjectGuid());
     WaypointPath const* wpPath = sWaypointMgr.GetPathFromOrigin(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpDestination);
-    for (const auto& itr : *wpPath)
+    for (auto const& [id, wp] : *wpPath)
     {
-        if (!Helper_CreateWaypointFor(wpOwner, wpDestination, wpPathId, itr.first, &itr.second, waypointInfo))
+        if (!Helper_CreateWaypointFor(*wpOwner, wpDestination, wpPathId, id, wp, waypointInfo))
         {
             PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
             SetSentErrorMessage(true);
@@ -3044,6 +3062,8 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 {
     DEBUG_LOG("DEBUG: HandleWpModifyCommand");
 
+    using WPO = WaypointPathOrigin;
+
     if (!*args)
         return false;
 
@@ -3068,7 +3088,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
     Creature* targetCreature = getSelectedCreature();       // Expect a visual waypoint to be selected
     Creature* wpOwner;                                      // Who moves along the waypoint
     uint32 wpId = 0;
-    WaypointPathOrigin wpSource = PATH_NO_PATH;
+    WaypointPathOrigin wpSource = WPO::NO_PATH;
     uint32 wpPathId = 0;
 
     if (targetCreature)
@@ -3138,13 +3158,13 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
         }
     }
 
-    if (wpSource == PATH_NO_PATH)                           // No waypoint selected
+    if (wpSource == WPO::NO_PATH)                           // No waypoint selected
     {
         if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
             if (WaypointMovementGenerator<Creature> const* wpMMGen = dynamic_cast<WaypointMovementGenerator<Creature> const*>(wpOwner->GetMotionMaster()->GetCurrent()))
                 wpMMGen->GetPathInformation(wpPathId, wpSource);
 
-        if (wpSource == PATH_NO_PATH)
+        if (wpSource == WPO::NO_PATH)
             sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpSource);
     }
 
@@ -3167,7 +3187,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
     // If no visual WP was selected, but we are not going to remove it
     if (!targetCreature && subCmd != "del")
     {
-        targetCreature = Helper_CreateWaypointFor(wpOwner, wpSource, wpPathId, wpId, &(point->second), waypointInfo);
+        targetCreature = Helper_CreateWaypointFor(*wpOwner, wpSource, wpPathId, wpId, point->second, waypointInfo);
         if (!targetCreature)
         {
             PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
@@ -3200,13 +3220,12 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
     }
     if (subCmd == "move")                              // Move to player position, no additional command required
     {
-        float x, y, z;
-        m_session->GetPlayer()->GetPosition(x, y, z);
+        auto const pos = m_session->GetPlayer()->GetPosition().xyz();
 
         // Move visual waypoint
-        targetCreature->NearTeleportTo(x, y, z, targetCreature->GetOrientation());
+        targetCreature->NearTeleportTo(Position{pos, targetCreature->GetOrientation()});
 
-        sWaypointMgr.SetNodePosition(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpId, wpPathId, wpSource, x, y, z);
+        sWaypointMgr.SetNodePosition(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpId, wpPathId, wpSource, pos);
 
         PSendSysMessage(LANG_WAYPOINT_CHANGED);
         return true;
@@ -3260,6 +3279,8 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 {
     DEBUG_LOG("DEBUG: HandleWpShowCommand");
 
+    using WPO = WaypointPathOrigin;
+
     if (!*args)
         return false;
 
@@ -3276,7 +3297,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
     uint32 dbGuid = 0;
     uint32 wpPathId = 0;
-    WaypointPathOrigin wpOrigin = PATH_NO_PATH;
+    auto wpOrigin = WPO::NO_PATH;
 
     // User selected an npc?
     Creature* targetCreature = getSelectedCreature();
@@ -3284,9 +3305,9 @@ bool ChatHandler::HandleWpShowCommand(char* args)
     {
         if (ExtractOptUInt32(&args, wpPathId, 0))           // Fill path-id and source
         {
-            uint32 src;
-            if (ExtractOptUInt32(&args, src, (uint32)PATH_NO_PATH))
-                wpOrigin = (WaypointPathOrigin)src;
+            uint32 src{};
+            if (ExtractOptUInt32(&args, src, static_cast<uint32_t>(WPO::NO_PATH)))
+                wpOrigin = ok_or_default(src);
         }
     }
     else    // Guid must be provided
@@ -3296,9 +3317,9 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
         if (ExtractOptUInt32(&args, wpPathId, 0))           // Fill path-id and source
         {
-            uint32 src = (uint32)PATH_NO_PATH;
-            if (ExtractOptUInt32(&args, src, src))
-                wpOrigin = (WaypointPathOrigin)src;
+            uint32 src{};
+            if (ExtractOptUInt32(&args, src, static_cast<uint32_t>(WPO::NO_PATH)))
+                wpOrigin = ok_or_default(src);
         }
 
         // Params now parsed, check them
@@ -3358,7 +3379,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
     // Get the path
     WaypointPath* wpPath = nullptr;
-    if (wpOrigin != PATH_NO_PATH)                           // Might have been provided by param
+    if (wpOrigin != WPO::NO_PATH)                           // Might have been provided by param
         wpPath = sWaypointMgr.GetPathFromOrigin(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpOrigin);
     else
     {
@@ -3375,7 +3396,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
             }
         }
 
-        if (wpOrigin == PATH_NO_PATH)
+        if (wpOrigin == WPO::NO_PATH)
             wpPath = sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetDbGuid(), &wpOrigin);
     }
 
@@ -3400,9 +3421,9 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
         PSendSysMessage(LANG_WAYPOINT_INFO_TITLE, wpTarget->GetWaypointId(), wpOwner->GetGuidStr().c_str(), wpPathId, WaypointManager::GetOriginString(wpOrigin).c_str());
         PSendSysMessage(LANG_WAYPOINT_INFO_WAITTIME, point->second.delay);
-        PSendSysMessage(LANG_WAYPOINT_INFO_ORI, point->second.orientation);
+        PSendSysMessage(LANG_WAYPOINT_INFO_ORI, point->second.pos.w);
         PSendSysMessage(LANG_WAYPOINT_INFO_SCRIPTID, point->second.script_id);
-        if (wpOrigin == PATH_FROM_EXTERNAL)
+        if (wpOrigin == WPO::FROM_EXTERNAL)
             PSendSysMessage(LANG_WAYPOINT_INFO_AISCRIPT, wpOwner->GetScriptName().c_str());
 
         return true;
@@ -3414,7 +3435,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
         for (WaypointPath::const_iterator pItr = wpPath->begin(); pItr != wpPath->end(); ++pItr)
         {
-            if (!Helper_CreateWaypointFor(wpOwner, wpOrigin, wpPathId, pItr->first, &(pItr->second), waypointInfo))
+            if (!Helper_CreateWaypointFor(*wpOwner, wpOrigin, wpPathId, pItr->first, pItr->second, waypointInfo))
             {
                 PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
                 SetSentErrorMessage(true);
@@ -3427,7 +3448,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
     if (subCmd == "first")
     {
-        if (!Helper_CreateWaypointFor(wpOwner, wpOrigin, wpPathId, wpPath->begin()->first, &(wpPath->begin()->second), waypointInfo))
+        if (!Helper_CreateWaypointFor(*wpOwner, wpOrigin, wpPathId, wpPath->begin()->first, wpPath->begin()->second, waypointInfo))
         {
             PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
             SetSentErrorMessage(true);
@@ -3440,7 +3461,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 
     if (subCmd == "last")
     {
-        if (!Helper_CreateWaypointFor(wpOwner, wpOrigin, wpPathId, wpPath->rbegin()->first, &(wpPath->rbegin()->second), waypointInfo))
+        if (!Helper_CreateWaypointFor(*wpOwner, wpOrigin, wpPathId, wpPath->rbegin()->first, wpPath->rbegin()->second, waypointInfo))
         {
             PSendSysMessage(LANG_WAYPOINT_VP_NOTCREATED, VISUAL_WAYPOINT);
             SetSentErrorMessage(true);
@@ -3464,11 +3485,13 @@ bool ChatHandler::HandleWpShowCommand(char* args)
 /// [Guid if no selected unit] <filename> [pathId [wpOrigin] ]
 bool ChatHandler::HandleWpExportCommand(char* args)
 {
+    using WPO = WaypointPathOrigin;
+
     if (!*args)
         return false;
 
     Creature* wpOwner;
-    WaypointPathOrigin wpOrigin = PATH_NO_PATH;
+    auto wpOrigin = WPO::NO_PATH;
     uint32 wpPathId = 0;
 
     if (Creature* targetCreature = getSelectedCreature())
@@ -3492,7 +3515,7 @@ bool ChatHandler::HandleWpExportCommand(char* args)
                 SetSentErrorMessage(true);
                 return false;
             }
-            wpOrigin = (WaypointPathOrigin)wpTarget->GetPathOrigin();
+            wpOrigin = wpTarget->GetPathOrigin();
             wpPathId = wpTarget->GetPathId();
         }
         else // normal creature selected
@@ -3541,26 +3564,26 @@ bool ChatHandler::HandleWpExportCommand(char* args)
         return false;
     }
 
-    if (wpOrigin == PATH_NO_PATH)                           // No WP selected, Extract optional arguments
+    if (wpOrigin == WPO::NO_PATH)                           // No WP selected, Extract optional arguments
     {
         if (ExtractOptUInt32(&args, wpPathId, 0))           // Fill path-id and source
         {
-            uint32 src = (uint32)PATH_NO_PATH;
-            if (ExtractOptUInt32(&args, src, src))
-                wpOrigin = (WaypointPathOrigin)src;
+            uint32 src{};
+            if (ExtractOptUInt32(&args, src, static_cast<uint32>(WPO::NO_PATH)))
+                wpOrigin = ok_or_default(src);
             else // pathId provided but no destination
             {
                 if (wpPathId != 0)
-                    wpOrigin = PATH_FROM_ENTRY;             // Multiple Paths must only be assigned by entry
+                    wpOrigin = WPO::FROM_ENTRY;             // Multiple Paths must only be assigned by entry
             }
         }
 
-        if (wpOrigin == PATH_NO_PATH)
+        if (wpOrigin == WPO::NO_PATH)
         {
             if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
                 if (WaypointMovementGenerator<Creature> const* wpMMGen = dynamic_cast<WaypointMovementGenerator<Creature> const*>(wpOwner->GetMotionMaster()->GetCurrent()))
                     wpMMGen->GetPathInformation(wpPathId, wpOrigin);
-            if (wpOrigin == PATH_NO_PATH)
+            if (wpOrigin == WPO::NO_PATH)
                 sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpOrigin);
         }
     }
@@ -3581,16 +3604,16 @@ bool ChatHandler::HandleWpExportCommand(char* args)
     uint32 key;
     switch (wpOrigin)
     {
-        case PATH_FROM_ENTRY: key = wpOwner->GetEntry();    key_field = "Entry";    table = "creature_movement_template"; break;
-        case PATH_FROM_GUID: key = wpOwner->GetGUIDLow();   key_field = "Id";       table = "creature_movement"; break;
-        case PATH_FROM_EXTERNAL: key = wpOwner->GetEntry(); key_field = "Entry";    table = sWaypointMgr.GetExternalWPTable(); break;
-        case PATH_FROM_WAYPOINT_PATH: key = wpOwner->GetMotionMaster()->GetPathId(); key_field = "PathId"; table = "waypoint_path"; break;
+        case WPO::FROM_ENTRY: key = wpOwner->GetEntry();    key_field = "Entry";    table = "creature_movement_template"; break;
+        case WPO::FROM_GUID: key = wpOwner->GetGUIDLow();   key_field = "Id";       table = "creature_movement"; break;
+        case WPO::FROM_EXTERNAL: key = wpOwner->GetEntry(); key_field = "Entry";    table = sWaypointMgr.GetExternalWPTable(); break;
+        case WPO::FROM_WAYPOINT_PATH: key = wpOwner->GetMotionMaster()->GetPathId(); key_field = "PathId"; table = "waypoint_path"; break;
         default:
             return false;
     }
 
     outfile << "DELETE FROM " << table << " WHERE " << key_field << "=" << key << ";\n";
-    if (wpOrigin != PATH_FROM_EXTERNAL)
+    if (wpOrigin != WPO::FROM_EXTERNAL)
         outfile << "INSERT INTO " << table << " (" << key_field << ", Point, PositionX, PositionY, PositionZ, Orientation, WaitTime, ScriptId) VALUES\n";
     else
         outfile << "INSERT INTO " << table << " (" << key_field << ", Point, PositionX, PositionY, positionZ, Orientation, WaitTime) VALUES\n";
@@ -3601,12 +3624,12 @@ bool ChatHandler::HandleWpExportCommand(char* args)
     {
         outfile << "(" << key << ",";
         outfile << itr->first << ",";
-        outfile << itr->second.x << ",";
-        outfile << itr->second.y << ",";
-        outfile << itr->second.z << ",";
-        outfile << itr->second.orientation << ",";
+        outfile << itr->second.pos.x << ",";
+        outfile << itr->second.pos.y << ",";
+        outfile << itr->second.pos.z << ",";
+        outfile << itr->second.pos.w << ",";
         outfile << itr->second.delay << ",";
-        if (wpOrigin != PATH_FROM_EXTERNAL)                 // Only for normal waypoints
+        if (wpOrigin != WPO::FROM_EXTERNAL)                 // Only for normal waypoints
             outfile << itr->second.script_id << ")";
         if (countDown > 1)
             outfile << ",\n";
@@ -4905,22 +4928,21 @@ bool ChatHandler::HandleMmapPathCommand(char* args)
     }
 
     // unit locations
-    float x, y, z;
-    destinationUnit->GetPosition(x, y, z);
+    auto const pos = destinationUnit->GetPosition().xyz();
 
     // path
     PathFinder path(originUnit);
     path.setUseStrightPath(useStraightPath);
-    path.calculate(x, y, z);
+    path.calculate(pos);
 
     PointsArray pointPath = path.getPath();
     PSendSysMessage("%s's path to %s:", originUnit->GetName(), destinationUnit->GetName());
     PSendSysMessage("Building %s", useStraightPath ? "StraightPath" : "SmoothPath");
     PSendSysMessage("length " SIZEFMTD " type %u", pointPath.size(), path.getPathType());
 
-    Vector3 start = path.getStartPosition();
-    Vector3 end = path.getEndPosition();
-    Vector3 actualEnd = path.getActualEndPosition();
+    Vec3 start = path.getStartPosition();
+    Vec3 end = path.getEndPosition();
+    Vec3 actualEnd = path.getActualEndPosition();
 
     PSendSysMessage("start      (%.3f, %.3f, %.3f)", start.x, start.y, start.z);
     PSendSysMessage("end        (%.3f, %.3f, %.3f)", end.x, end.y, end.z);
@@ -4929,8 +4951,8 @@ bool ChatHandler::HandleMmapPathCommand(char* args)
     if (!player->IsGameMaster())
         PSendSysMessage("Enable GM mode to see the path points.");
 
-    for (auto& i : pointPath)
-        player->SummonCreature(VISUAL_WAYPOINT, i.x, i.y, i.z, 0, TEMPSPAWN_TIMED_DESPAWN, 9000);
+    for (auto& p : pointPath)
+        player->SummonCreature(VISUAL_WAYPOINT, Position{p, 0.0f}, TempSpawnType::TIMED_DESPAWN, 9000);
 
     if (followPath)
     {
@@ -4967,13 +4989,12 @@ bool ChatHandler::HandleMmapLocCommand(char* /*args*/)
 
     const float* min = navmesh->getParams()->orig;
 
-    float x, y, z;
-    player->GetPosition(x, y, z);
-    float location[VERTEX_SIZE] = {y, z, x};
+    auto const pos = player->GetPosition().xyz();
+    float location[VERTEX_SIZE] = {pos.y, pos.z, pos.x};
     float extents[VERTEX_SIZE] = {3.0f, 5.0f, 3.0f};
 
-    int32 tilex = int32((y - min[0]) / SIZE_OF_GRIDS);
-    int32 tiley = int32((x - min[2]) / SIZE_OF_GRIDS);
+    int32 tilex = int32((pos.y - min[0]) / SIZE_OF_GRIDS);
+    int32 tiley = int32((pos.x - min[2]) / SIZE_OF_GRIDS);
 
     PSendSysMessage("Calc   [%02i,%02i]", tilex, tiley);
 

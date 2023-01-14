@@ -155,9 +155,8 @@ bool CreatureAI::DoRetreat()
 
     uint32 delay = sWorld.getConfig(CONFIG_UINT32_CREATURE_FAMILY_ASSISTANCE_DELAY);
 
-    Position pos;
-    ally->GetFirstCollisionPosition(pos, ally->GetCombatReach(), ally->GetAngle(m_creature));
-    m_creature->GetMotionMaster()->MoveRetreat(pos.x, pos.y, pos.z, ally->GetAngle(victim), delay);
+    auto const pos = ally->GetFirstCollisionPosition(ally->GetCombatReach(), ally->GetAngle(m_creature));
+    m_creature->GetMotionMaster()->MoveRetreat({pos.xyz(), ally->GetAngle(victim)}, delay);
 
     SetAIOrder(ORDER_RETREATING);
     SetCombatScriptStatus(true);

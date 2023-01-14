@@ -33,6 +33,8 @@ EndContentData */
 ## npc_anachronos_the_ancient
 ###*/
 
+namespace {
+
 enum
 {
     // Dragons
@@ -195,38 +197,40 @@ static const DialogueEntry aEventDialogue[] =
 
 struct EventLocations
 {
-    float m_fX, m_fY, m_fZ, m_fO;
-    uint32 m_uiEntry;
+    Position pos;
+    uint32 ui_entry;
 };
 
-static EventLocations aEternalBoardNPCs[MAX_DRAGONS] =
+const EventLocations aEternalBoardNPCs[MAX_DRAGONS] =
 {
-    { -8029.301f, 1534.612f, 2.609f, 3.121f, NPC_FANDRAL_STAGHELM},
-    { -8034.227f, 1536.580f, 2.609f, 6.161f, NPC_ARYGOS},
-    { -8031.935f, 1532.658f, 2.609f, 1.012f, NPC_CAELESTRASZ},
-    { -8034.106f, 1534.224f, 2.609f, 0.290f, NPC_MERITHRA_OF_THE_DREAM},
+    {{ -8029.301f, 1534.612f, 2.609f, 3.121f }, NPC_FANDRAL_STAGHELM},
+    {{ -8034.227f, 1536.580f, 2.609f, 6.161f }, NPC_ARYGOS},
+    {{ -8031.935f, 1532.658f, 2.609f, 1.012f }, NPC_CAELESTRASZ},
+    {{ -8034.106f, 1534.224f, 2.609f, 0.290f }, NPC_MERITHRA_OF_THE_DREAM},
 };
 
-static EventLocations aQirajiWarriors[MAX_CONQUERORS] =
+const Vec3 aQirajiWarriors[MAX_CONQUERORS] =
 {
-    { -8092.12f, 1508.32f, 2.94f, 0.0f, 0 },
-    { -8096.54f, 1525.84f, 2.83f, 0.0f, 0 }, // Also used as an anchor point for the rest of the summons
-    { -8097.81f, 1541.74f, 2.88f, 0.0f, 0 },
+    { -8092.12f, 1508.32f, 2.94f },
+    { -8096.54f, 1525.84f, 2.83f }, // Also used as an anchor point for the rest of the summons
+    { -8097.81f, 1541.74f, 2.88f },
 };
 
-static EventLocations aEternalBoardMovement[] =
+const Vec3 aEternalBoardMovement[] =
 {
-    { -8159.951f, 1525.241f, 74.994f},          // 0 Flight position for dragons
-    { -8106.238f, 1525.948f, 2.639f},           // 1 Anachronos gate location
-    { -8103.861f, 1525.923f, 2.677f},           // 2 Fandral gate location
-    { -8107.387f, 1523.641f, 2.609f},           // 3 Shattered scepter
-    { -8100.921f, 1527.740f, 2.871f},           // 4 Fandral epilogue location
-    { -8115.270f, 1515.926f, 3.305f},           // 5 Anachronos gather broken scepter 1
-    { -8116.879f, 1530.615f, 3.762f},           // 6 Anachronos gather broken scepter 2
-    { -7997.790f, 1548.664f, 3.738f},           // 7 Fandral exit location
-    { -8061.933f, 1496.196f, 2.556f},           // 8 Anachronos launch location
-    { -8008.705f, 1446.063f, 44.104f},          // 9 Anachronos flight location
+    { -8159.951f, 1525.241f, 74.994f },          // 0 Flight position for dragons
+    { -8106.238f, 1525.948f, 2.639f },           // 1 Anachronos gate location
+    { -8103.861f, 1525.923f, 2.677f },           // 2 Fandral gate location
+    { -8107.387f, 1523.641f, 2.609f },           // 3 Shattered scepter
+    { -8100.921f, 1527.740f, 2.871f },           // 4 Fandral epilogue location
+    { -8115.270f, 1515.926f, 3.305f },           // 5 Anachronos gather broken scepter 1
+    { -8116.879f, 1530.615f, 3.762f },           // 6 Anachronos gather broken scepter 2
+    { -7997.790f, 1548.664f, 3.738f },           // 7 Fandral exit location
+    { -8061.933f, 1496.196f, 2.556f },           // 8 Anachronos launch location
+    { -8008.705f, 1446.063f, 44.104f },          // 9 Anachronos flight location
 };
+
+} // namespace
 
 struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
 {
@@ -295,7 +299,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                     if (Creature* pMerithra = m_creature->GetMap()->GetCreature(m_merithraGuid))
                     {
                         pMerithra->SetWalk(false);
-                        pMerithra->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->GetPositionX(), pTrigger->GetPositionY(), pTrigger->GetPositionZ());
+                        pMerithra->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->GetPosition().xyz());
                     }
                 }
                 break;
@@ -336,7 +340,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                 // Move Merithra to the exit point
                 if (Creature* pMerithra = m_creature->GetMap()->GetCreature(m_merithraGuid))
                 {
-                    pMerithra->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
+                    pMerithra->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0]);
                     pMerithra->ForcedDespawn(9000);
                 }
                 break;
@@ -347,7 +351,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                     if (Creature* pArygos = m_creature->GetMap()->GetCreature(m_arygosGuid))
                     {
                         pArygos->SetWalk(false);
-                        pArygos->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->GetPositionX(), pTrigger->GetPositionY(), pTrigger->GetPositionZ());
+                        pArygos->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->GetPosition().xyz());
                     }
                 }
                 break;
@@ -377,7 +381,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                 // Move Arygos to the exit point
                 if (Creature* pArygos = m_creature->GetMap()->GetCreature(m_arygosGuid))
                 {
-                    pArygos->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
+                    pArygos->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0]);
                     pArygos->ForcedDespawn(9000);
                 }
                 break;
@@ -388,7 +392,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                     if (Creature* pCaelestrasz = m_creature->GetMap()->GetCreature(m_CaelestraszGuid))
                     {
                         pCaelestrasz->SetWalk(false);
-                        pCaelestrasz->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->GetPositionX(), pTrigger->GetPositionY(), pTrigger->GetPositionZ());
+                        pCaelestrasz->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->GetPosition().xyz());
                     }
                 }
                 break;
@@ -413,7 +417,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                 // Send Caelestrasz on flight
                 if (Creature* pCaelestrasz = m_creature->GetMap()->GetCreature(m_CaelestraszGuid))
                 {
-                    pCaelestrasz->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
+                    pCaelestrasz->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0]);
                     pCaelestrasz->ForcedDespawn(9000);
                 }
                 if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
@@ -426,14 +430,14 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
             case POINT_ID_GATE:
                 // Send Anachronos to the gate
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_GATE, aEternalBoardMovement[1].m_fX, aEternalBoardMovement[1].m_fY, aEternalBoardMovement[1].m_fZ);
+                m_creature->GetMotionMaster()->MovePoint(POINT_ID_GATE, aEternalBoardMovement[1]);
                 break;
             case NPC_FANDRAL_STAGHELM:
                 // Send Fandral to the gate
                 if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
                 {
                     pFandral->SetWalk(false);
-                    pFandral->GetMotionMaster()->MovePoint(POINT_ID_GATE, aEternalBoardMovement[2].m_fX, aEternalBoardMovement[2].m_fY, aEternalBoardMovement[2].m_fZ);
+                    pFandral->GetMotionMaster()->MovePoint(POINT_ID_GATE, aEternalBoardMovement[2]);
                 }
                 break;
             case SPELL_PRISMATIC_BARRIER:
@@ -483,18 +487,18 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                 if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
                 {
                     pFandral->SetWalk(true);
-                    pFandral->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_1, aEternalBoardMovement[3].m_fX, aEternalBoardMovement[3].m_fY, aEternalBoardMovement[3].m_fZ);
+                    pFandral->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_1, aEternalBoardMovement[3]);
                 }
                 break;
             case POINT_ID_EPILOGUE:
                 // Make Fandral leave
                 if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
-                    pFandral->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[7].m_fX, aEternalBoardMovement[7].m_fY, aEternalBoardMovement[7].m_fZ);
+                    pFandral->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[7]);
                 break;
             case POINT_ID_SCEPTER_1:
                 // Anachronos collects the pieces
                 m_creature->SetWalk(true);
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_1, aEternalBoardMovement[5].m_fX, aEternalBoardMovement[5].m_fY, aEternalBoardMovement[5].m_fZ);
+                m_creature->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_1, aEternalBoardMovement[5]);
                 break;
         }
     }
@@ -516,8 +520,8 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
 
     void DoInitialSummons()
     {
-        for (auto& aEternalBoardNPC : aEternalBoardNPCs)
-            m_creature->SummonCreature(aEternalBoardNPC.m_uiEntry, aEternalBoardNPC.m_fX, aEternalBoardNPC.m_fY, aEternalBoardNPC.m_fZ, aEternalBoardNPC.m_fO, TEMPSPAWN_CORPSE_DESPAWN, 0);
+        for (auto const& aEternalBoardNPC : aEternalBoardNPCs)
+            m_creature->SummonCreature(aEternalBoardNPC.ui_entry, aEternalBoardNPC.pos, TempSpawnType::CORPSE_DESPAWN, 0);
 
         // Summon Kaldorei fighters
         DoSummonKaldorei();
@@ -527,34 +531,36 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
 
         // Also summon the 3 Anubisath Conquerors
         for (uint8 i = 0; i < MAX_CONQUERORS; ++i)
-            m_creature->SummonCreature(NPC_ANUBISATH_CONQUEROR, aQirajiWarriors[i].m_fX, aQirajiWarriors[i].m_fY, aQirajiWarriors[i].m_fZ, 0, TEMPSPAWN_CORPSE_DESPAWN, 0);
+            m_creature->SummonCreature(NPC_ANUBISATH_CONQUEROR, {aQirajiWarriors[i], 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0);
     }
 
     void DoSummonKaldorei()
     {
-        float fX, fY, fZ;
         // Summon kaldorei warriors
         for (uint8 i = 0; i < MAX_KALDOREI; ++i)
         {
-            m_creature->GetRandomPoint(aQirajiWarriors[1].m_fX, aQirajiWarriors[1].m_fY, aQirajiWarriors[1].m_fZ, 20.0f, fX, fY, fZ);
-            m_creature->SummonCreature(NPC_KALDOREI_INFANTRY, fX, fY, fZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 0);
+            auto const rand_pos = m_creature->GetRandomPoint(aQirajiWarriors[1], 20.0f);
+            m_creature->SummonCreature(NPC_KALDOREI_INFANTRY, {rand_pos, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0);
         }
     }
 
     void DoSummonQiraji()
     {
-        float fX, fY, fZ;
         // Summon Qiraji warriors
         for (uint8 i = 0; i < MAX_QIRAJI; ++i)
         {
-            m_creature->GetRandomPoint(aQirajiWarriors[1].m_fX, aQirajiWarriors[1].m_fY, aQirajiWarriors[1].m_fZ, 20.0f, fX, fY, fZ);
-            m_creature->SummonCreature(NPC_QIRAJI_WASP, fX, fY, fZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 0);
-
-            m_creature->GetRandomPoint(aQirajiWarriors[1].m_fX, aQirajiWarriors[1].m_fY, aQirajiWarriors[1].m_fZ, 20.0f, fX, fY, fZ);
-            m_creature->SummonCreature(NPC_QIRAJI_DRONE, fX, fY, fZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 0);
-
-            m_creature->GetRandomPoint(aQirajiWarriors[1].m_fX, aQirajiWarriors[1].m_fY, aQirajiWarriors[1].m_fZ, 20.0f, fX, fY, fZ);
-            m_creature->SummonCreature(NPC_QIRAJI_TANK, fX, fY, fZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 0);
+            {
+                auto const rand_pos = m_creature->GetRandomPoint(aQirajiWarriors[1], 20.0f);
+                m_creature->SummonCreature(NPC_QIRAJI_WASP, {rand_pos, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0);
+            }
+            {
+                auto const rand_pos = m_creature->GetRandomPoint(aQirajiWarriors[1], 20.0f);
+                m_creature->SummonCreature(NPC_QIRAJI_DRONE, {rand_pos, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0);
+            }
+            {
+                auto const rand_pos = m_creature->GetRandomPoint(aQirajiWarriors[1], 20.0f);
+                m_creature->SummonCreature(NPC_QIRAJI_TANK, {rand_pos, 0.0f}, TempSpawnType::CORPSE_DESPAWN, 0);
+            }
         }
     }
 
@@ -676,7 +682,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                     StartNextDialogueText(SAY_FANDRAL_EPILOGUE_7);
                     break;
                 case POINT_ID_SCEPTER_1:
-                    pSummoned->GetMotionMaster()->MovePoint(POINT_ID_EPILOGUE, aEternalBoardMovement[4].m_fX, aEternalBoardMovement[4].m_fY, aEternalBoardMovement[4].m_fZ);
+                    pSummoned->GetMotionMaster()->MovePoint(POINT_ID_EPILOGUE, aEternalBoardMovement[4]);
                     break;
                 case POINT_ID_EXIT:
                     pSummoned->ForcedDespawn();
@@ -714,7 +720,7 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                         break;
                     case 1:
                         // Do the epilogue movement
-                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_2, aEternalBoardMovement[6].m_fX, aEternalBoardMovement[6].m_fY, aEternalBoardMovement[6].m_fZ);
+                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_2, aEternalBoardMovement[6]);
                         m_creature->SetStandState(UNIT_STAND_STATE_STAND);
                         m_uiEventTimer = 0;
                         break;
@@ -728,12 +734,12 @@ struct npc_anachronos_the_ancientAI : public ScriptedAI, private DialogueHelper
                     case 3:
                         // Move to exit
                         m_creature->SetWalk(false);
-                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[8].m_fX, aEternalBoardMovement[8].m_fY, aEternalBoardMovement[8].m_fZ);
+                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[8]);
                         m_uiEventTimer = 0;
                         break;
                     case 4:
                         // Take off and fly
-                        m_creature->GetMotionMaster()->MovePoint(0, aEternalBoardMovement[9].m_fX, aEternalBoardMovement[9].m_fY, aEternalBoardMovement[9].m_fZ);
+                        m_creature->GetMotionMaster()->MovePoint(0, aEternalBoardMovement[9]);
                         m_creature->ForcedDespawn(10000);
                         m_uiEventTimer = 0;
                         break;
@@ -760,7 +766,7 @@ bool QuestAcceptGO_crystalline_tear(Player* pPlayer, GameObject* pGo, const Ques
         if (GetClosestCreatureWithEntry(pGo, NPC_ANACHRONOS_THE_ANCIENT, 90.0f))
             return true;
 
-        if (Creature* pAnachronos = pPlayer->SummonCreature(NPC_ANACHRONOS_THE_ANCIENT, pGo->GetPositionX(), pGo->GetPositionY(), pGo->GetPositionZ(), 3.75f, TEMPSPAWN_CORPSE_DESPAWN, 0))
+        if (Creature* pAnachronos = pPlayer->SummonCreature(NPC_ANACHRONOS_THE_ANCIENT, {pGo->GetPosition().xyz(), 3.75f}, TempSpawnType::CORPSE_DESPAWN, 0))
         {
             // Send the player's guid in order to handle the quest complete
             if (npc_anachronos_the_ancientAI* pAnachronosAI = dynamic_cast<npc_anachronos_the_ancientAI*>(pAnachronos->AI()))
@@ -828,7 +834,7 @@ struct npc_solenorAI : public ScriptedAI
             case NPC_NELSON_THE_NICE:
                 m_creature->SetRespawnDelay(35 * MINUTE);
                 m_creature->SetRespawnTime(35 * MINUTE);
-                m_creature->NearTeleportTo(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
+                m_creature->NearTeleportTo({-7724.21f, 1676.43f, 7.0571f, 4.80044f});
                 if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != WAYPOINT_MOTION_TYPE)
                 {
                     m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
@@ -915,7 +921,8 @@ struct npc_solenorAI : public ScriptedAI
 
         if (triggered)
         {
-            Creature* pCleaner = m_creature->SummonCreature(NPC_THE_CLEANER, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetAngle(m_creature), TEMPSPAWN_DEAD_DESPAWN, 20 * MINUTE*IN_MILLISECONDS);
+            Position const cleaner_pos{m_creature->GetPosition().xyz(), m_creature->GetAngle(m_creature)};
+            Creature* pCleaner = m_creature->SummonCreature(NPC_THE_CLEANER, cleaner_pos, TempSpawnType::DEAD_DESPAWN, 20 * MINUTE*IN_MILLISECONDS);
             if (pCleaner)
             {
                 ThreatList const& tList = m_creature->getThreatManager().getThreatList();

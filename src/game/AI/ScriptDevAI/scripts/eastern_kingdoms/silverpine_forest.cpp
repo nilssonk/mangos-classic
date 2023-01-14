@@ -133,6 +133,8 @@ UnitAI* GetAI_npc_deathstalker_erland(Creature* pCreature)
 ## npc_deathstalker_faerleia
 #####*/
 
+namespace {
+
 enum
 {
     QUEST_PYREWOOD_AMBUSH    = 452,
@@ -158,22 +160,16 @@ enum
     NPC_LORD_MAYOR_MORRISON  = 2068
 };
 
-struct SpawnPoint
-{
-    float fX;
-    float fY;
-    float fZ;
-    float fO;
-};
-
-SpawnPoint SpawnPoints[] =
+const Position SpawnPoints[] =
 {
     { -397.45f, 1509.56f, 18.87f, 4.73f},
     { -398.35f, 1510.75f, 18.87f, 4.76f},
     { -396.41f, 1511.06f, 18.87f, 4.74f}
 };
 
-static float m_afMoveCoords[] = { -410.69f, 1498.04f, 19.77f};
+const Vec3 afMoveCoords{ -410.69f, 1498.04f, 19.77f};
+
+} // anonymous namespace
 
 struct npc_deathstalker_faerleiaAI : public ScriptedAI
 {
@@ -218,9 +214,8 @@ struct npc_deathstalker_faerleiaAI : public ScriptedAI
         ++m_uiSummonCount;
 
         // put them on correct waypoints later on
-        float fX, fY, fZ;
-        pSummoned->GetRandomPoint(m_afMoveCoords[0], m_afMoveCoords[1], m_afMoveCoords[2], 10.0f, fX, fY, fZ);
-        pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+        auto const rand_pos = pSummoned->GetRandomPoint(afMoveCoords, 10.0f);
+        pSummoned->GetMotionMaster()->MovePoint(0, rand_pos);
     }
 
     void SummonedCreatureJustDied(Creature* /*pKilled*/) override
@@ -253,24 +248,24 @@ struct npc_deathstalker_faerleiaAI : public ScriptedAI
                 switch (m_uiWaveCount)
                 {
                     case 0:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_SMITHERS,  SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_SMITHERS,  SpawnPoints[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
                         m_uiWaveTimer = 10000;
                         break;
                     case 1:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_THATHER,   SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_HENDRICKS, SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_THATHER,   SpawnPoints[2], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_HENDRICKS, SpawnPoints[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
                         m_uiWaveTimer = 10000;
                         break;
                     case 2:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_WILHELM,   SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_HARTIN,    SpawnPoints[0].fX, SpawnPoints[0].fY, SpawnPoints[0].fZ, SpawnPoints[0].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_HIGARTH,   SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_WILHELM,   SpawnPoints[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_HARTIN,    SpawnPoints[0], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_HIGARTH,   SpawnPoints[2], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
                         m_uiWaveTimer  = 8000;
                         break;
                     case 3:
-                        m_creature->SummonCreature(NPC_COUNCILMAN_COOPER,    SpawnPoints[1].fX, SpawnPoints[1].fY, SpawnPoints[1].fZ, SpawnPoints[1].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
-                        m_creature->SummonCreature(NPC_COUNCILMAN_BRUNSWICK, SpawnPoints[2].fX, SpawnPoints[2].fY, SpawnPoints[2].fZ, SpawnPoints[2].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
-                        m_creature->SummonCreature(NPC_LORD_MAYOR_MORRISON,  SpawnPoints[0].fX, SpawnPoints[0].fY, SpawnPoints[0].fZ, SpawnPoints[0].fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_COOPER,    SpawnPoints[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_COUNCILMAN_BRUNSWICK, SpawnPoints[2], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
+                        m_creature->SummonCreature(NPC_LORD_MAYOR_MORRISON,  SpawnPoints[0], TempSpawnType::CORPSE_TIMED_DESPAWN, 20000);
                         break;
                 }
 

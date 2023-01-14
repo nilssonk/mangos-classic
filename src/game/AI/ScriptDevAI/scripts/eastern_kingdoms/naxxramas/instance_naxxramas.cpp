@@ -26,7 +26,20 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "naxxramas.h"
 
-static const DialogueEntry naxxDialogue[] =
+namespace {
+
+// Used in Construct Quarter for the deadly blobs continuously spawning in Patchwerk corridor
+const Position livingPoisonPositions[6] =
+{
+    {3128.692f, -3119.211f, 293.346f, 4.725505f},
+    {3154.432f, -3125.669f, 293.408f, 4.456693f},
+    {3175.614f, -3134.716f, 293.282f, 4.244928f},
+    {3128.709f, -3157.404f, 293.3238f, 4.725505f},
+    {3145.881f, -3158.563f, 293.3216f, 4.456693f},
+    {3157.736f, -3164.859f, 293.2874f, 4.244928f},
+};
+
+const DialogueEntry naxxDialogue[] =
 {
     {NPC_KELTHUZAD,         0,                10000},
     {SAY_SAPP_DIALOG1,      NPC_KELTHUZAD,    5000},
@@ -49,6 +62,10 @@ static const DialogueEntry naxxDialogue[] =
     {FOLLOWERS_KNEEL,       0,                0},
     {0,                     0,                0}
 };
+
+const Position sapphironPositions{3521.48f, -5234.87f, 137.626f, 4.53329f};
+
+} // anonymous namespace
 
 instance_naxxramas::instance_naxxramas(Map* pMap) : ScriptedInstance(pMap),
     m_sapphironSpawnTimer(0),
@@ -132,7 +149,7 @@ void instance_naxxramas::OnPlayerEnter(Player* player)
     if (GetSingleCreatureFromStorage(NPC_SAPPHIRON, true))
         return;
 
-    player->SummonCreature(NPC_SAPPHIRON, sapphironPositions[0], sapphironPositions[1], sapphironPositions[2], sapphironPositions[3], TEMPSPAWN_DEAD_DESPAWN, 0);
+    player->SummonCreature(NPC_SAPPHIRON, sapphironPositions, TempSpawnType::DEAD_DESPAWN, 0);
 }
 
 void instance_naxxramas::OnCreatureCreate(Creature* creature)
@@ -759,9 +776,9 @@ void instance_naxxramas::Update(uint32 diff)
             {
                 // Spawn 3 living poisons every 5 secs and make them cross the corridor and then despawn, for ever and ever
                 for (uint8 i = 0; i < 3; i++)
-                    if (Creature* poison = trigger->SummonCreature(NPC_LIVING_POISON, livingPoisonPositions[i].m_fX, livingPoisonPositions[i].m_fY, livingPoisonPositions[i].m_fZ, livingPoisonPositions[i].m_fO, TEMPSPAWN_DEAD_DESPAWN, 0))
+                    if (Creature* poison = trigger->SummonCreature(NPC_LIVING_POISON, livingPoisonPositions[i], TempSpawnType::DEAD_DESPAWN, 0))
                     {
-                        poison->GetMotionMaster()->MovePoint(0, livingPoisonPositions[i + 3].m_fX, livingPoisonPositions[i + 3].m_fY, livingPoisonPositions[i + 3].m_fZ);
+                        poison->GetMotionMaster()->MovePoint(0, livingPoisonPositions[i + 3].xyz());
                         poison->ForcedDespawn(15000);
                     }
             }
@@ -866,7 +883,7 @@ void instance_naxxramas::Update(uint32 diff)
         if (m_sapphironSpawnTimer <= diff)
         {
             if (Player* player = GetPlayerInMap())
-                player->SummonCreature(NPC_SAPPHIRON, sapphironPositions[0], sapphironPositions[1], sapphironPositions[2], sapphironPositions[3], TEMPSPAWN_DEAD_DESPAWN, 0);
+                player->SummonCreature(NPC_SAPPHIRON, sapphironPositions, TempSpawnType::DEAD_DESPAWN, 0);
 
             m_sapphironSpawnTimer = 0;
         }
@@ -1039,7 +1056,7 @@ bool instance_naxxramas::DoHandleEvent(uint32 eventId)
                             zombie->AttackStop();
                             zombie->SetTarget(nullptr);
                             zombie->AI()->DoResetThreat();
-                            zombie->GetMotionMaster()->MovePoint(0, gluth->GetPositionX(), gluth->GetPositionY(), gluth->GetPositionZ());
+                            zombie->GetMotionMaster()->MovePoint(0, gluth->GetPosition().xyz());
                         }
                     }
                 }
@@ -1085,9 +1102,10 @@ struct npc_stoneskin_gargoyleAI : public ScriptedAI
 {
     npc_stoneskin_gargoyleAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_creature->GetCombatManager().SetLeashingCheck([&](Unit*, float x, float y, float z)
+        m_creature->GetCombatManager().SetLeashingCheck([&](Unit const& u)
         {
-            return x > gargoyleResetCoords.x && y > gargoyleResetCoords.y && z > gargoyleResetCoords.z;
+            auto const& pos = u.GetPosition();
+            return pos.x > gargoyleResetCoords.x && pos.y > gargoyleResetCoords.y && pos.z > gargoyleResetCoords.z;
         });
         Reset();
     }
@@ -1147,9 +1165,8 @@ struct npc_stoneskin_gargoyleAI : public ScriptedAI
         }
 
         // All Stoneskin Gargoyles cast Acid Volley but the first one encountered
-        float respawnX, respawnY, respawnZ;
-        m_creature->GetRespawnCoord(respawnX, respawnY, respawnZ);
-        if (m_creature->GetDefaultMovementType() == IDLE_MOTION_TYPE || respawnZ < gargoyleResetCoords.z)
+        auto const respawn_pos = m_creature->GetRespawnPosition();
+        if (m_creature->GetDefaultMovementType() == IDLE_MOTION_TYPE || respawn_pos.z < gargoyleResetCoords.z)
             canCastVolley = true;
     }
 
@@ -1197,7 +1214,7 @@ struct npc_living_poisonAI : public ScriptedAI
     // Any time a player comes close to the Living Poison, it will explode and kill itself while doing heavy AoE damage to the player
     void MoveInLineOfSight(Unit* who) override
     {
-        if (m_creature->GetDistance2d(who->GetPositionX(), who->GetPositionY(), DIST_CALC_BOUNDING_RADIUS) > 4.0f)
+        if (m_creature->GetDistance(who->GetPosition().xy(), DIST_CALC_BOUNDING_RADIUS) > 4.0f)
             return;
 
         DoCastSpellIfCan(m_creature, SPELL_EXPLODE, CAST_TRIGGERED);

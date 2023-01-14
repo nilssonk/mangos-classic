@@ -374,11 +374,10 @@ void BattleGround::Update(uint32 diff)
                 {
                     if (Player* player = sObjectMgr.GetPlayer(itr.first))
                     {
-                        float x, y, z, o;
-                        GetTeamStartLoc(player->GetTeam(), x, y, z, o);
-                        if (!player->IsWithinDist3d(x, y, z, maxDist))
+                        auto const start_loc = GetTeamStartLoc(player->GetTeam());
+                        if (!player->IsWithinDist(start_loc.xyz(), maxDist))
                         {
-                            player->TeleportTo(GetMapId(), x, y, z, o);
+                            player->TeleportTo(GetMapId(), start_loc);
                         }
                     }
                 }
@@ -468,18 +467,26 @@ void BattleGround::Update(uint32 diff)
   Method that sets the team start location
 
   @param    team Id
-  @param    x
-  @param    y
-  @param    z
-  @param    o
+  @param    pos
 */
-void BattleGround::SetTeamStartLoc(Team team, float x, float y, float z, float o)
+void BattleGround::SetTeamStartLoc(Team team, Position const& pos)
 {
     PvpTeamIndex teamIdx = GetTeamIndexByTeamId(team);
-    m_teamStartLocX[teamIdx] = x;
-    m_teamStartLocY[teamIdx] = y;
-    m_teamStartLocZ[teamIdx] = z;
-    m_teamStartLocO[teamIdx] = o;
+    m_teamStartLocX[teamIdx] = pos.x;
+    m_teamStartLocY[teamIdx] = pos.y;
+    m_teamStartLocZ[teamIdx] = pos.z;
+    m_teamStartLocO[teamIdx] = pos.w;
+}
+
+Position BattleGround::GetTeamStartLoc(Team team) const
+{
+    PvpTeamIndex idx = GetTeamIndexByTeamId(team);
+    return {
+        m_teamStartLocX[idx],
+        m_teamStartLocY[idx],
+        m_teamStartLocZ[idx],
+        m_teamStartLocO[idx]
+    };
 }
 
 /**

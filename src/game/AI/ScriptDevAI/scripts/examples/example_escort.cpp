@@ -80,10 +80,13 @@ struct example_escortAI : public npc_escortAI
             case 1:
                 DoScriptText(SAY_WP_1, m_creature);
                 break;
-            case 3:
+            case 3: {
                 DoScriptText(SAY_WP_2, m_creature);
-                m_creature->SummonCreature(NPC_FELBOAR, m_creature->GetPositionX() + 5.0f, m_creature->GetPositionY() + 7.0f, m_creature->GetPositionZ(), 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 3000);
-                break;
+                auto pos = m_creature->GetPosition();
+                pos.x += 5.0f;
+                pos.y += 7.0f;
+                m_creature->SummonCreature(NPC_FELBOAR, {pos.xyz(), 0.0f}, TempSpawnType::TIMED_OOC_DESPAWN, 3000);
+            } break;
             case 4:
                 if (Player* pTmpPlayer = GetPlayerForEscort())
                 {

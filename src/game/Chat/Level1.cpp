@@ -295,7 +295,10 @@ bool ChatHandler::HandleGPSCommand(char* args)
             return false;
         }
     }
-    CellPair cell_val = MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY());
+
+    auto const& pos = obj->GetPosition();
+
+    CellPair cell_val = MaNGOS::ComputeCellPair(pos.xy());
     Cell cell(cell_val);
 
     uint32 zone_id, area_id;
@@ -305,20 +308,21 @@ bool ChatHandler::HandleGPSCommand(char* args)
     AreaTableEntry const* zoneEntry = GetAreaEntryByAreaID(zone_id);
     AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(area_id);
 
-    float zone_x = obj->GetPositionX();
-    float zone_y = obj->GetPositionY();
+    Vec2 zone_pos{pos.xy()};
 
-    if (!Map2ZoneCoordinates(zone_x, zone_y, zone_id))
+    auto maybe_coords = Map2ZoneCoordinates(pos.xy(), zone_id);
+    if (!maybe_coords)
     {
-        zone_x = 0;
-        zone_y = 0;
+        zone_pos = Vec2{};
+    } else {
+        zone_pos = *maybe_coords;
     }
 
     Map const* map = obj->GetMap();
-    float ground_z = map->GetHeight(obj->GetPositionX(), obj->GetPositionY(), MAX_HEIGHT);
-    float floor_z = map->GetHeight(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ());
+    float ground_z = map->GetHeight(Vec3{pos.xy(), MAX_HEIGHT});
+    float floor_z = map->GetHeight(pos.xyz());
 
-    GridPair p = MaNGOS::ComputeGridPair(obj->GetPositionX(), obj->GetPositionY());
+    GridPair p = MaNGOS::ComputeGridPair(pos.xy());
 
     int gx = 63 - p.x_coord;
     int gy = 63 - p.y_coord;
@@ -330,7 +334,7 @@ bool ChatHandler::HandleGPSCommand(char* args)
 
     if (have_vmap)
     {
-        if (terrain->IsOutdoors(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ()))
+        if (terrain->IsOutdoors(pos.xyz()))
             PSendSysMessage("You are OUTdoor");
         else
             PSendSysMessage("You are INdoor");
@@ -341,14 +345,14 @@ bool ChatHandler::HandleGPSCommand(char* args)
                     obj->GetMapId(), (mapEntry ? mapEntry->name[GetSessionDbcLocale()] : "<unknown>"),
                     zone_id, (zoneEntry ? zoneEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
                     area_id, obj->GetAreaName(GetSessionDbcLocale()),
-                    obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
+                    pos.x, pos.y, pos.z, pos.w,
                     cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
-                    zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
+                    zone_pos.x, zone_pos.y, ground_z, floor_z, have_map, have_vmap);
 
     if (GenericTransport* transport = obj->GetTransport())
     {
         Position pos = obj->GetPosition(transport);
-        PSendSysMessage("Transport coords: %f %f %f %f", pos.x, pos.y, pos.z, pos.o);
+        PSendSysMessage("Transport coords: %f %f %f %f", pos.x, pos.y, pos.z, pos.w);
     }
 
     DEBUG_LOG("Player %s GPS call for %s '%s' (%s: %u):",
@@ -360,12 +364,12 @@ bool ChatHandler::HandleGPSCommand(char* args)
               obj->GetMapId(), (mapEntry ? mapEntry->name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
               zone_id, (zoneEntry ? zoneEntry->area_name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
               area_id, obj->GetAreaName(sWorld.GetDefaultDbcLocale()),
-              obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
+              pos.x, pos.y, pos.z, pos.w,
               cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
-              zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
+              zone_pos.x, zone_pos.y, ground_z, floor_z, have_map, have_vmap);
 
     GridMapLiquidData liquid_status;
-    GridMapLiquidStatus res = terrain->getLiquidStatus(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
+    GridMapLiquidStatus res = terrain->getLiquidStatus(pos.xyz(), MAP_ALL_LIQUIDS, &liquid_status);
     if (res)
     {
         PSendSysMessage(LANG_LIQUID_STATUS, liquid_status.level, liquid_status.depth_level, liquid_status.type_flags, uint32(res));
@@ -475,9 +479,8 @@ bool ChatHandler::HandleNamegoCommand(char* args)
             target->SaveRecallPosition();
 
         // before GM
-        float x, y, z;
-        player->GetClosePoint(x, y, z, target->GetObjectBoundingRadius());
-        target->TeleportTo(player->GetMapId(), x, y, z, target->GetOrientation());
+        auto const close_point = player->GetClosePoint(target->GetObjectBoundingRadius());
+        target->TeleportTo(player->GetMapId(), {close_point, target->GetOrientation()});
     }
     else
     {
@@ -490,12 +493,9 @@ bool ChatHandler::HandleNamegoCommand(char* args)
         PSendSysMessage(LANG_SUMMONING, nameLink.c_str(), GetMangosString(LANG_OFFLINE));
 
         // in point where GM stay
-        Player::SavePositionInDB(target_guid, player->GetMapId(),
-                                 player->GetPositionX(),
-                                 player->GetPositionY(),
-                                 player->GetPositionZ(),
-                                 player->GetOrientation(),
-                                 player->GetZoneId());
+        Player::SaveLocationInDB(target_guid,
+            {player->GetMapId(), player->GetPosition()},
+            player->GetZoneId());
     }
 
     return true;
@@ -608,12 +608,11 @@ bool ChatHandler::HandleGonameCommand(char* args)
             _player->SaveRecallPosition();
 
         // to point to see at target with same orientation
-        float x, y, z;
-        target->GetContactPoint(target, x, y, z);
+        auto pos = target->GetContactPoint(target);
         
         if (GenericTransport* transport = target->GetTransport())
-            transport->CalculatePassengerOffset(x, y, z);
-        _player->TeleportTo(target->GetMapId(), x, y, z, _player->GetAngle(target), TELE_TO_GM_MODE, nullptr, target->GetTransport());
+            pos = transport->CalculatePassengerOffset(pos);
+        _player->TeleportTo(target->GetMapId(), {pos, _player->GetAngle(target)}, TELE_TO_GM_MODE, nullptr, target->GetTransport());
     }
     else
     {
@@ -626,13 +625,12 @@ bool ChatHandler::HandleGonameCommand(char* args)
         PSendSysMessage(LANG_APPEARING_AT, nameLink.c_str());
 
         // to point where player stay (if loaded)
-        float x, y, z, o;
-        uint32 map;
-        bool in_flight;
-        if (!Player::LoadPositionFromDB(target_guid, map, x, y, z, o, in_flight))
+        auto const maybe_loc = Player::LoadLocationFromDB(target_guid);
+        if (!maybe_loc)
             return false;
+        auto const& loc = *maybe_loc;
 
-        return HandleGoHelper(_player, map, x, y, &z);
+        return HandleGoHelper(_player, loc.mapid, loc.pos.xyz());
     }
 
     return true;
@@ -656,7 +654,7 @@ bool ChatHandler::HandleRecallCommand(char* args)
         return false;
     }
 
-    return HandleGoHelper(target, target->m_recallMap, target->m_recallX, target->m_recallY, &target->m_recallZ, &target->m_recallO);
+    return HandleGoHelper(target, target->m_recall.mapid, target->m_recall.pos);
 }
 
 // Edit Player HP
@@ -1246,7 +1244,7 @@ bool ChatHandler::HandleTeleCommand(char* args)
         return false;
     }
 
-    return HandleGoHelper(_player, tele->mapId, tele->position_x, tele->position_y, &tele->position_z, &tele->orientation);
+    return HandleGoHelper(_player, tele->loc.mapid, tele->loc.pos);
 }
 
 bool ChatHandler::HandleLookupAreaCommand(char* args)
@@ -1464,7 +1462,7 @@ bool ChatHandler::HandleTeleNameCommand(char* args)
         if (needReportToTarget(target))
             ChatHandler(target).PSendSysMessage(LANG_TELEPORTED_TO_BY, GetNameLink().c_str());
 
-        return HandleGoHelper(target, tele->mapId, tele->position_x, tele->position_y, &tele->position_z, &tele->orientation);
+        return HandleGoHelper(target, tele->loc.mapid, tele->loc.pos);
     }
     // check offline security
     if (HasLowerSecurity(nullptr, target_guid))
@@ -1473,9 +1471,11 @@ bool ChatHandler::HandleTeleNameCommand(char* args)
     std::string nameLink = playerLink(target_name);
 
     PSendSysMessage(LANG_TELEPORTING_TO, nameLink.c_str(), GetMangosString(LANG_OFFLINE), tele->name.c_str());
-    Player::SavePositionInDB(target_guid, tele->mapId,
-        tele->position_x, tele->position_y, tele->position_z, tele->orientation,
-        sTerrainMgr.GetZoneId(tele->mapId, tele->position_x, tele->position_y, tele->position_z));
+    auto const& loc = tele->loc;
+    Player::SaveLocationInDB(
+        target_guid,
+        loc,
+        sTerrainMgr.GetZoneId(loc.mapid, loc.pos.xyz()));
 
     return true;
 }
@@ -1544,7 +1544,7 @@ bool ChatHandler::HandleTeleGroupCommand(char* args)
         if (!pl->TaxiFlightInterrupt())
             pl->SaveRecallPosition();
 
-        pl->TeleportTo(tele->mapId, tele->position_x, tele->position_y, tele->position_z, tele->orientation);
+        pl->TeleportTo(tele->loc);
     }
 
     return true;
@@ -1629,54 +1629,71 @@ bool ChatHandler::HandleGroupgoCommand(char* args)
             pl->SaveRecallPosition();
 
         // before GM
-        float x, y, z;
-        m_session->GetPlayer()->GetClosePoint(x, y, z, pl->GetObjectBoundingRadius());
-        pl->TeleportTo(m_session->GetPlayer()->GetMapId(), x, y, z, pl->GetOrientation());
+        auto const close_point = m_session->GetPlayer()->GetClosePoint(pl->GetObjectBoundingRadius());
+        pl->TeleportTo(m_session->GetPlayer()->GetMapId(), {close_point, pl->GetOrientation()});
     }
 
     return true;
 }
 
-bool ChatHandler::HandleGoHelper(Player* player, uint32 mapid, float x, float y, float const* zPtr, float const* ortPtr)
-{
-    float z;
+bool ChatHandler::HandleGoHelper(Player* player, uint32 mapid, Vec2 const& pos) {
     float ort = player->GetOrientation();
 
-    if (zPtr)
+    // we need check x,y before ask Z or can crash at invalid coordinates
+    if (!MapManager::IsValidMapCoord(mapid, pos))
     {
-        z = *zPtr;
-
-        if (ortPtr)
-            ort = *ortPtr;
-
-        // check full provided coordinates
-        if (!MapManager::IsValidMapCoord(mapid, x, y, z, ort))
-        {
-            PSendSysMessage(LANG_INVALID_TARGET_COORD, x, y, mapid);
-            SetSentErrorMessage(true);
-            return false;
-        }
+        PSendSysMessage(LANG_INVALID_TARGET_COORD, pos.x, pos.y, mapid);
+        SetSentErrorMessage(true);
+        return false;
     }
-    else
-    {
-        // we need check x,y before ask Z or can crash at invalid coordinates
-        if (!MapManager::IsValidMapCoord(mapid, x, y))
-        {
-            PSendSysMessage(LANG_INVALID_TARGET_COORD, x, y, mapid);
-            SetSentErrorMessage(true);
-            return false;
-        }
 
-        TerrainInfo const* map = sTerrainMgr.LoadTerrain(mapid);
-        float groundZ = player->GetMap()->GetHeight(x, y, 0.f);
-        z = map->GetWaterOrGroundLevel(x, y, MAX_HEIGHT, groundZ);
+    TerrainInfo const* map = sTerrainMgr.LoadTerrain(mapid);
+    float groundZ = player->GetMap()->GetHeight(Vec3{pos, 0.0f});
+    float const z = map->GetWaterOrGroundLevel(Vec3{pos, MAX_HEIGHT}, groundZ);
+
+    // stop flight if need
+    if (!player->TaxiFlightInterrupt())
+        player->SaveRecallPosition();
+
+    player->TeleportTo(mapid, {pos, z, ort});
+
+    return true;
+}
+
+bool ChatHandler::HandleGoHelper(Player* player, uint32 mapid, Vec3 const& pos) {
+    float ort = player->GetOrientation();
+
+    // check full provided coordinates
+    if (!MapManager::IsValidMapCoord(mapid, {pos, ort}))
+    {
+        PSendSysMessage(LANG_INVALID_TARGET_COORD, pos.x, pos.y, mapid);
+        SetSentErrorMessage(true);
+        return false;
     }
 
     // stop flight if need
     if (!player->TaxiFlightInterrupt())
         player->SaveRecallPosition();
 
-    player->TeleportTo(mapid, x, y, z, ort);
+    player->TeleportTo(mapid, {pos, ort});
+
+    return true;
+}
+
+bool ChatHandler::HandleGoHelper(Player* player, uint32 mapid, Position const& pos) {
+    // check full provided coordinates
+    if (!MapManager::IsValidMapCoord(mapid, pos))
+    {
+        PSendSysMessage(LANG_INVALID_TARGET_COORD, pos.x, pos.y, mapid);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    // stop flight if need
+    if (!player->TaxiFlightInterrupt())
+        player->SaveRecallPosition();
+
+    player->TeleportTo(mapid, pos);
 
     return true;
 }
@@ -1704,7 +1721,7 @@ bool ChatHandler::HandleGoTaxinodeCommand(char* args)
         return false;
     }
 
-    return HandleGoHelper(_player, node->map_id, node->x, node->y, &node->z);
+    return HandleGoHelper(_player, node->map_id, {node->x, node->y, node->z});
 }
 
 bool ChatHandler::HandleGoCommand(char* args)
@@ -1715,25 +1732,31 @@ bool ChatHandler::HandleGoCommand(char* args)
     Player* _player = m_session->GetPlayer();
 
     uint32 mapid;
-    float x, y, z;
+    Vec3 pos{};
 
     // raw coordinates case
-    if (ExtractFloat(&args, x))
+    if (ExtractFloat(&args, pos.x))
     {
-        if (!ExtractFloat(&args, y))
+        if (!ExtractFloat(&args, pos.y))
             return false;
 
-        if (!ExtractFloat(&args, z))
+        if (!ExtractFloat(&args, pos.z))
             return false;
 
         if (!ExtractOptUInt32(&args, mapid, _player->GetMapId()))
             return false;
-    }
-    // link case
-    else if (!ExtractLocationFromLink(&args, mapid, x, y, z))
-        return false;
 
-    return HandleGoHelper(_player, mapid, x, y, &z);
+        
+        return HandleGoHelper(_player, mapid, pos);
+    }
+
+    // link case
+    auto const maybe_loc = ExtractLocationFromLink(&args);
+    if (maybe_loc) {
+        return HandleGoHelper(_player, maybe_loc->mapid,  maybe_loc->pos.xyz());
+    }
+    
+    return false;
 }
 
 
@@ -1743,19 +1766,16 @@ bool ChatHandler::HandleGoXYCommand(char* args)
 {
     Player* _player = m_session->GetPlayer();
 
-    float x;
-    if (!ExtractFloat(&args, x))
-        return false;
-
-    float y;
-    if (!ExtractFloat(&args, y))
-        return false;
-
     uint32 mapid;
-    if (!ExtractOptUInt32(&args, mapid, _player->GetMapId()))
-        return false;
+    Vec2 pos{};
 
-    return HandleGoHelper(_player, mapid, x, y);
+    if (!ExtractFloat(&args, pos.x)
+        || !ExtractFloat(&args, pos.y)
+        || !ExtractOptUInt32(&args, mapid, _player->GetMapId())) {
+        return false;
+    }
+
+    return HandleGoHelper(_player, mapid, pos);
 }
 
 // teleport at coordinates, including Z
@@ -1777,23 +1797,25 @@ bool ChatHandler::HandleGoXYZCommand(char* args)
     if (!px || !py || !pz)
         return false;
 
-    float x = (float)atof(px);
-    float y = (float)atof(py);
-    float z = (float)atof(pz);
+    Vec3 pos{
+        static_cast<float>(atof(px)),
+        static_cast<float>(atof(py)),
+        static_cast<float>(atof(pz))
+    };
     uint32 mapid;
     if (pmapid)
         mapid = (uint32)atoi(pmapid);
     else
         mapid = _player->GetMapId();
 
-    if (!MapManager::IsValidMapCoord(mapid, x, y, z))
+    if (!MapManager::IsValidMapCoord(mapid, pos))
     {
-        PSendSysMessage(LANG_INVALID_TARGET_COORD, x, y, mapid);
+        PSendSysMessage(LANG_INVALID_TARGET_COORD, pos.xy(), mapid);
         SetSentErrorMessage(true);
         return false;
     }
 
-    return HandleGoHelper(_player, mapid, x, y, &z);
+    return HandleGoHelper(_player, mapid, pos);
 }
 
 // teleport at coordinates
@@ -1801,12 +1823,8 @@ bool ChatHandler::HandleGoZoneXYCommand(char* args)
 {
     Player* _player = m_session->GetPlayer();
 
-    float x;
-    if (!ExtractFloat(&args, x))
-        return false;
-
-    float y;
-    if (!ExtractFloat(&args, y))
+    Vec2 pos{};
+    if (!ExtractFloat(&args, pos.x) || !ExtractFloat(&args, pos.y))
         return false;
 
     uint32 areaid;
@@ -1816,13 +1834,15 @@ bool ChatHandler::HandleGoZoneXYCommand(char* args)
             return false;
     }
     else
+    {
         areaid = _player->GetZoneId();
+    }
 
     AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(areaid);
 
-    if (x < 0 || x > 100 || y < 0 || y > 100 || !areaEntry)
+    if (pos.x < 0 || pos.x > 100 || pos.y < 0 || pos.y > 100 || !areaEntry)
     {
-        PSendSysMessage(LANG_INVALID_ZONE_COORD, x, y, areaid);
+        PSendSysMessage(LANG_INVALID_ZONE_COORD, pos.x, pos.y, areaid);
         SetSentErrorMessage(true);
         return false;
     }
@@ -1840,7 +1860,8 @@ bool ChatHandler::HandleGoZoneXYCommand(char* args)
         return false;
     }
 
-    if (!Zone2MapCoordinates(x, y, zoneEntry->ID))
+    auto const maybe_map_coords = Zone2MapCoordinates(pos, zoneEntry->ID);
+    if (!maybe_map_coords)
     {
         PSendSysMessage(LANG_INVALID_ZONE_MAP, areaEntry->ID, areaEntry->area_name[GetSessionDbcLocale()],
                         mapEntry->MapID, mapEntry->name[GetSessionDbcLocale()]);
@@ -1848,7 +1869,7 @@ bool ChatHandler::HandleGoZoneXYCommand(char* args)
         return false;
     }
 
-    return HandleGoHelper(_player, mapEntry->MapID, x, y);
+    return HandleGoHelper(_player, mapEntry->MapID, maybe_map_coords.value());
 }
 
 // teleport to grid
@@ -1856,12 +1877,12 @@ bool ChatHandler::HandleGoGridCommand(char* args)
 {
     Player* _player = m_session->GetPlayer();
 
-    float grid_x;
-    if (!ExtractFloat(&args, grid_x))
+    Vec2 gpos{};
+    if (!ExtractFloat(&args, gpos.x))
         return false;
 
     float grid_y;
-    if (!ExtractFloat(&args, grid_y))
+    if (!ExtractFloat(&args, gpos.y))
         return false;
 
     uint32 mapid;
@@ -1869,10 +1890,11 @@ bool ChatHandler::HandleGoGridCommand(char* args)
         return false;
 
     // center of grid
-    float x = (grid_x - CENTER_GRID_ID + 0.5f) * SIZE_OF_GRIDS;
-    float y = (grid_y - CENTER_GRID_ID + 0.5f) * SIZE_OF_GRIDS;
+    auto const offset = 0.5f - CENTER_GRID_ID;
+    gpos += Vec2{offset, offset};
+    gpos *= SIZE_OF_GRIDS;
 
-    return HandleGoHelper(_player, mapid, x, y);
+    return HandleGoHelper(_player, mapid, gpos);
 }
 
 bool ChatHandler::HandleGoWarpCommand(char* args)
@@ -1890,44 +1912,41 @@ bool ChatHandler::HandleGoWarpCommand(char* args)
 
     char dir = arg1[0];
     int32 value = (int32)atoi(arg2);
-    float x = player->GetPositionX();
-    float y = player->GetPositionY();
-    float z = player->GetPositionZ();
-    float o = player->GetOrientation();
+    auto pos = player->GetPosition();
 
     switch (dir)
     {
         case 'x':
         {
-            x = x + cosf(o) * value;
-            y = y + sinf(o) * value;
+            pos.x += cosf(pos.w) * value;
+            pos.y += sinf(pos.w) * value;
             break;
         }
         case 'y':
         {
-            x = x + cos(o - (M_PI_F / 2)) * value;
-            y = y + sin(o - (M_PI_F / 2)) * value;
+            pos.x += cos(pos.w - (M_PI_F / 2)) * value;
+            pos.y += sin(pos.w - (M_PI_F / 2)) * value;
             break;
         }
         case 'z':
         {
-            z = z + value;
+            pos.z +=value;
             break;
         }
         case 'o':
         {
-            o = o - (value * M_PI_F / 180.0f);
-            if (o < 0.0f)
-                o += value * M_PI_F;
-            else if (o > 2 * M_PI_F)
-                o -= value * M_PI_F;
+            pos.w -= (value * M_PI_F / 180.0f);
+            if (pos.w < 0.0f)
+                pos.w += value * M_PI_F;
+            else if (pos.w > 2 * M_PI_F)
+                pos.w -= value * M_PI_F;
             break;
         }
         default:
             return false;
     }
 
-    player->NearTeleportTo(x, y, z, o);
+    player->NearTeleportTo(pos);
     return true;
 }
 

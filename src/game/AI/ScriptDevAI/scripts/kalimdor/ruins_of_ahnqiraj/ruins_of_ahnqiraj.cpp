@@ -26,6 +26,26 @@ EndScriptData
 #include "AI/ScriptDevAI/include/sc_common.h"
 #include "ruins_of_ahnqiraj.h"
 
+namespace {
+
+struct SpawnLocation
+{
+    uint32 ui_entry;
+    Position pos;
+};
+
+// Spawn coords for Andorov and his team
+const SpawnLocation aAndorovSpawnLocs[MAX_HELPERS] =
+{
+    {NPC_GENERAL_ANDOROV, {-8660.4f,  1510.29f, 32.449f,  2.2184f}},
+    {NPC_KALDOREI_ELITE,  {-8655.84f, 1509.78f, 32.462f,  2.33341f}},
+    {NPC_KALDOREI_ELITE,  {-8657.39f, 1506.28f, 32.418f,  2.33346f}},
+    {NPC_KALDOREI_ELITE,  {-8660.96f, 1504.9f,  32.1567f, 2.33306f}},
+    {NPC_KALDOREI_ELITE,  {-8664.45f, 1506.44f, 32.0944f, 2.33302f}}
+};
+
+} // namespace
+
 instance_ruins_of_ahnqiraj::instance_ruins_of_ahnqiraj(Map* pMap) : ScriptedInstance(pMap),
     m_uiArmyDelayTimer(0),
     m_uiCurrentArmyWave(0)
@@ -257,7 +277,7 @@ void instance_ruins_of_ahnqiraj::DoSpawnAndorovIfCan()
         return;
 
     for (const auto& aAndorovSpawnLoc : aAndorovSpawnLocs)
-        pPlayer->SummonCreature(aAndorovSpawnLoc.m_uiEntry, aAndorovSpawnLoc.m_fX, aAndorovSpawnLoc.m_fY, aAndorovSpawnLoc.m_fZ, aAndorovSpawnLoc.m_fO, TEMPSPAWN_DEAD_DESPAWN, 0);
+        pPlayer->SummonCreature(0, aAndorovSpawnLoc.pos, TempSpawnType::DEAD_DESPAWN, 0);
 }
 
 void instance_ruins_of_ahnqiraj::Load(const char* chrIn)
@@ -363,7 +383,6 @@ void instance_ruins_of_ahnqiraj::DoSendNextArmyWave()
             return;
         }
 
-        float fX, fY, fZ;
         for (auto itr : m_sArmyWavesGuids[m_uiCurrentArmyWave])
         {
             if (Creature* pTemp = instance->GetCreature(itr))
@@ -372,8 +391,8 @@ void instance_ruins_of_ahnqiraj::DoSendNextArmyWave()
                     continue;
 
                 pTemp->SetWalk(false);
-                pTemp->GetRandomPoint(aAndorovMoveLocs[4].m_fX, aAndorovMoveLocs[4].m_fY, aAndorovMoveLocs[4].m_fZ, 10.0f, fX, fY, fZ);
-                pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                auto const rand_pos = pTemp->GetRandomPoint(aAndorovMoveLocs[4].xyz(), 10.0f);
+                pTemp->GetMotionMaster()->MovePoint(0, rand_pos);
             }
         }
 

@@ -373,10 +373,11 @@ void PetAI::UpdateAI(const uint32 diff)
             if (staying && !m_unit->hasUnitState(UNIT_STAT_STAY))
             {
                 // If stay command is set, but we don't have stay pos yet: establish current pos as stay position, adjust orientation
+                auto const& stay_pos = charminfo->GetStayPosition();
                 if (charminfo->UpdateStayPosition())
-                    mm->MoveStay(charminfo->GetStayPosX(), charminfo->GetStayPosY(), charminfo->GetStayPosZ(), charminfo->GetStayPosO());
+                    mm->MoveStay(stay_pos);
                  else
-                    mm->MoveStay(charminfo->GetStayPosX(), charminfo->GetStayPosY(), charminfo->GetStayPosZ());
+                    mm->MoveStay({stay_pos.xyz(), 0.0f});
             }
             else if (following && !m_unit->hasUnitState(UNIT_STAT_FOLLOW))
                 mm->MoveFollow(owner, m_followDist, m_followAngle);

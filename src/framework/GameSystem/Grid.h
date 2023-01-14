@@ -35,6 +35,8 @@
 #include "TypeContainer.h"
 #include "TypeContainerVisitor.h"
 
+#include <set>
+
 // forward declaration
 template<class A, class T, class O> class GridLoader;
 

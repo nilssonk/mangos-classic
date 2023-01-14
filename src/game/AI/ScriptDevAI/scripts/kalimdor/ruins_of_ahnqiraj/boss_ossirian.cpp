@@ -28,6 +28,8 @@ EndScriptData
 #include "AI/ScriptDevAI/base/CombatAI.h"
 #include "Globals/ObjectMgr.h"
 
+namespace {
+
 enum
 {
     SAY_SUPREME_1           = -1509018,
@@ -62,14 +64,14 @@ enum
     ZONE_ID_RUINS_AQ        = 3429,
 };
 
-static const float aSandVortexSpawnPos[2][4] =
+const Position aSandVortexSpawnPos[2] =
 {
     { -9523.482f, 1880.435f, 85.645f, 5.08f},
     { -9321.39f,  1822.968f, 84.266f, 3.16f},
 };
 
-static const float aCrystalSpawnPos[3] = { -9355.75f, 1905.43f, 85.55f};
-static const std::vector<uint32> aWeaknessSpell {SPELL_WEAKNESS_FIRE, SPELL_WEAKNESS_FROST, SPELL_WEAKNESS_NATURE, SPELL_WEAKNESS_ARCANE, SPELL_WEAKNESS_SHADOW};
+const Vec3 aCrystalSpawnPos{ -9355.75f, 1905.43f, 85.55f};
+const std::array<uint32, 5> aWeaknessSpell{SPELL_WEAKNESS_FIRE, SPELL_WEAKNESS_FROST, SPELL_WEAKNESS_NATURE, SPELL_WEAKNESS_ARCANE, SPELL_WEAKNESS_SHADOW};
 
 enum OssirianActions
 {
@@ -81,6 +83,9 @@ enum OssirianActions
     OSSIRIAN_SPEEDUP,
     OSSIRIAN_ACTION_MAX,
 };
+
+
+} // namespace
 
 struct boss_ossirianAI : public CombatAI
 {
@@ -124,8 +129,8 @@ struct boss_ossirianAI : public CombatAI
     {
         DoScriptText(SAY_AGGRO, m_creature);
 
-        for (auto aSandVortexSpawnPo : aSandVortexSpawnPos)
-            m_creature->SummonCreature(NPC_SAND_VORTEX, aSandVortexSpawnPo[0], aSandVortexSpawnPo[1], aSandVortexSpawnPo[2], aSandVortexSpawnPo[3], TEMPSPAWN_CORPSE_DESPAWN, 0);
+        for (auto pos : aSandVortexSpawnPos)
+            m_creature->SummonCreature(NPC_SAND_VORTEX, pos, TempSpawnType::CORPSE_DESPAWN, 0);
 
         if (m_instance)
             m_instance->instance->SetWeather(ZONE_ID_RUINS_AQ, WEATHER_TYPE_STORM, 1.0f, true);
@@ -213,7 +218,7 @@ struct boss_ossirianAI : public CombatAI
         {
             // The movement of this isn't very clear - may require additional research
             summoned->CastSpell(summoned, SPELL_SAND_STORM, TRIGGERED_OLD_TRIGGERED);
-            summoned->GetMotionMaster()->MoveRandomAroundPoint(aCrystalSpawnPos[0], aCrystalSpawnPos[1], aCrystalSpawnPos[2], 100.0f);
+            summoned->GetMotionMaster()->MoveRandomAroundPoint(aCrystalSpawnPos, 100.0f);
         }
     }
 
@@ -222,7 +227,8 @@ struct boss_ossirianAI : public CombatAI
         if (caster->GetTypeId() == TYPEID_UNIT && caster->GetEntry() == NPC_OSSIRIAN_TRIGGER)
         {
             // Check for proper spell id
-            if (std::find(aWeaknessSpell.begin(), aWeaknessSpell.end(), spellInfo->Id) == aWeaknessSpell.end())
+            auto const end = std::end(aWeaknessSpell);
+            if (std::find(std::begin(aWeaknessSpell), end, spellInfo->Id) == end)
                 return;
 
             m_creature->RemoveAurasDueToSpell(SPELL_SUPREME);
@@ -312,8 +318,10 @@ struct boss_ossirianAI : public CombatAI
 bool GOUse_go_ossirian_crystal(Player* /*player*/, GameObject* go)
 {
     go->SendGameObjectCustomAnim(go->GetObjectGuid());
-    if (Creature* pOssirianTrigger = GetClosestCreatureWithEntry(go, NPC_OSSIRIAN_TRIGGER, 10.0f))
-        pOssirianTrigger->CastSpell(nullptr, aWeaknessSpell[urand(0, aWeaknessSpell.size() - 1)], TRIGGERED_NONE);
+    if (Creature* pOssirianTrigger = GetClosestCreatureWithEntry(go, NPC_OSSIRIAN_TRIGGER, 10.0f)) {
+        auto const spell_id = urand(0, aWeaknessSpell.size() - 1);
+        pOssirianTrigger->CastSpell(nullptr, aWeaknessSpell[spell_id], TRIGGERED_NONE);
+    }
 
     return true;
 }

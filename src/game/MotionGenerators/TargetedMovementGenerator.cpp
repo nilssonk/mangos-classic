@@ -1178,17 +1178,9 @@ void FormationMovementGenerator::Interrupt(Unit& owner)
     FollowMovementGenerator::Interrupt(owner);
 }
 
-bool FormationMovementGenerator::GetResetPosition(Unit&, float& x, float& y, float& z, float& o) const
+std::optional<Position> FormationMovementGenerator::GetResetPosition(Unit&) const
 {
-    if (m_resetPoint.IsEmpty())
-        return false;
-
-    x = m_resetPoint.x;
-    y = m_resetPoint.y;
-    z = m_resetPoint.z;
-    o = m_resetPoint.o;
-
-    return true;
+    return m_resetPoint;
 }
 
 float FormationMovementGenerator::BuildPath(Unit& owner, PointsArray& path)

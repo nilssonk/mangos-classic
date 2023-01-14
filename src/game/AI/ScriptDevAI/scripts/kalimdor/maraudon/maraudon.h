@@ -7,9 +7,8 @@
 
 enum
 {
-    MAX_ENCOUNTER               = 1,
-
     TYPE_NOXXION                = 0,
+    MAX_ENCOUNTER               = 1,
 
     NPC_NOXXION                 = 13282,
     NPC_SPEWED_LARVA            = 13533,
@@ -17,13 +16,6 @@ enum
     GO_LARVA_SPEWER             = 178559,
     GO_CORRUPTION_SPEWER        = 178570,
 };
-
-struct Locations
-{
-    float m_fX, m_fY, m_fZ, m_fO;
-};
-
-static const Locations spawnLocation = {937.213f, -377.967f, -50.346f, 2.578f};
 
 class instance_maraudon : public ScriptedInstance
 {

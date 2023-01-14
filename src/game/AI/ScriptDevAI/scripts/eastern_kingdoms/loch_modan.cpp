@@ -34,6 +34,8 @@ EndContentData */
 ## npc_miran
 ######*/
 
+namespace {
+
 enum
 {
     QUEST_PROTECTING_THE_SHIPMENT = 309,
@@ -46,16 +48,13 @@ enum
     NPC_DARK_IRON_DWARF   = 2149
 };
 
-struct Location
-{
-    float m_fX, m_fY, m_fZ, m_fO;
-};
-
-static const Location m_afAmbushSpawn[] =
+const Position m_afAmbushSpawn[] =
 {
     { -5691.93f, -3745.91f, 319.159f, 2.21f},
     { -5706.98f, -3745.39f, 318.728f, 1.04f}
 };
+
+} // anonymous namespace
 
 struct npc_miranAI: public npc_escortAI
 {
@@ -78,8 +77,8 @@ struct npc_miranAI: public npc_escortAI
         {
             case 19:
                 DoScriptText(SAY_MIRAN_1, m_creature);
-                m_creature->SummonCreature(NPC_DARK_IRON_DWARF, m_afAmbushSpawn[0].m_fX, m_afAmbushSpawn[0].m_fY, m_afAmbushSpawn[0].m_fZ, m_afAmbushSpawn[0].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
-                m_creature->SummonCreature(NPC_DARK_IRON_DWARF, m_afAmbushSpawn[1].m_fX, m_afAmbushSpawn[1].m_fY, m_afAmbushSpawn[1].m_fZ, m_afAmbushSpawn[1].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_DARK_IRON_DWARF, m_afAmbushSpawn[0], TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
+                m_creature->SummonCreature(NPC_DARK_IRON_DWARF, m_afAmbushSpawn[1], TempSpawnType::CORPSE_TIMED_DESPAWN, 25000);
                 break;
             case 23:
                 DoScriptText(SAY_MIRAN_3, m_creature);

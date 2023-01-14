@@ -27,6 +27,8 @@ EndScriptData
 #include "wailing_caverns.h"
 #include "AI/ScriptDevAI/base/escort_ai.h"
 
+namespace {
+
 enum
 {
     SAY_FIRST_CORNER        = 1256,
@@ -60,71 +62,62 @@ enum
     SPELL_AWAKENING         = 6271,
     SPELL_SHAPESHIFT        = 8153,
 
+    PATH_ID_NARALEX         = 3678,                      // Sniffed Waypoints for Escort Event
+};
+
+enum class NpcUiEntry : uint32_t {
     NPC_DEVIATE_RAPTOR      = 3636,                         // 2 of them at the first stop
     NPC_DEVIATE_VIPER       = 5755,                         // 3 RND at the circle
     NPC_DEVIATE_ADDER       = 5048,                         // 3 RND at the circle
     NPC_DEVIATE_MOCCASIN    = 5762,                         // 6 of them at Naralex chamber
     NPC_NIGHTMARE_ECTOPLASM = 5763,                         // 10 of them at Naralex chamber
     NPC_MUTANUS             = 3654,
-
-    PATH_ID_NARALEX         = 3678,                      // Sniffed Waypoints for Escort Event
 };
 
-struct firstWaveLocations
+struct SpawnLocation
 {
-    uint32 uiEntry;
-    float fX, fY, fZ;
-    uint32 uiPathId;
+    uint32 ui_path_id;
+    NpcUiEntry ui_entry;
+    Vec3 pos;
 };
 
 // Raptor spawns
-static const firstWaveLocations raptorLocations[2] =
+static const SpawnLocation raptorLocations[] =
 {
-    { NPC_DEVIATE_RAPTOR , -67.44779f, 214.5348f, -93.42037f, 1 },
-    { NPC_DEVIATE_RAPTOR , -67.85276f, 203.7873f, -93.57328f, 2 }
+    { 1, NpcUiEntry::NPC_DEVIATE_RAPTOR , {-67.44779f, 214.5348f, -93.42037f} },
+    { 2, NpcUiEntry::NPC_DEVIATE_RAPTOR , {-67.85276f, 203.7873f, -93.57328f} }
 };
 
-static const float circleLocations[3][4] =
+static const Position circleLocations[] =
 {
     { -50.1237f, 274.7166f, -92.7608f, 3.0368f},
     { -60.2538f, 273.0981f, -92.7608f, 0.4014f},
     { -57.5452f, 280.2068f, -92.7608f, 5.0789f}
 };
 
-struct secondWaveLocations
-{
-    uint32 uiEntry;
-    float fX, fY, fZ;
-    uint32 uiPathId;
-};
-
 // Todo: have more then 3 spawn points, but always spawn 3
-static const secondWaveLocations moccasinLocations[3] =
+const SpawnLocation moccasinLocations[] =
 {
-    { NPC_DEVIATE_MOCCASIN, 171.39545f, 213.76605f, -105.50746f, 1},
-    { NPC_DEVIATE_MOCCASIN, 156.72229f, 189.91829f, -107.48995f, 2},
-    { NPC_DEVIATE_MOCCASIN, 121.39977f, 166.31746f, -105.54061f, 3}
+    { 1, NpcUiEntry::NPC_DEVIATE_MOCCASIN, {171.39545f, 213.76605f, -105.50746f}},
+    { 2, NpcUiEntry::NPC_DEVIATE_MOCCASIN, {156.72229f, 189.91829f, -107.48995f}},
+    { 3, NpcUiEntry::NPC_DEVIATE_MOCCASIN, {121.39977f, 166.31746f, -105.54061f}}
 };
 
-struct thirdWaveLocations
-{
-    uint32 uiEntry;
-    float fX, fY, fZ;
-    uint32 uiPathId;
-};
 // Todo: have more then 7 spawn points, but always spawn 7
-static const thirdWaveLocations ectoplasmLocations[7] =
+const SpawnLocation ectoplasmLocations[7] =
 {
-    { NPC_NIGHTMARE_ECTOPLASM, 162.06705f, 218.71494f, -105.36240f, 1},
-    { NPC_NIGHTMARE_ECTOPLASM, 115.55489f, 168.22847f, -105.68655f, 2},
-    { NPC_NIGHTMARE_ECTOPLASM, 82.065025f, 280.37723f, -103.29671f, 3},
-    { NPC_NIGHTMARE_ECTOPLASM, 144.84305f, 278.07928f, -104.57445f, 4},
-    { NPC_NIGHTMARE_ECTOPLASM, 155.84459f, 186.68817f, -107.08412f, 5},
-    { NPC_NIGHTMARE_ECTOPLASM, 145.35356f, 219.34600f, -102.98572f, 6},
-    { NPC_NIGHTMARE_ECTOPLASM, 164.62735f, 274.12335f, -107.29780f, 7}
+    { 1, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {162.06705f, 218.71494f, -105.36240f}},
+    { 2, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {115.55489f, 168.22847f, -105.68655f}},
+    { 3, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {82.065025f, 280.37723f, -103.29671f}},
+    { 4, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {144.84305f, 278.07928f, -104.57445f}},
+    { 5, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {155.84459f, 186.68817f, -107.08412f}},
+    { 6, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {145.35356f, 219.34600f, -102.98572f}},
+    { 7, NpcUiEntry::NPC_NIGHTMARE_ECTOPLASM, {164.62735f, 274.12335f, -107.29780f}}
 };
 
-float  mutanosLocations[4] = { 150.94276f, 262.79715f, -103.90348f, 1 };
+const SpawnLocation mutanosLocations[] = { 1, NpcUiEntry::NPC_MUTANUS, {150.94276f, 262.79715f, -103.90348f} };
+
+} // namespace
 
 struct npc_disciple_of_naralexAI : public npc_escortAI
 {
@@ -177,7 +170,7 @@ struct npc_disciple_of_naralexAI : public npc_escortAI
     {
         if (!m_bIsFirstHit)
         {
-            if (pAttacker->GetEntry() == NPC_MUTANUS)
+            if (pAttacker->GetEntry() == static_cast<uint32_t>(NpcUiEntry::NPC_MUTANUS))
                 DoBroadcastText(SAY_MUTANUS, m_creature, pAttacker);
             // Check if already in ritual
             else if (m_uiPoint >= 30)
@@ -274,8 +267,8 @@ struct npc_disciple_of_naralexAI : public npc_escortAI
                         {
                             case 0:
                                 // Summon raptors at first stop
-                                for (auto& i : raptorLocations)
-                                    m_creature->SummonCreature(i.uiEntry, i.fX, i.fY, i.fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 20000, true, true, i.uiPathId);
+                                for (auto const& loc : raptorLocations)
+                                    m_creature->SummonCreature(static_cast<uint32_t>(loc.ui_entry), {loc.pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 20000, SummonFlags{true, true}, SummonIds{loc.ui_path_id});
                                 m_uiEventTimer = 0;
                                 ++m_uiSubeventPhase;
                                 break;
@@ -298,8 +291,10 @@ struct npc_disciple_of_naralexAI : public npc_escortAI
                                 break;
                             case 1:
                                 // Summon vipers at the first circle
-                                for (uint8 i = 0; i < 3; ++i)
-                                    m_creature->SummonCreature(urand(0, 1) ? NPC_DEVIATE_ADDER : NPC_DEVIATE_VIPER, circleLocations[i][0], circleLocations[i][1], circleLocations[i][2], circleLocations[i][3], TEMPSPAWN_TIMED_OOC_DESPAWN, 20000, true);
+                                for (uint8 i = 0; i < 3; ++i) {
+                                    auto const ui_entry = urand(0, 1) ? NpcUiEntry::NPC_DEVIATE_ADDER : NpcUiEntry::NPC_DEVIATE_VIPER;
+                                    m_creature->SummonCreature(static_cast<uint32_t>(ui_entry), circleLocations[i], TempSpawnType::TIMED_OOC_DESPAWN, 20000, SummonFlags{true});
+                                }
                                 m_uiEventTimer = 0;
                                 ++m_uiSubeventPhase;
                                 break;
@@ -337,8 +332,9 @@ struct npc_disciple_of_naralexAI : public npc_escortAI
                                 break;
                             case 2:
                                 // First set of mobs
-                                for (auto& i : moccasinLocations)
-                                    m_creature->SummonCreature(i.uiEntry, i.fX, i.fY, i.fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 20000, false, false, i.uiPathId);
+                                for (auto const& loc : moccasinLocations) {
+                                    m_creature->SummonCreature(static_cast<uint32_t>(loc.ui_entry), {loc.pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 20000, SummonFlags{false, false}, SummonIds{loc.ui_path_id});
+                                }
                                 m_uiEventTimer = 5000;
                                 ++m_uiSubeventPhase;
                                 break;
@@ -350,8 +346,9 @@ struct npc_disciple_of_naralexAI : public npc_escortAI
                                 break;
                             case 4:
                                 // Second set of mobs
-                                for (auto& i : ectoplasmLocations)
-                                    m_creature->SummonCreature(i.uiEntry, i.fX, i.fY, i.fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 20000, true, false, i.uiPathId);
+                                for (auto const& loc : ectoplasmLocations) {
+                                    m_creature->SummonCreature(static_cast<uint32_t>(loc.ui_entry), {loc.pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 20000, SummonFlags{true, false}, SummonIds{loc.ui_path_id});
+                                }
                                 m_uiEventTimer = 20000;
                                 ++m_uiSubeventPhase;
                                 break;
@@ -362,15 +359,16 @@ struct npc_disciple_of_naralexAI : public npc_escortAI
                                 ++m_uiSubeventPhase;
                                 m_uiEventTimer = 0;
                                 break;
-                            case 6:
+                            case 6: {
                                 // Mutanus
                                 if (Creature* pNaralex = m_instance->GetSingleCreatureFromStorage(NPC_NARALEX))
                                     DoBroadcastText(EMOTE_VISION, pNaralex);
 
-                                m_creature->SummonCreature(NPC_MUTANUS, mutanosLocations[0], mutanosLocations[1], mutanosLocations[2], 0.0f, TEMPSPAWN_DEAD_DESPAWN, 20000, true, false, mutanosLocations[3]);
+                                auto const& loc = mutanosLocations[0];
+                                m_creature->SummonCreature(static_cast<uint32_t>(loc.ui_entry), {loc.pos, 0.0f}, TempSpawnType::DEAD_DESPAWN, 20000, SummonFlags{true, false}, SummonIds{loc.ui_path_id});
                                 m_uiEventTimer = 0;
                                 ++m_uiSubeventPhase;
-                                break;
+                            } break;
                             case 7:
                                 // Awaken Naralex after mutanus is defeated
                                 if (Creature* pNaralex = m_instance->GetSingleCreatureFromStorage(NPC_NARALEX))

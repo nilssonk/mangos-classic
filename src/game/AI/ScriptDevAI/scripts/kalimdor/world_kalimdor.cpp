@@ -98,16 +98,15 @@ struct world_map_kalimdor : public ScriptedMap
                     // If all 3 coastrunners are killed, summon 2 warriors
                     if (m_uiMurkdeepAdds_KilledAddCount == 3)
                     {
-                        float fX, fY, fZ;
                         for (uint8 i = 0; i < 2; ++i)
                         {
-                            pCreature->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][0], aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][1], aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][2], 5.0f, fX, fY, fZ);
+                            auto const rand_pos = pCreature->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_SPAWN].xyz(), 5.0f);
 
-                            if (Creature* pTemp = pCreature->SummonCreature(NPC_GREYMIST_WARRIOR, fX, fY, fZ, aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][3], TEMPSPAWN_DEAD_DESPAWN, 0))
+                            if (Creature* pTemp = pCreature->SummonCreature(NPC_GREYMIST_WARRIOR, {rand_pos, aSpawnLocations[POS_IDX_MURKDEEP_SPAWN].w}, TempSpawnType::DEAD_DESPAWN, 0))
                             {
                                 pTemp->SetWalk(false);
-                                pTemp->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_MOVE][0], aSpawnLocations[POS_IDX_MURKDEEP_MOVE][1], aSpawnLocations[POS_IDX_MURKDEEP_MOVE][2], 5.0f, fX, fY, fZ);
-                                pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                auto const rand_dest = pTemp->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_MOVE].xyz(), 5.0f);
+                                pTemp->GetMotionMaster()->MovePoint(0, rand_dest);
                             }
                         }
 
@@ -123,16 +122,16 @@ struct world_map_kalimdor : public ScriptedMap
                     // After the 2 warriors are killed, Murkdeep spawns, along with a hunter
                     if (m_uiMurkdeepAdds_KilledAddCount == 2)
                     {
-                        float fX, fY, fZ;
                         for (uint8 i = 0; i < 2; ++i)
                         {
-                            pCreature->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][0], aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][1], aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][2], 5.0f, fX, fY, fZ);
+                            auto const rand_pos = pCreature->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_SPAWN].xyz(), 5.0f);
 
-                            if (Creature* pTemp = pCreature->SummonCreature(!i ? NPC_MURKDEEP : NPC_GREYMIST_HUNTER, fX, fY, fZ, aSpawnLocations[POS_IDX_MURKDEEP_SPAWN][3], TEMPSPAWN_DEAD_DESPAWN, 0))
+                            auto const ui_entry = (i == 0 ? NPC_MURKDEEP : NPC_GREYMIST_HUNTER);
+                            if (Creature* pTemp = pCreature->SummonCreature(ui_entry, {rand_pos, aSpawnLocations[POS_IDX_MURKDEEP_SPAWN].w}, TempSpawnType::DEAD_DESPAWN, 0))
                             {
                                 pTemp->SetWalk(false);
-                                pTemp->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_MOVE][0], aSpawnLocations[POS_IDX_MURKDEEP_MOVE][1], aSpawnLocations[POS_IDX_MURKDEEP_MOVE][2], 5.0f, fX, fY, fZ);
-                                pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                auto const rand_dest = pTemp->GetRandomPoint(aSpawnLocations[POS_IDX_MURKDEEP_MOVE].xyz(), 5.0f);
+                                pTemp->GetMotionMaster()->MovePoint(0, rand_dest);
                             }
                         }
 
@@ -237,16 +236,27 @@ struct world_map_kalimdor : public ScriptedMap
         {
             if (eventData.despawnTimer / 15000 >= eventData.phaseCounter)
             {
-                float x, y, z;
-                go->GetPosition(x, y, z); // do some urand radius shenanigans to spawn it further and make it walk to go using doing X and Y yourself and using function in MAP to get proper Z
+                auto const pos = go->GetPosition(); // do some urand radius shenanigans to spawn it further and make it walk to go using doing X and Y yourself and using function in MAP to get proper Z
                 uint32 random = urand(0, 35);
-                float xR = x + random, yR = y + (40 - random), zR = z;
-                instance->GetHeightInRange(xR, yR, zR);
-                Creature* creature = go->SummonCreature(NPC_MAGRAMI_SPECTRE, xR, yR, zR, 0, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 180000); // add more timed logic here
-                instance->GetReachableRandomPointOnGround(x, y, z, 10.0f); // get position to which spectre will walk
+                Vec2 const rand_pos{
+                    pos.x + random,
+                    pos.y + (40 - random)};
+                float rand_z{};
+                if (!instance->GetHeightInRange(rand_pos, rand_z)) {
+                    return false;
+                }
+
+                Creature* creature = go->SummonCreature(NPC_MAGRAMI_SPECTRE, {rand_pos, rand_z, 0.0f}, TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 180000); // add more timed logic here
+
+                Vec3 dst{rand_pos, rand_z};
+                auto const maybe_point = instance->GetReachableRandomPointOnGround(dst, 10.0f); // get position to which spectre will walk
+                if (maybe_point) {
+                    creature->GetMotionMaster()->MovePoint(1, *maybe_point);
+                } else {
+                    creature->GetMotionMaster()->MovePoint(1, dst);
+                }
                 eventData.phaseCounter++;
                 eventData.summonedMagrami.push_back(creature->GetObjectGuid());
-                creature->GetMotionMaster()->MovePoint(1, x, y, z);
             }
             return true;
         }
@@ -343,17 +353,17 @@ struct world_map_kalimdor : public ScriptedMap
                         if (GameObject* pRocketCluster = GetSingleGameObjectFromStorage(GO_ROCKET_CLUSTER))
                         {
                             for (uint8 i = POS_IDX_MINION_OMEN_START; i <= POS_IDX_MINION_OMEN_STOP; i++)
-                                pRocketCluster->SummonCreature(NPC_MINION_OMEN, aSpawnLocations[i][0], aSpawnLocations[i][1], aSpawnLocations[i][2], aSpawnLocations[i][3], TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 15 * MINUTE * IN_MILLISECONDS);
+                                pRocketCluster->SummonCreature(NPC_MINION_OMEN, aSpawnLocations[i], TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 15 * MINUTE * IN_MILLISECONDS);
                         }
                         break;
                     case IN_PROGRESS:
                         if (GameObject* pRocketCluster = GetSingleGameObjectFromStorage(GO_ROCKET_CLUSTER))
                         {
-                            if (Creature* pOmen = pRocketCluster->SummonCreature(NPC_OMEN, aSpawnLocations[POS_IDX_OMEN_SPAWN][0], aSpawnLocations[POS_IDX_OMEN_SPAWN][1], aSpawnLocations[POS_IDX_OMEN_SPAWN][2], aSpawnLocations[POS_IDX_OMEN_SPAWN][3], TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 15 * MINUTE * IN_MILLISECONDS))
+                            if (Creature* pOmen = pRocketCluster->SummonCreature(NPC_OMEN, aSpawnLocations[POS_IDX_OMEN_SPAWN], TempSpawnType::TIMED_OOC_OR_DEAD_DESPAWN, 15 * MINUTE * IN_MILLISECONDS))
                             {
                                 // Moving him to the lake bank
                                 pOmen->SetWalk(true);
-                                pOmen->GetMotionMaster()->MovePoint(1, aSpawnLocations[POS_IDX_OMEN_MOVE][0], aSpawnLocations[POS_IDX_OMEN_MOVE][1], aSpawnLocations[POS_IDX_OMEN_MOVE][2]);
+                                pOmen->GetMotionMaster()->MovePoint(1, aSpawnLocations[POS_IDX_OMEN_MOVE].xyz());
                                 m_uiOmenResetTimer = 15 * MINUTE * IN_MILLISECONDS; // Reset after 15 minutes if not engaged or defeated
                             }
                         }

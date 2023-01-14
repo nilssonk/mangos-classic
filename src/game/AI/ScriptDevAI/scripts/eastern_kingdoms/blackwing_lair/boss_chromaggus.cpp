@@ -27,6 +27,8 @@ EndScriptData
 #include "blackwing_lair.h"
 #include "AI/ScriptDevAI/base/CombatAI.h"
 
+namespace bwl {
+
 enum
 {
     EMOTE_GENERIC_FRENZY_KILL   = -1000001,
@@ -155,3 +157,5 @@ void AddSC_boss_chromaggus()
     pNewScript->GetAI = &GetNewAIInstance<boss_chromaggusAI>;
     pNewScript->RegisterSelf();
 }
+
+} // namespace bwl

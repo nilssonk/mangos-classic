@@ -322,7 +322,7 @@ struct npc_ouro_spawnerAI : public Scripted_NoMovementAI
     {
         if (!m_bHasSummoned)
         {
-            m_creature->SummonCreature(NPC_OURO, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->GetOrientation(), TEMPSPAWN_DEAD_DESPAWN, 0, true);
+            m_creature->SummonCreature(NPC_OURO, m_creature->GetPosition(), TempSpawnType::DEAD_DESPAWN, 0, SummonFlags{true});
             m_bHasSummoned = true;
         }
     }
